@@ -41,3 +41,8 @@ app-example
 # generated native folders
 /ios
 /android
+
+# ignore skills and claude
+skills/
+.claude/
+
