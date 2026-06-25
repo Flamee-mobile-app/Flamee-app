@@ -25,12 +25,14 @@ import { ROUTES } from '@/lib/navigation/routes';
 const { width, height } = Dimensions.get('window');
 
 function CustomInputField({
+  label,
   placeholder,
   value,
   onChangeText,
   secureTextEntry = false,
   error,
 }: {
+  label?: string;
   placeholder: string;
   value: string;
   onChangeText: (v: string) => void;
@@ -39,6 +41,7 @@ function CustomInputField({
 }) {
   return (
     <View style={inputStyles.wrapper}>
+      {label ? <Text style={inputStyles.label}>{label}</Text> : null}
       <View style={inputStyles.border}>
         <TextInput
           placeholder={placeholder}
@@ -57,6 +60,12 @@ function CustomInputField({
 
 const inputStyles = StyleSheet.create({
   wrapper: { gap: 4 },
+  label: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#444444',
+    marginLeft: 16,
+  },
   border: {
     backgroundColor: '#FFFFFF',
     borderRadius: 30,
@@ -124,13 +133,15 @@ export function LoginScreen() {
             {/* Form Fields */}
             <View style={styles.formFields}>
               <CustomInputField
-                placeholder="Email"
+                label="Email"
+                placeholder="example@gmail.com"
                 value={form.values.email}
                 onChangeText={(v) => form.update('email', v)}
                 error={form.errors.email}
               />
               <CustomInputField
-                placeholder="Mật khẩu"
+                label="Mật khẩu"
+                placeholder="••••••••"
                 value={form.values.password}
                 onChangeText={(v) => form.update('password', v)}
                 secureTextEntry
