@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+python-multipart
+PyJWT
+passlib[bcrypt]
+bcrypt>=4.0,<5
+python-dotenv
+httpx
+pytest
+pytest-asyncio
+email-validator
