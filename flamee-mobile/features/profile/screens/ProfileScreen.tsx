@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -10,51 +9,14 @@ import {
   View,
   StatusBar,
   SafeAreaView,
-  Pressable,
 } from 'react-native';
 import { Image } from 'expo-image';
 
 import { flameeTheme } from '@/constants/flameeTheme';
 import { StateView } from '@/components/ui';
 import { useProfileData } from '@/features/profile/hooks/useProfileData';
-import { MAIN_NAV_ITEMS, ROUTES } from '@/lib/navigation/routes';
 
 const { width, height } = Dimensions.get('window');
-
-function BottomTabBar({ activeRoute, onNavigate }: { activeRoute: string; onNavigate: (r: string) => void }) {
-  return (
-    <View style={tabStyles.bar}>
-      {MAIN_NAV_ITEMS.map((item) => {
-        const active = String(item.href) === activeRoute;
-        return (
-          <Pressable key={item.key} style={tabStyles.item} onPress={() => onNavigate(String(item.href))}>
-            <Ionicons name={item.icon as any} size={24} color={active ? '#FF7158' : '#999999'} />
-            <Text style={[tabStyles.label, active && tabStyles.labelActive]}>{item.label}</Text>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
-
-const tabStyles = StyleSheet.create({
-  bar: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#FFE6CE',
-    paddingTop: 8,
-    paddingBottom: 20,
-    paddingHorizontal: 8,
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-  },
-  item: { flex: 1, alignItems: 'center', gap: 3 },
-  label: { fontSize: 10, color: '#999999' },
-  labelActive: { color: '#FF7158', fontWeight: '600' },
-});
 
 const MENU_ITEMS = [
   { id: 'info', label: 'Thông tin của chúng ta' },
@@ -65,7 +27,6 @@ const MENU_ITEMS = [
 ];
 
 export function ProfileScreen() {
-  const router = useRouter();
   const profile = useProfileData();
 
   if (profile.isLoading) return <StateView title="Đang tải Profile" loading />;
@@ -178,8 +139,6 @@ export function ProfileScreen() {
           <View style={{ height: 120 }} />
         </View>
       </ScrollView>
-
-      <BottomTabBar activeRoute={ROUTES.profile} onNavigate={(r) => router.replace(r as any)} />
     </View>
   );
 }

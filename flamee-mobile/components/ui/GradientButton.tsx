@@ -58,8 +58,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   solidText: {
+    fontFamily: 'SF-Pro',
     color: '#5B4C1B',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
   },
   outlineWrapper: {
@@ -79,7 +80,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   outlineText: {
-    fontSize: 16,
+    fontFamily: 'SF-Pro',
+    fontSize: 14,
     fontWeight: '600',
     color: '#FF7158',
   },

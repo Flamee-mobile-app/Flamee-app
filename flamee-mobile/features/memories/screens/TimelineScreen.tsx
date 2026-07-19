@@ -10,13 +10,11 @@ import {
   View,
   StatusBar,
   SafeAreaView,
-  Pressable,
 } from 'react-native';
 
 import { flameeTheme } from '@/constants/flameeTheme';
 import { StateView } from '@/components/ui';
 import { useTimelineMemories } from '@/features/memories/hooks/useMemories';
-import { MAIN_NAV_ITEMS, ROUTES } from '@/lib/navigation/routes';
 
 const { width } = Dimensions.get('window');
 
@@ -27,41 +25,6 @@ const TIMELINE_EVENTS = [
   { id: '4', date: '01/01/2023', title: 'Lần đầu gặp nhau', note: 'Quán cà phê nhỏ phố cổ', icon: 'cafe-outline', highlight: false },
   { id: '5', date: '01/01/2023', title: 'Tình yêu bắt đầu từ đây', note: 'Cùng nhau bước đi tiếp nhé', icon: 'star-outline', highlight: false },
 ];
-
-function BottomTabBar({ activeRoute, onNavigate }: { activeRoute: string; onNavigate: (r: string) => void }) {
-  return (
-    <View style={tabStyles.bar}>
-      {MAIN_NAV_ITEMS.map((item) => {
-        const active = String(item.href) === activeRoute;
-        return (
-          <Pressable key={item.key} style={tabStyles.item} onPress={() => onNavigate(String(item.href))}>
-            <Ionicons name={item.icon as any} size={24} color={active ? '#FF7158' : '#999999'} />
-            <Text style={[tabStyles.label, active && tabStyles.labelActive]}>{item.label}</Text>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
-
-const tabStyles = StyleSheet.create({
-  bar: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#FFE6CE',
-    paddingTop: 8,
-    paddingBottom: 20,
-    paddingHorizontal: 8,
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-  },
-  item: { flex: 1, alignItems: 'center', gap: 3 },
-  label: { fontSize: 10, color: '#999999' },
-  labelActive: { color: '#FF7158', fontWeight: '600' },
-});
 
 export function TimelineScreen() {
   const router = useRouter();
@@ -156,11 +119,6 @@ export function TimelineScreen() {
           <Ionicons name="add" size={28} color="#FFFFFF" />
         </LinearGradient>
       </TouchableOpacity>
-
-      <BottomTabBar
-        activeRoute={ROUTES.memories}
-        onNavigate={(r) => router.replace(r as any)}
-      />
     </View>
   );
 }

@@ -60,8 +60,9 @@ function CustomInputField({
 const inputStyles = StyleSheet.create({
   wrapper: { gap: 4 },
   label: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontFamily: 'SF-Pro',
+    fontSize: 14,
+    fontWeight: '500',
     color: '#444444',
     marginLeft: 16,
   },
@@ -79,8 +80,18 @@ const inputStyles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  input: { fontSize: 15, color: '#2B2B2B', flex: 1 },
-  error: { color: '#FF7158', fontSize: 11, paddingHorizontal: 16 },
+  input: {
+    fontFamily: 'SF-Pro',
+    fontSize: 15,
+    color: '#2B2B2B',
+    flex: 1,
+  },
+  error: {
+    fontFamily: 'SF-Pro',
+    color: '#FF7158',
+    fontSize: 11,
+    paddingHorizontal: 16,
+  },
 });
 
 export function RegisterScreen() {
@@ -265,10 +276,12 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   title: {
-    fontSize: 26,
+    fontFamily: 'SF-Pro-Rounded',
+    fontSize: 28,
     fontWeight: '700',
     color: '#2B2B2B',
     textAlign: 'center',
+    lineHeight: 33,
     marginBottom: 10,
   },
   formFields: {
@@ -293,14 +306,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#76E69F',
   },
   termsText: {
-    fontSize: 12,
+    fontFamily: 'SF-Pro',
+    fontSize: 11,
     color: '#555555',
+    fontWeight: '400',
   },
   termsLink: {
+    fontFamily: 'SF-Pro',
     color: '#FF7158',
     fontWeight: '600',
   },
   termsError: {
+    fontFamily: 'SF-Pro',
     color: '#FF7158',
     fontSize: 11,
     paddingHorizontal: 4,
@@ -314,6 +331,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   socialTitle: {
+    fontFamily: 'SF-Pro',
     fontSize: 12,
     color: '#555555',
     fontWeight: '400',
@@ -344,10 +362,13 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   loginText: {
+    fontFamily: 'SF-Pro',
     fontSize: 13,
     color: '#555555',
+    fontWeight: '400',
   },
   loginLink: {
+    fontFamily: 'SF-Pro',
     fontSize: 13,
     fontWeight: '600',
     color: '#FF7158',

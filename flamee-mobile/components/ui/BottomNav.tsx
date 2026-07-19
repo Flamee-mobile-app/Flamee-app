@@ -1,50 +1,59 @@
 import { Ionicons } from '@expo/vector-icons';
-import type { Href } from 'expo-router';
+import { usePathname, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { flameeTheme } from '@/constants/flameeTheme';
+import { MAIN_NAV_ITEMS } from '@/lib/navigation/routes';
 
 import { AppText } from './AppText';
 import type { IconName } from './IconButton';
 
-export type BottomNavItem = {
-  label: string;
-  icon: string;
-  href: Href;
-};
+export function BottomNav() {
+  const pathname = usePathname();
+  const router = useRouter();
 
-export type BottomNavProps = {
-  items: BottomNavItem[];
-  activeHref: Href;
-  onNavigate: (href: Href) => void;
-};
-
-export function BottomNav({ items, activeHref, onNavigate }: BottomNavProps) {
   return (
-    <View style={styles.nav}>
-      {items.map((item) => {
-        const selected = item.href === activeHref;
-        return (
-          <Pressable key={String(item.href)} onPress={() => onNavigate(item.href)} style={styles.item}>
-            <Ionicons
-              name={item.icon as IconName}
-              size={22}
-              color={selected ? flameeTheme.colors.brand : flameeTheme.colors.text.secondary}
-            />
-            <AppText
-              variant="micro"
-              color={selected ? flameeTheme.colors.brand : flameeTheme.colors.text.secondary}
-              align="center">
-              {item.label}
-            </AppText>
-          </Pressable>
-        );
-      })}
+    <View pointerEvents="box-none" style={styles.container}>
+      <View style={styles.nav}>
+        {MAIN_NAV_ITEMS.map((item) => {
+          const selected = String(item.href).replace('/(main)', '') === pathname;
+
+          return (
+            <Pressable
+              key={item.key}
+              accessibilityLabel={item.label}
+              accessibilityRole="tab"
+              accessibilityState={{ selected }}
+              onPress={() => router.replace(item.href)}
+              style={styles.item}>
+              <Ionicons
+                name={item.icon as IconName}
+                size={22}
+                color={selected ? flameeTheme.colors.brand : flameeTheme.colors.text.secondary}
+              />
+              <AppText
+                variant="micro"
+                color={selected ? flameeTheme.colors.brand : flameeTheme.colors.text.secondary}
+                align="center">
+                {item.label}
+              </AppText>
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    bottom: 0,
+    left: 0,
+    paddingBottom: flameeTheme.spacing[5],
+    paddingHorizontal: flameeTheme.spacing[2],
+    position: 'absolute',
+    right: 0,
+  },
   nav: {
     alignItems: 'center',
     backgroundColor: flameeTheme.colors.background,

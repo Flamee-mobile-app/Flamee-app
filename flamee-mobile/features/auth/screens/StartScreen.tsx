@@ -127,18 +127,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   tagline: {
+    fontFamily: 'SF-Pro-Rounded',
     fontSize: 24,
     fontWeight: '700',
     textAlign: 'center',
-    lineHeight: 30,
+    lineHeight: 29,
     color: '#FFFFFF',
-    fontFamily: 'System',
   },
   subTagline: {
+    fontFamily: 'SF-Pro',
     fontSize: 14,
     fontWeight: '400',
     textAlign: 'center',
-    lineHeight: 18,
+    lineHeight: 17,
     color: '#FFFFFF',
     opacity: 0.85,
   },
@@ -162,7 +163,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   solidBtnText: {
-    fontSize: 16,
+    fontFamily: 'SF-Pro',
+    fontSize: 14,
     fontWeight: '600',
     color: '#5B4C1B',
   },
@@ -179,7 +181,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.08)', // glassmorphism backdrop
   },
   outlineBtnText: {
-    fontSize: 16,
+    fontFamily: 'SF-Pro',
+    fontSize: 14,
     fontWeight: '600',
     color: '#FAF9F7',
   },

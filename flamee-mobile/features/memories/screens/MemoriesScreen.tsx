@@ -11,7 +11,6 @@ import {
   View,
   StatusBar,
   SafeAreaView,
-  Pressable,
   Image,
 } from 'react-native';
 
@@ -19,8 +18,6 @@ import { flameeTheme } from '@/constants/flameeTheme';
 import { StateView } from '@/components/ui';
 import { useMemoryGallery } from '@/features/memories/hooks/useMemories';
 import type { MemoryCategory } from '@/features/memories/types';
-import { MAIN_NAV_ITEMS, ROUTES } from '@/lib/navigation/routes';
-
 const { width } = Dimensions.get('window');
 
 const CELL_SIZE = (width - 48 - 16) / 2;
@@ -77,41 +74,6 @@ const MOCK_MEMORIES = [
     image: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=500&auto=format&fit=crop',
   },
 ];
-
-function BottomTabBar({ activeRoute, onNavigate }: { activeRoute: string; onNavigate: (r: string) => void }) {
-  return (
-    <View style={tabStyles.bar}>
-      {MAIN_NAV_ITEMS.map((item) => {
-        const active = String(item.href) === activeRoute;
-        return (
-          <Pressable key={item.key} style={tabStyles.item} onPress={() => onNavigate(String(item.href))}>
-            <Ionicons name={item.icon as any} size={24} color={active ? '#FF7158' : '#999999'} />
-            <Text style={[tabStyles.label, active && tabStyles.labelActive]}>{item.label}</Text>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
-
-const tabStyles = StyleSheet.create({
-  bar: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#FFE6CE',
-    paddingTop: 8,
-    paddingBottom: 20,
-    paddingHorizontal: 8,
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-  },
-  item: { flex: 1, alignItems: 'center', gap: 3 },
-  label: { fontSize: 10, color: '#999999' },
-  labelActive: { color: '#FF7158', fontWeight: '600' },
-});
 
 export function MemoriesScreen() {
   const router = useRouter();
@@ -215,11 +177,6 @@ export function MemoriesScreen() {
 
         <View style={{ height: 100 }} />
       </ScrollView>
-
-      <BottomTabBar
-        activeRoute={ROUTES.memories}
-        onNavigate={(r) => router.replace(r as any)}
-      />
     </View>
   );
 }

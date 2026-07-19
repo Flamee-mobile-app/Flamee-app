@@ -33,7 +33,7 @@ const mapFont = (style: any) => {
       return [flatStyle, { fontFamily: 'SF-Pro-Bold', fontWeight: undefined }];
     }
     if (fontWeight === '600' || fontWeight === 'semibold') {
-      return [flatStyle, { fontFamily: 'SF-Pro-Semibold', fontWeight: undefined }];
+      return [flatStyle, { fontFamily: 'SF-Pro-Bold', fontWeight: undefined }];
     }
     if (fontWeight === '500' || fontWeight === 'medium') {
       return [flatStyle, { fontFamily: 'SF-Pro-Medium', fontWeight: undefined }];

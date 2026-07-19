@@ -30,3 +30,7 @@ export const MAIN_NAV_ITEMS: MainNavItem[] = [
   { key: 'missions', label: 'Nhiệm vụ', icon: 'checkmark-circle', href: ROUTES.missions },
   { key: 'profile', label: 'Profile', icon: 'person', href: ROUTES.profile },
 ];
+
+export function isMainNavigationPath(pathname: string) {
+  return MAIN_NAV_ITEMS.some((item) => String(item.href).replace('/(main)', '') === pathname);
+}
