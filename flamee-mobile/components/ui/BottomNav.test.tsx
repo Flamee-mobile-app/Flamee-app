@@ -49,4 +49,14 @@ describe('BottomNav', () => {
 
     expect(mockReplace).toHaveBeenCalledWith(ROUTES.profile);
   });
+
+  it('uses the inline SVG renderer at the Figma bar geometry', async () => {
+    const { getByTestId } = await render(<BottomNav />);
+
+    expect(getByTestId('bottom-nav-bar').props.style).toEqual(
+      expect.objectContaining({ height: 72 }),
+    );
+    expect(getByTestId('bottom-nav-background-svg')).toBeTruthy();
+    expect(getByTestId('bottom-nav-logo-svg')).toBeTruthy();
+  });
 });
