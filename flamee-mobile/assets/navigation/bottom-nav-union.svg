@@ -1,0 +1,22 @@
+<svg preserveAspectRatio="none" width="100%" height="100%" overflow="visible" style="display: block;" viewBox="0 0 442 112" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Union" filter="url(#filter0_d_0_298)">
+<path d="M148 18C165.673 18 179.43 34.2897 191.865 46.8477C199.296 54.3516 209.605 59 221 59C232.395 59 242.704 54.3515 250.135 46.8477C262.57 34.2897 276.327 18 294 18H386C405.882 18 422 34.1177 422 54C422 73.8823 405.882 90 386 90H56C36.1177 90 20 73.8823 20 54C20 34.1177 36.1177 18 56 18H148Z" fill="url(#paint0_linear_0_298)"/>
+</g>
+<defs>
+<filter id="filter0_d_0_298" x="0" y="0" width="442" height="112" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+<feOffset dy="2"/>
+<feGaussianBlur stdDeviation="10"/>
+<feComposite in2="hardAlpha" operator="out"/>
+<feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.1 0"/>
+<feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_0_298"/>
+<feBlend mode="normal" in="BackgroundImageFix" in2="effect1_dropShadow_0_298" result="BackgroundImageFix"/>
+<feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+</filter>
+<linearGradient id="paint0_linear_0_298" x1="221" y1="90" x2="221" y2="-9.5" gradientUnits="userSpaceOnUse">
+<stop stop-color="#FCB76D"/>
+<stop offset="1" stop-color="#FF7158"/>
+</linearGradient>
+</defs>
+</svg>
