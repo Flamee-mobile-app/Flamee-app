@@ -16,21 +16,27 @@ export const ROUTES = {
 
 export type FlameeRouteKey = keyof typeof ROUTES;
 
-export type MainNavItem = {
-  key: Extract<FlameeRouteKey, 'home' | 'memories' | 'mood' | 'missions' | 'profile'>;
+export type BottomNavItem = {
+  key: Extract<FlameeRouteKey, 'home' | 'memories' | 'missions' | 'profile'>;
   label: string;
-  icon: string;
   href: Href;
 };
 
-export const MAIN_NAV_ITEMS: MainNavItem[] = [
-  { key: 'home', label: 'Trang chủ', icon: 'home', href: ROUTES.home },
-  { key: 'memories', label: 'Kỉ niệm', icon: 'heart', href: ROUTES.memories },
-  { key: 'mood', label: 'Mood', icon: 'happy', href: ROUTES.mood },
-  { key: 'missions', label: 'Nhiệm vụ', icon: 'checkmark-circle', href: ROUTES.missions },
-  { key: 'profile', label: 'Profile', icon: 'person', href: ROUTES.profile },
-];
+export const MAIN_NAV_PATHS = [
+  ROUTES.home,
+  ROUTES.memories,
+  ROUTES.mood,
+  ROUTES.missions,
+  ROUTES.profile,
+] as const;
+
+export const BOTTOM_NAV_ITEMS = [
+  { key: 'home', label: 'Trang chủ', href: ROUTES.home },
+  { key: 'memories', label: 'Hoạt động', href: ROUTES.memories },
+  { key: 'missions', label: 'Nhiệm vụ', href: ROUTES.missions },
+  { key: 'profile', label: 'Hồ sơ', href: ROUTES.profile },
+] as const satisfies readonly BottomNavItem[];
 
 export function isMainNavigationPath(pathname: string) {
-  return MAIN_NAV_ITEMS.some((item) => String(item.href).replace('/(main)', '') === pathname);
+  return MAIN_NAV_PATHS.some((href) => String(href).replace('/(main)', '') === pathname);
 }
