@@ -14,7 +14,11 @@ import { flameeTheme } from '@/constants/flameeTheme';
 import { BOTTOM_NAV_ITEMS, type BottomNavItem } from '@/lib/navigation/routes';
 
 import { AppText } from './AppText';
-import { FIGMA_BOTTOM_NAV_WIDTH, getBottomNavTabLayout } from './bottomNavLayout';
+import {
+  FIGMA_BOTTOM_NAV_WIDTH,
+  getBottomNavTabLayout,
+  type BottomNavTabLayout,
+} from './bottomNavLayout';
 
 const UNION_PATH =
   'M148 18C165.673 18 179.43 34.2897 191.865 46.8477C199.296 54.3516 209.605 59 221 59C232.395 59 242.704 54.3515 250.135 46.8477C262.57 34.2897 276.327 18 294 18H386C405.882 18 422 34.1177 422 54C422 73.8823 405.882 90 386 90H56C36.1177 90 20 73.8823 20 54C20 34.1177 36.1177 18 56 18H148Z';
@@ -101,6 +105,31 @@ function BottomNavIcon({ itemKey }: { itemKey: BottomNavItem['key'] }) {
   );
 }
 
+function BottomNavVisualTab({
+  item,
+  layout,
+}: {
+  item: BottomNavItem;
+  layout: BottomNavTabLayout;
+}) {
+  return (
+    <View
+      pointerEvents="none"
+      style={[styles.tabVisual, layout]}
+      testID={`bottom-nav-visual-${item.key}`}>
+      <BottomNavIcon itemKey={item.key} />
+      <AppText
+        variant="micro"
+        color={flameeTheme.colors.text.inverse}
+        align="center"
+        numberOfLines={1}
+        style={styles.label}>
+        {item.label}
+      </AppText>
+    </View>
+  );
+}
+
 function FlameeLogoBadge() {
   return (
     <Svg
@@ -150,7 +179,17 @@ export function BottomNav() {
       <View testID="bottom-nav-bar" onLayout={onBarLayout} style={styles.bar}>
         <BottomNavBackground />
 
-        <View style={styles.tabs}>
+        <View pointerEvents="none" style={styles.visualTabs}>
+          {BOTTOM_NAV_ITEMS.map((item) => (
+            <BottomNavVisualTab
+              key={item.key}
+              item={item}
+              layout={getBottomNavTabLayout(item.key, barWidth)}
+            />
+          ))}
+        </View>
+
+        <View style={styles.interactionTabs}>
           {BOTTOM_NAV_ITEMS.map((item) => {
             const selected = String(item.href).replace('/(main)', '') === pathname;
 
@@ -162,21 +201,9 @@ export function BottomNav() {
                 accessibilityState={{ selected }}
                 hitSlop={8}
                 onPress={() => router.replace(item.href)}
-                style={({ pressed }) => [
-                  styles.tab,
-                  getBottomNavTabLayout(item.key, barWidth),
-                  pressed && styles.tabPressed,
-                ]}>
-                <BottomNavIcon itemKey={item.key} />
-                <AppText
-                  variant="micro"
-                  color={flameeTheme.colors.text.inverse}
-                  align="center"
-                  numberOfLines={1}
-                  style={styles.label}>
-                  {item.label}
-                </AppText>
-              </Pressable>
+                style={[styles.tabButton, getBottomNavTabLayout(item.key, barWidth)]}
+                testID={`bottom-nav-button-${item.key}`}
+              />
             );
           })}
         </View>
@@ -218,17 +245,30 @@ const styles = StyleSheet.create({
     marginLeft: -28,
     position: 'absolute',
     top: -28,
+    zIndex: 3,
+  },
+  interactionTabs: {
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
     zIndex: 2,
   },
-  tab: {
+  tabButton: {
+    height: 42,
+    position: 'absolute',
+  },
+  tabVisual: {
     alignItems: 'center',
     position: 'absolute',
   },
-  tabPressed: {
-    opacity: 0.75,
-  },
-  tabs: {
-    height: 72,
-    position: 'relative',
+  visualTabs: {
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    zIndex: 1,
   },
 });

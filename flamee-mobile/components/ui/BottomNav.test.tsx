@@ -80,4 +80,20 @@ describe('BottomNav', () => {
       ]),
     );
   });
+
+  it.each([
+    ['home', { left: 23, top: 15, width: 57 }],
+    ['memories', { left: 100, top: 15, width: 60 }],
+    ['missions', { left: 242, top: 12, width: 55 }],
+    ['profile', { left: 321, top: 12, width: 34 }],
+  ] as const)('renders the %s visual at its Figma position', async (key, layout) => {
+    const { getByTestId } = await render(<BottomNav />);
+
+    expect(getByTestId(`bottom-nav-visual-${key}`).props.style).toEqual(
+      expect.arrayContaining([expect.objectContaining(layout)]),
+    );
+    expect(getByTestId(`bottom-nav-button-${key}`).props.style).toEqual(
+      expect.arrayContaining([expect.objectContaining(layout)]),
+    );
+  });
 });
