@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { usePathname, useRouter } from 'expo-router';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { flameeTheme } from '@/constants/flameeTheme';
@@ -18,7 +18,7 @@ const profileHead = require('../../assets/navigation/bottom-nav-profile-head.svg
 const profileBody = require('../../assets/navigation/bottom-nav-profile-body.svg');
 const flameeLogo = require('../../assets/flamee_logo.png');
 
-const TAB_LAYOUT: Record<BottomNavItem['key'], { left: string; top: number }> = {
+const TAB_LAYOUT: Record<BottomNavItem['key'], Pick<ViewStyle, 'left' | 'top'>> = {
   home: { left: '4.85%', top: 15 },
   memories: { left: '24.38%', top: 15 },
   missions: { left: '59.08%', top: 12 },

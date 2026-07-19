@@ -17,7 +17,7 @@ jest.mock('expo-router', () => ({
 jest.mock('expo-image', () => ({ Image: 'ExpoImage' }));
 
 jest.mock('expo-linear-gradient', () => {
-  const { View } = require('react-native');
+  const { View } = jest.requireActual<typeof import('react-native')>('react-native');
   return { LinearGradient: View };
 });
 
