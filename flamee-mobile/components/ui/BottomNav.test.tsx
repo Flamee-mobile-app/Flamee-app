@@ -1,4 +1,4 @@
-import { fireEvent, render } from '@testing-library/react-native';
+import { act, fireEvent, render } from '@testing-library/react-native';
 
 import { ROUTES } from '@/lib/navigation/routes';
 
@@ -42,12 +42,17 @@ describe('BottomNav', () => {
     expect(queryByRole('tab', { name: 'Hồ sơ' })).not.toBeNull();
   });
 
-  it('replaces the route when the Hồ sơ tab is pressed', async () => {
+  it.each([
+    ['Trang chủ', ROUTES.home],
+    ['Hoạt động', ROUTES.memories],
+    ['Nhiệm vụ', ROUTES.missions],
+    ['Hồ sơ', ROUTES.profile],
+  ] as const)('replaces the route when %s is pressed', async (label, route) => {
     const { getByRole } = await render(<BottomNav />);
 
-    fireEvent.press(getByRole('tab', { name: 'Hồ sơ' }));
+    fireEvent.press(getByRole('tab', { name: label }));
 
-    expect(mockReplace).toHaveBeenCalledWith(ROUTES.profile);
+    expect(mockReplace).toHaveBeenCalledWith(route);
   });
 
   it('uses the inline SVG renderer at the Figma bar geometry', async () => {
@@ -58,5 +63,21 @@ describe('BottomNav', () => {
     );
     expect(getByTestId('bottom-nav-background-svg')).toBeTruthy();
     expect(getByTestId('bottom-nav-logo-svg')).toBeTruthy();
+  });
+
+  it('uses measured numeric Figma coordinates after the bar is laid out', async () => {
+    const { getByRole, getByTestId } = await render(<BottomNav />);
+
+    await act(async () => {
+      getByTestId('bottom-nav-bar').props.onLayout({
+        nativeEvent: { layout: { width: 201 } },
+      });
+    });
+
+    expect(getByRole('tab', { name: 'Nhiệm vụ' }).props.style).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ left: 121, top: 12, width: 27.5 }),
+      ]),
+    );
   });
 });
