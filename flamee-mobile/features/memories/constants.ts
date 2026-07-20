@@ -22,6 +22,28 @@ export const MEMORY_ASSETS = {
   trip: require('../../assets/memories/memory-trip.png'),
 } as const satisfies Record<string, ImageSourcePropType>;
 
+const MEMORY_ARTWORKS = {
+  together: MEMORY_ASSETS.together,
+  birthday: MEMORY_ASSETS.birthday,
+  anniversary: MEMORY_ASSETS.anniversary,
+  special: MEMORY_ASSETS.special,
+  holiday: MEMORY_ASSETS.holiday,
+  custom: MEMORY_ASSETS.custom,
+  movie: MEMORY_ASSETS.movie,
+  trip: MEMORY_ASSETS.trip,
+} as const satisfies Record<string, ImageSourcePropType>;
+
+export function getMemoryArtwork(
+  coverAssetKey: string | undefined,
+  type: MemoryType,
+) {
+  if (coverAssetKey && coverAssetKey in MEMORY_ARTWORKS) {
+    return MEMORY_ARTWORKS[coverAssetKey as keyof typeof MEMORY_ARTWORKS];
+  }
+
+  return MEMORY_ARTWORKS[type];
+}
+
 export type MemoryTypeOption = {
   value: MemoryType;
   label: string;
