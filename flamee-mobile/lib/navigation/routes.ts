@@ -5,7 +5,6 @@ export const ROUTES = {
   login: '/(auth)/login',
   register: '/(auth)/register',
   home: '/(main)/home',
-  timeline: '/(main)/timeline',
   memories: '/(main)/memories',
   mood: '/(main)/mood',
   missions: '/(main)/missions',

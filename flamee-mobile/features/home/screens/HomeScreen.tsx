@@ -30,7 +30,7 @@ export function HomeScreen() {
 
   const shortcuts = [
     { label: 'Chat AI', icon: 'chatbubble-ellipses', route: ROUTES.ai, push: true },
-    { label: 'Dòng thời gian', icon: 'time', route: ROUTES.timeline, push: true },
+    { label: 'Dòng thời gian', icon: 'time', route: ROUTES.memories, push: false },
     { label: 'Lịch hẹn hò', icon: 'calendar', route: ROUTES.dates, push: true },
     { label: 'Sổ kỉ niệm', icon: 'heart', route: ROUTES.memories, push: false },
     { label: 'Mood checkin', icon: 'happy', route: ROUTES.mood, push: false },

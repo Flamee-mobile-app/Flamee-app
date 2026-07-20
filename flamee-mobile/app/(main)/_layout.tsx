@@ -20,7 +20,6 @@ export default function MainLayout() {
         {/* Enable default slide animations for pushed sub-pages */}
         <Stack.Screen name="ai" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="dates" options={{ animation: 'slide_from_right' }} />
-        <Stack.Screen name="timeline" options={{ animation: 'slide_from_right' }} />
       </Stack>
       {isMainNavigationPath(pathname) && <BottomNav />}
     </View>

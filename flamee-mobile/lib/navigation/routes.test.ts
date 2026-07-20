@@ -1,19 +1,23 @@
-import { BOTTOM_NAV_ITEMS, isMainNavigationPath } from './routes';
+import { BOTTOM_NAV_ITEMS, isMainNavigationPath, ROUTES } from './routes';
 
-describe('isMainNavigationPath', () => {
-  test.each(['/home', '/memories', '/mood', '/missions', '/profile'])(
-    'shows the bottom navigation on %s',
-    (pathname) => {
-      expect(isMainNavigationPath(pathname)).toBe(true);
-    },
-  );
+describe('memories navigation', () => {
+  it('uses /memories as the only memories route', () => {
+    expect(ROUTES.memories).toBe('/(main)/memories');
+    expect('timeline' in ROUTES).toBe(false);
+    expect(Object.values(ROUTES).some((href) => String(href).includes('/timeline'))).toBe(false);
+  });
 
-  test.each(['/ai', '/dates', '/timeline', '/login'])(
-    'hides the bottom navigation on %s',
-    (pathname) => {
-      expect(isMainNavigationPath(pathname)).toBe(false);
-    },
-  );
+  it('shows the bottom navigation on /memories', () => {
+    expect(isMainNavigationPath('/memories')).toBe(true);
+  });
+
+  it('routes Hoạt động to /memories', () => {
+    expect(BOTTOM_NAV_ITEMS.find((item) => item.key === 'memories')).toEqual({
+      key: 'memories',
+      label: 'Hoạt động',
+      href: ROUTES.memories,
+    });
+  });
 });
 
 describe('BOTTOM_NAV_ITEMS', () => {

@@ -35,10 +35,6 @@ const memories: MemoryItem[] = [
   },
 ];
 
-export async function getTimelineMemories(): Promise<MemoryItem[]> {
-  return memories;
-}
-
 export async function getMemoryGallery(): Promise<MemoryItem[]> {
   return memories;
 }

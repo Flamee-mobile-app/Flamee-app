@@ -1,13 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { getMemoryGallery, getTimelineMemories } from '@/features/memories/services/memoryService';
-
-export function useTimelineMemories() {
-  return useQuery({
-    queryKey: ['memories', 'timeline'],
-    queryFn: getTimelineMemories,
-  });
-}
+import { getMemoryGallery } from '@/features/memories/services/memoryService';
 
 export function useMemoryGallery() {
   return useQuery({

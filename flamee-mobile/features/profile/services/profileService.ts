@@ -12,7 +12,7 @@ const profile: ProfileData = {
   ],
   menuItems: [
     {
-      id: 'timeline',
+      id: 'memories',
       title: 'Dòng thời gian',
       subtitle: 'Xem lại những cột mốc đáng nhớ',
       icon: 'time',
