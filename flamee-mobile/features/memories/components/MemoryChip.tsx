@@ -29,7 +29,7 @@ export function MemoryChip({
         color={
           selected
             ? flameeTheme.colors.text.inverse
-            : flameeTheme.colors.text.secondary
+            : flameeTheme.colors.brand
         }
         style={styles.label}
         variant="bodySmall">
@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
   chip: {
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderColor: flameeTheme.colors.softCream,
+    borderColor: flameeTheme.colors.brand,
     borderRadius: flameeTheme.radii.full,
     borderWidth: 1,
     justifyContent: 'center',
