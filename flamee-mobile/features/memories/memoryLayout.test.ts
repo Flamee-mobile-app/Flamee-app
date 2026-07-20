@@ -11,6 +11,8 @@ describe('memories responsive layout', () => {
   });
 
   it('caps tablet content at the approved design width', () => {
+    expect(getMemoryContentWidth(430)).toBe(MEMORY_LAYOUT.maxContentWidth);
+    expect(getMemoryContentWidth(768)).toBe(MEMORY_LAYOUT.maxContentWidth);
     expect(getMemoryContentWidth(1024)).toBe(MEMORY_LAYOUT.maxContentWidth);
   });
 

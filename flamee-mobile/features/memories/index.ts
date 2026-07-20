@@ -1,2 +1,8 @@
 export * from './screens/MemoriesScreen';
-export * from './types';
+export type {
+  MemoryFilter,
+  MemoryItem,
+  MemoryReminder,
+  MemoryType,
+  RelationshipSummary,
+} from './types';
