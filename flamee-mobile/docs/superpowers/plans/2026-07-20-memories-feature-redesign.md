@@ -80,7 +80,9 @@
 - Create `features/memories/screens/MemoryFilterScreen.tsx`.
 - Create `features/memories/screens/MemoryFilterScreen.test.tsx`.
 - Create `features/memories/screens/CreateMemoryScreen.tsx`.
+- Create `features/memories/screens/CreateMemoryScreen.test.tsx`.
 - Create `features/memories/screens/EditMemoryScreen.tsx`.
+- Create `features/memories/screens/EditMemoryScreen.test.tsx`.
 - Replace `features/memories/screens/MemoriesScreen.tsx`.
 - Create `features/memories/screens/MemoriesScreen.test.tsx`.
 - Replace `features/memories/index.ts`: export only the feature's public screen and types.
@@ -739,8 +741,9 @@ git commit -m "feat: add memories filter screen"
 **Files:**
 
 - Create: `features/memories/screens/CreateMemoryScreen.tsx`
+- Create: `features/memories/screens/CreateMemoryScreen.test.tsx`
 - Create: `features/memories/screens/EditMemoryScreen.tsx`
-- Create: `features/memories/screens/MemoriesScreen.test.tsx`
+- Create: `features/memories/screens/EditMemoryScreen.test.tsx`
 
 **Interfaces:**
 
@@ -748,29 +751,25 @@ git commit -m "feat: add memories filter screen"
 - Edit consumes the edit draft, validation errors, delete-confirmation state, and typed callbacks.
 - Both remain controlled and side-effect free.
 
-- [ ] **Step 1: Add failing workflow assertions to `MemoriesScreen.test.tsx`**
+- [ ] **Step 1: Write failing controlled-screen tests**
 
-Test:
+Create `CreateMemoryScreen.test.tsx` and `EditMemoryScreen.test.tsx`. Test:
 
-- add opens step 1;
-- selecting a type enables progression;
-- invalid details retain step 2 and show errors;
-- valid details reach step 3;
-- completing adds a card and closes the modal;
-- back preserves draft;
-- closing step 1 clears draft;
+- step 1 renders all six types and invokes the selected-type callback;
+- step 2 emits controlled detail patches and renders validation errors;
+- step 3 emits reminder patches and invokes completion;
+- every step invokes the supplied back callback;
 - edit opens with prefilled title/date/recurrence/note;
-- saving updates the card;
-- delete cancel keeps the item;
-- delete confirm removes the item.
+- edit emits controlled patches and invokes save;
+- edit invokes request-delete without mutating data itself.
 
 - [ ] **Step 2: Run the integration test and verify RED**
 
 ```powershell
-npx jest features/memories/screens/MemoriesScreen.test.tsx --runInBand --config '{"preset":"jest-expo"}'
+npx jest features/memories/screens/CreateMemoryScreen.test.tsx features/memories/screens/EditMemoryScreen.test.tsx --runInBand --config '{"preset":"jest-expo"}'
 ```
 
-Expected: FAIL because the workflow screens/container are not implemented.
+Expected: FAIL because the workflow screens are not implemented.
 
 - [ ] **Step 3: Implement create**
 
@@ -785,15 +784,15 @@ Render a responsive cover preview, controlled fields, shared validation messages
 Run:
 
 ```powershell
-npx jest features/memories/screens/MemoriesScreen.test.tsx --runInBand --config '{"preset":"jest-expo"}'
+npx jest features/memories/screens/CreateMemoryScreen.test.tsx features/memories/screens/EditMemoryScreen.test.tsx --runInBand --config '{"preset":"jest-expo"}'
 ```
 
-Expected: create and edit assertions PASS.
+Expected: controlled create and edit screen assertions PASS.
 
 - [ ] **Step 6: Commit**
 
 ```powershell
-git add -- 'flamee-mobile/features/memories/screens/CreateMemoryScreen.tsx' 'flamee-mobile/features/memories/screens/EditMemoryScreen.tsx' 'flamee-mobile/features/memories/screens/MemoriesScreen.test.tsx'
+git add -- 'flamee-mobile/features/memories/screens/CreateMemoryScreen.tsx' 'flamee-mobile/features/memories/screens/CreateMemoryScreen.test.tsx' 'flamee-mobile/features/memories/screens/EditMemoryScreen.tsx' 'flamee-mobile/features/memories/screens/EditMemoryScreen.test.tsx'
 git commit -m "feat: add memories create and edit flows"
 ```
 
