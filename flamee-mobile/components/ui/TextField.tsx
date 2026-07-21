@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
 import { flameeTheme } from '@/constants/flameeTheme';
@@ -9,17 +10,34 @@ export type TextFieldProps = TextInputProps & {
   error?: string;
 };
 
-export function TextField({ label, error, style, ...props }: TextFieldProps) {
+export function TextField({
+  label,
+  error,
+  style,
+  accessibilityHint,
+  ...props
+}: TextFieldProps) {
+  const generatedId = useId();
+  const errorId = `field-error-${generatedId.replace(/[^a-zA-Z0-9_-]/g, '')}`;
+
   return (
     <View style={styles.container}>
       <AppText variant="bodySmall">{label}</AppText>
       <TextInput
         {...props}
+        accessibilityHint={error ?? accessibilityHint}
+        aria-describedby={error ? errorId : undefined}
+        aria-invalid={Boolean(error)}
         placeholderTextColor={flameeTheme.colors.text.secondary}
         style={[styles.input, error && styles.inputError, style]}
       />
       {error ? (
-        <AppText variant="caption" color={flameeTheme.colors.accentRed}>
+        <AppText
+          accessibilityLiveRegion="polite"
+          accessibilityRole="alert"
+          color={flameeTheme.colors.accentRed}
+          nativeID={errorId}
+          variant="caption">
           {error}
         </AppText>
       ) : null}

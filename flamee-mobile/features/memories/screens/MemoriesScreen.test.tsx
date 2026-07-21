@@ -1,4 +1,4 @@
-import { fireEvent, render } from '@testing-library/react-native';
+import { act, fireEvent, render } from '@testing-library/react-native';
 
 import { MemoriesScreen } from './MemoriesScreen';
 
@@ -75,5 +75,47 @@ describe('MemoriesScreen', () => {
     await fireEvent.press(getByRole('button', { name: 'Xóa cột mốc' }));
     await fireEvent.press(getByRole('button', { name: 'Xác nhận xóa' }));
     expect(queryByText('Chuyến đi Đà Lạt')).toBeNull();
+  });
+
+  it('maps the system back action to each full-screen workflow', async () => {
+    const { getByRole, getByTestId, queryByTestId } = await render(
+      <MemoriesScreen />,
+    );
+
+    await fireEvent.press(getByRole('button', { name: 'Lọc cột mốc' }));
+    expect(getByTestId('memory-filter-modal').props.visible).toBe(true);
+    await act(async () => {
+      getByTestId('memory-filter-modal').props.onRequestClose();
+    });
+    expect(queryByTestId('memory-filter-modal')).toBeNull();
+
+    await fireEvent.press(getByRole('button', { name: 'Thêm cột mốc' }));
+    await act(async () => {
+      getByTestId('create-memory-modal').props.onRequestClose();
+    });
+    expect(queryByTestId('create-memory-modal')).toBeNull();
+
+    await fireEvent.press(getByRole('button', { name: 'Thêm cột mốc' }));
+    await fireEvent.press(getByRole('button', { name: 'Tự tạo' }));
+    await fireEvent.press(getByRole('button', { name: 'Tiếp tục' }));
+    expect(getByRole('progressbar').props.accessibilityValue.now).toBe(2);
+    await act(async () => {
+      getByTestId('create-memory-modal').props.onRequestClose();
+    });
+    expect(getByTestId('create-memory-modal').props.visible).toBe(true);
+    expect(getByRole('progressbar').props.accessibilityValue.now).toBe(1);
+    await act(async () => {
+      getByTestId('create-memory-modal').props.onRequestClose();
+    });
+    expect(queryByTestId('create-memory-modal')).toBeNull();
+
+    await fireEvent.press(
+      getByRole('button', { name: 'Mở Kỉ niệm 500 ngày bên nhau' }),
+    );
+    expect(getByTestId('edit-memory-modal').props.visible).toBe(true);
+    await act(async () => {
+      getByTestId('edit-memory-modal').props.onRequestClose();
+    });
+    expect(queryByTestId('edit-memory-modal')).toBeNull();
   });
 });

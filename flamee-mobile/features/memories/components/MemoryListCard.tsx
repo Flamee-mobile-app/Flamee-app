@@ -47,7 +47,7 @@ export function MemoryListCard({
         />
       </View>
       <View style={styles.copy}>
-        <AppText numberOfLines={2} style={styles.title} variant="body">
+        <AppText style={styles.title} variant="body">
           {memory.title}
         </AppText>
         <AppText color={flameeTheme.colors.brand} variant="caption">

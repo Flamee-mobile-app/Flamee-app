@@ -1,7 +1,7 @@
-import { useRef } from 'react';
 import { Modal, StyleSheet, View } from 'react-native';
 
 import { MemoriesOverview } from '@/features/memories/components/MemoriesOverview';
+import { useCurrentDate } from '@/features/memories/hooks/useCurrentDate';
 import { useMemories } from '@/features/memories/hooks/useMemories';
 
 import { CreateMemoryScreen } from './CreateMemoryScreen';
@@ -9,7 +9,7 @@ import { EditMemoryScreen } from './EditMemoryScreen';
 import { MemoryFilterScreen } from './MemoryFilterScreen';
 
 export function MemoriesScreen() {
-  const referenceDate = useRef(new Date()).current;
+  const referenceDate = useCurrentDate();
   const memories = useMemories(referenceDate);
   const { state } = memories;
 

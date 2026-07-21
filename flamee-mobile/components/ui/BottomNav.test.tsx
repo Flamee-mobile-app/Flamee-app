@@ -65,6 +65,15 @@ describe('BottomNav', () => {
     expect(getByTestId('bottom-nav-logo-svg')).toBeTruthy();
   });
 
+  it('marks Hoạt động as selected on the memories route', async () => {
+    mockPathname = '/memories';
+    const { getByRole } = await render(<BottomNav />);
+
+    expect(
+      getByRole('tab', { name: 'Hoạt động' }).props.accessibilityState,
+    ).toEqual({ selected: true });
+  });
+
   it('uses measured numeric Figma coordinates after the bar is laid out', async () => {
     const { getByRole, getByTestId } = await render(<BottomNav />);
 

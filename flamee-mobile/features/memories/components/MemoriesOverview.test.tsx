@@ -75,4 +75,26 @@ describe('MemoriesOverview', () => {
     await fireEvent.press(getByRole('button', { name: 'Xóa bộ lọc' }));
     expect(onClearFilter).toHaveBeenCalledTimes(1);
   });
+
+  it('allows long memory titles to expand instead of clipping them', async () => {
+    const longTitle =
+      'Một cột mốc thật dài vẫn cần được đọc đầy đủ trên màn hình nhỏ';
+    const memory = {
+      ...createMemorySeed(referenceDate)[0]!,
+      title: longTitle,
+    };
+    const { getByText } = await render(
+      <MemoriesOverview
+        memories={[memory]}
+        onAdd={jest.fn()}
+        onClearFilter={jest.fn()}
+        onOpenFilter={jest.fn()}
+        onOpenMemory={jest.fn()}
+        referenceDate={referenceDate}
+        summary={createRelationshipSummary()}
+      />,
+    );
+
+    expect(getByText(longTitle).props.numberOfLines).toBeUndefined();
+  });
 });

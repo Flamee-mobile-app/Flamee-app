@@ -54,6 +54,9 @@ describe('EditMemoryScreen', () => {
       'hành trình yêu thương',
     );
 
+    await fireEvent.press(
+      getByRole('button', { name: 'Đổi ảnh đại diện' }),
+    );
     await fireEvent.changeText(
       getByLabelText('Tên cột mốc'),
       '600 ngày bên nhau',
@@ -61,6 +64,7 @@ describe('EditMemoryScreen', () => {
     await fireEvent.press(getByRole('button', { name: 'Hàng năm' }));
     await fireEvent.press(getByRole('button', { name: 'Lưu thay đổi' }));
 
+    expect(onChange).toHaveBeenCalledWith({ coverAssetKey: 'birthday' });
     expect(onChange).toHaveBeenCalledWith({ title: '600 ngày bên nhau' });
     expect(onChange).toHaveBeenCalledWith({ recurrence: 'yearly' });
     expect(onSave).toHaveBeenCalledTimes(1);
@@ -92,7 +96,7 @@ describe('EditMemoryScreen', () => {
   it('exposes both delete confirmation branches', async () => {
     const onCancelDelete = jest.fn();
     const onConfirmDelete = jest.fn();
-    const { getByRole } = await render(
+    const { getByRole, getByTestId } = await render(
       <EditMemoryScreen
         deleteConfirmationVisible
         draft={draft}
@@ -105,6 +109,17 @@ describe('EditMemoryScreen', () => {
         onSave={jest.fn()}
       />,
     );
+
+    expect(
+      getByTestId('edit-memory-content', {
+        includeHiddenElements: true,
+      }).props.importantForAccessibility,
+    ).toBe('no-hide-descendants');
+    expect(
+      getByTestId('delete-confirmation-dialog').props
+        .accessibilityViewIsModal,
+    ).toBe(true);
+    expect(getByRole('alert').props.accessibilityLiveRegion).toBe('assertive');
 
     await fireEvent.press(getByRole('button', { name: 'Hủy xóa' }));
     await fireEvent.press(getByRole('button', { name: 'Xác nhận xóa' }));

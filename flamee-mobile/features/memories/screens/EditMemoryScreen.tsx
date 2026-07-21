@@ -1,7 +1,11 @@
+import { useRef } from 'react';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
+  AccessibilityInfo,
+  findNodeHandle,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -21,6 +25,17 @@ import {
   MEMORY_LAYOUT,
 } from '@/features/memories/memoryLayout';
 import type { MemoryDraft } from '@/features/memories/types';
+
+const EDIT_COVER_KEYS = [
+  'together',
+  'birthday',
+  'anniversary',
+  'special',
+  'holiday',
+  'custom',
+  'movie',
+  'trip',
+] as const;
 
 export type EditMemoryScreenProps = {
   draft: MemoryDraft;
@@ -51,8 +66,13 @@ export function EditMemoryScreen({
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
+        accessibilityElementsHidden={deleteConfirmationVisible}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboard}>
+        importantForAccessibility={
+          deleteConfirmationVisible ? 'no-hide-descendants' : 'auto'
+        }
+        style={styles.keyboard}
+        testID="edit-memory-content">
         <View style={[styles.header, { width: contentWidth }]}>
           <Pressable
             accessibilityLabel="Đóng chỉnh sửa"
@@ -81,17 +101,36 @@ export function EditMemoryScreen({
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
           <View style={[styles.content, { width: contentWidth }]}>
-            <LinearGradient
-              colors={['#ECEBEA', flameeTheme.colors.brandLight]}
-              end={{ x: 1, y: 1 }}
-              start={{ x: 0, y: 0 }}
-              style={styles.cover}>
-              <Image
-                contentFit="contain"
-                source={getMemoryArtwork(draft.coverAssetKey, draft.type)}
-                style={styles.coverImage}
-              />
-            </LinearGradient>
+            <Pressable
+              accessibilityLabel="Đổi ảnh đại diện"
+              accessibilityRole="button"
+              onPress={() =>
+                onChange({
+                  coverAssetKey: getNextCoverAssetKey(
+                    draft.coverAssetKey,
+                    draft.type,
+                  ),
+                })
+              }>
+              <LinearGradient
+                colors={['#ECEBEA', flameeTheme.colors.brandLight]}
+                end={{ x: 1, y: 1 }}
+                start={{ x: 0, y: 0 }}
+                style={styles.cover}>
+                <Image
+                  contentFit="contain"
+                  source={getMemoryArtwork(draft.coverAssetKey, draft.type)}
+                  style={styles.coverImage}
+                />
+                <View style={styles.coverHint}>
+                  <AppText
+                    color={flameeTheme.colors.brand}
+                    variant="caption">
+                    Chạm để đổi ảnh
+                  </AppText>
+                </View>
+              </LinearGradient>
+            </Pressable>
 
             <MemoryDetailsForm
               draft={draft}
@@ -128,6 +167,22 @@ export function EditMemoryScreen({
   );
 }
 
+function getNextCoverAssetKey(
+  currentKey: string | undefined,
+  fallbackType: MemoryDraft['type'],
+) {
+  const normalizedKey = EDIT_COVER_KEYS.includes(
+    currentKey as (typeof EDIT_COVER_KEYS)[number],
+  )
+    ? currentKey
+    : fallbackType;
+  const currentIndex = EDIT_COVER_KEYS.indexOf(
+    normalizedKey as (typeof EDIT_COVER_KEYS)[number],
+  );
+
+  return EDIT_COVER_KEYS[(currentIndex + 1) % EDIT_COVER_KEYS.length];
+}
+
 function DeleteConfirmation({
   onCancel,
   onConfirm,
@@ -135,36 +190,65 @@ function DeleteConfirmation({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const cancelButtonRef = useRef<View>(null);
+
+  const focusCancelButton = () => {
+    const reactTag = findNodeHandle(cancelButtonRef.current);
+
+    if (reactTag !== null) {
+      AccessibilityInfo.setAccessibilityFocus(reactTag);
+    }
+  };
+
   return (
-    <View
-      accessibilityLabel="Xác nhận xóa cột mốc"
-      accessibilityRole="alert"
-      style={styles.confirmationOverlay}>
-      <Pressable
-        accessibilityLabel="Đóng xác nhận xóa"
-        accessibilityRole="button"
-        onPress={onCancel}
-        style={StyleSheet.absoluteFill}
-      />
-      <View style={styles.confirmationCard}>
-        <AppText align="center" variant="sectionTitle">
-          Xóa cột mốc này?
-        </AppText>
-        <AppText
-          align="center"
-          color={flameeTheme.colors.text.secondary}
-          variant="bodySmall">
-          Thao tác này chỉ xóa dữ liệu mock trong phiên hiện tại.
-        </AppText>
-        <View style={styles.confirmationActions}>
-          <View style={styles.confirmationAction}>
-            <Button onPress={onCancel} title="Hủy xóa" variant="secondary" />
-          </View>
-          <View style={styles.confirmationAction}>
+    <Modal
+      animationType="fade"
+      onRequestClose={onCancel}
+      onShow={focusCancelButton}
+      transparent
+      visible>
+      <View
+        accessibilityViewIsModal
+        importantForAccessibility="yes"
+        style={styles.confirmationOverlay}
+        testID="delete-confirmation-dialog">
+        <Pressable
+          accessibilityLabel="Đóng xác nhận xóa"
+          accessibilityRole="button"
+          onPress={onCancel}
+          style={StyleSheet.absoluteFill}
+        />
+        <View style={styles.confirmationCard}>
+          <AppText
+            accessibilityLiveRegion="assertive"
+            accessibilityRole="alert"
+            align="center"
+            variant="sectionTitle">
+            Xóa cột mốc này?
+          </AppText>
+          <AppText
+            align="center"
+            color={flameeTheme.colors.text.secondary}
+            variant="bodySmall">
+            Thao tác này chỉ xóa dữ liệu mock trong phiên hiện tại.
+          </AppText>
+          <View style={styles.confirmationActions}>
+            <Pressable
+              ref={cancelButtonRef}
+              accessibilityRole="button"
+              onPress={onCancel}
+              style={[styles.confirmationAction, styles.cancelDeleteButton]}>
+              <AppText
+                align="center"
+                color={flameeTheme.colors.brand}
+                variant="bodySmall">
+                Hủy xóa
+              </AppText>
+            </Pressable>
             <Pressable
               accessibilityRole="button"
               onPress={onConfirm}
-              style={styles.confirmDeleteButton}>
+              style={[styles.confirmationAction, styles.confirmDeleteButton]}>
               <AppText
                 align="center"
                 color={flameeTheme.colors.text.inverse}
@@ -175,7 +259,7 @@ function DeleteConfirmation({
           </View>
         </View>
       </View>
-    </View>
+    </Modal>
   );
 }
 
@@ -186,6 +270,15 @@ const styles = StyleSheet.create({
   closeGlyph: {
     fontSize: 34,
     lineHeight: 36,
+  },
+  cancelDeleteButton: {
+    alignItems: 'center',
+    borderColor: flameeTheme.colors.brand,
+    borderRadius: flameeTheme.radii.xl,
+    borderWidth: 1,
+    height: 48,
+    justifyContent: 'center',
+    paddingHorizontal: flameeTheme.spacing[3],
   },
   confirmDeleteButton: {
     alignItems: 'center',
@@ -241,6 +334,14 @@ const styles = StyleSheet.create({
   coverImage: {
     height: 100,
     width: 100,
+  },
+  coverHint: {
+    backgroundColor: 'rgba(255, 255, 255, 0.86)',
+    borderRadius: flameeTheme.radii.full,
+    bottom: flameeTheme.spacing[3],
+    paddingHorizontal: flameeTheme.spacing[3],
+    paddingVertical: flameeTheme.spacing[1],
+    position: 'absolute',
   },
   deleteButton: {
     alignItems: 'center',

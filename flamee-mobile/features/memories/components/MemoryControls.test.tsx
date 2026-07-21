@@ -92,10 +92,19 @@ describe('memories controls', () => {
       />,
     );
 
-    expect(getByText('Vui lòng nhập tên cột mốc')).toBeTruthy();
+    const titleInput = getByLabelText('Tên cột mốc');
+    const titleError = getByText('Vui lòng nhập tên cột mốc');
+    expect(titleInput.props.accessibilityHint).toBe(
+      'Vui lòng nhập tên cột mốc',
+    );
+    expect(titleInput.props['aria-invalid']).toBe(true);
+    expect(titleInput.props['aria-describedby']).toBe(
+      titleError.props.nativeID,
+    );
+    expect(titleError.props.accessibilityLiveRegion).toBe('polite');
     expect(getByText('Ngày diễn ra không hợp lệ')).toBeTruthy();
     await fireEvent.changeText(
-      getByLabelText('Tên cột mốc'),
+      titleInput,
       'Ngày của chúng mình',
     );
     await fireEvent.changeText(getByLabelText('Ngày diễn ra'), '2026-08-20');

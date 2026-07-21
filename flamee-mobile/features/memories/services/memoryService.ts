@@ -6,8 +6,8 @@ import type {
 
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 
-function toUtcMidnight(date: Date) {
-  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+function toLocalCalendarDaySerial(date: Date) {
+  return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
 function parseIsoDateAtUtcMidnight(value: string) {
@@ -16,13 +16,16 @@ function parseIsoDateAtUtcMidnight(value: string) {
 }
 
 function addDays(referenceDate: Date, days: number) {
-  const result = new Date(toUtcMidnight(referenceDate) + days * MILLISECONDS_PER_DAY);
+  const result = new Date(
+    toLocalCalendarDaySerial(referenceDate) + days * MILLISECONDS_PER_DAY,
+  );
   return result.toISOString().slice(0, 10);
 }
 
 export function getDaysUntil(eventDate: string, referenceDate = new Date()) {
   return Math.round(
-    (parseIsoDateAtUtcMidnight(eventDate) - toUtcMidnight(referenceDate)) /
+    (parseIsoDateAtUtcMidnight(eventDate) -
+      toLocalCalendarDaySerial(referenceDate)) /
       MILLISECONDS_PER_DAY,
   );
 }
