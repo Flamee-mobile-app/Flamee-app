@@ -1,0 +1,32 @@
+{
+  "home": {
+    "kind": "icon",
+    "source": "../navigation/bottom-nav-home.svg",
+    "viewBox": "0 0 27.3599 24.2099"
+  },
+  "timeline": {
+    "kind": "icon",
+    "source": "../navigation/bottom-nav-activities.svg",
+    "viewBox": "0 0 24.32 22.7362"
+  },
+  "missionsStarOne": {
+    "kind": "icon",
+    "source": "../navigation/bottom-nav-missions-star-one.svg",
+    "viewBox": "0 0 20.5825 23.8937"
+  },
+  "missionsStarTwo": {
+    "kind": "icon",
+    "source": "../navigation/bottom-nav-missions-star-two.svg",
+    "viewBox": "0 0 8.5025 9.40375"
+  },
+  "profileHead": {
+    "kind": "icon",
+    "source": "../navigation/bottom-nav-profile-head.svg",
+    "viewBox": "0 0 12.8 12.8"
+  },
+  "profileBody": {
+    "kind": "icon",
+    "source": "../navigation/bottom-nav-profile-body.svg",
+    "viewBox": "0 0 20.48 8.5168"
+  }
+}

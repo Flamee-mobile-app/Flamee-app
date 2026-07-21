@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 
-import { AppText, Card, ImageTile, StatCard } from '@/components/ui';
-import { flameeTheme } from '@/constants/flameeTheme';
+import { AppText, Card, ImageTile, StatCard } from '@/shared/components/ui';
+import { flameeTheme } from '@/shared/constants/flameeTheme';
 import type { ProfileData } from '@/features/profile/types';
 
 export type ProfileSummaryProps = {

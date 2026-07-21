@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 
-import { AppText, Card, ImageTile } from '@/components/ui';
-import { flameeTheme } from '@/constants/flameeTheme';
+import { AppText, Card, ImageTile } from '@/shared/components/ui';
+import { flameeTheme } from '@/shared/constants/flameeTheme';
 
 import type { HomeHighlight } from '@/features/home/types';
 

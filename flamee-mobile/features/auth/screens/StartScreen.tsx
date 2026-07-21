@@ -10,8 +10,9 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Image } from 'expo-image';
+import { brandAssets } from '@/shared/assets';
 
-import { ROUTES } from '@/lib/navigation/routes';
+import { ROUTES } from '@/shared/lib/navigation/routes';
 
 const { width } = Dimensions.get('window');
 
@@ -24,7 +25,7 @@ export function StartScreen() {
 
       {/* Background artwork imported directly from Figma frame */}
       <Image
-        source={require('../../../assets/chinh_mau_1.png')}
+        source={brandAssets.background}
         style={StyleSheet.absoluteFillObject}
         contentFit="cover"
         transition={200}
@@ -38,7 +39,7 @@ export function StartScreen() {
         <View style={styles.mainContent}>
           {/* Signature Logo from Figma (Vector 5785:829) */}
           <Image
-            source={require('../../../assets/flamee_logo.png')}
+            source={brandAssets.logo}
             style={styles.logo}
             contentFit="contain"
             transition={200}

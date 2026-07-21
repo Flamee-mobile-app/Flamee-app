@@ -6,9 +6,9 @@ import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect } from 'react';
 import * as RN from 'react-native';
 
-import '../global.css';
+import '../styles/global.css';
 
-import { queryClient } from '@/lib/api/queryClient';
+import { queryClient } from '@/shared/lib/api/queryClient';
 
 // Prevent splash screen from auto-hiding until fonts are loaded
 SplashScreen.preventAutoHideAsync().catch(() => {});

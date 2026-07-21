@@ -1,4 +1,4 @@
-import { ROUTES } from '@/lib/navigation/routes';
+import { ROUTES } from '@/shared/lib/navigation/routes';
 
 import type { HomeDashboard } from '@/features/home/types';
 
@@ -9,10 +9,10 @@ const dashboard: HomeDashboard = {
   todayPrompt: 'Hôm nay hãy gửi cho nhau một lời cảm ơn thật cụ thể.',
   highlights: [
     {
-      id: 'memories',
+      id: 'memory-book',
       title: 'Sổ kỉ niệm',
       description: 'Lưu lại ảnh, note và khoảnh khắc đáng nhớ.',
-      route: ROUTES.memories,
+      route: ROUTES.memoryBook,
       imageLabel: 'Kỉ niệm',
     },
     {

@@ -17,8 +17,8 @@ import {
   SafeAreaView,
 } from 'react-native';
 
-import { flameeTheme } from '@/constants/flameeTheme';
-import { StateView } from '@/components/ui';
+import { flameeTheme } from '@/shared/constants/flameeTheme';
+import { StateView } from '@/shared/components/ui';
 import { useAiChatSeed } from '@/features/ai/hooks/useAiChatSeed';
 import type { AiMessage } from '@/features/ai/types';
 

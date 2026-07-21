@@ -1,7 +1,7 @@
 import type { PropsWithChildren } from 'react';
 import { Text, type TextProps, type TextStyle } from 'react-native';
 
-import { flameeTheme, type FlameeTypographyVariant } from '@/constants/flameeTheme';
+import { flameeTheme, type FlameeTypographyVariant } from '@/shared/constants/flameeTheme';
 
 export type AppTextProps = PropsWithChildren<
   TextProps & {

@@ -1,4 +1,4 @@
-import { flameeTheme } from '@/constants/flameeTheme';
+import { flameeTheme } from '@/shared/constants/flameeTheme';
 import type { MoodSummary } from '@/features/mood/types';
 
 const moodSummary: MoodSummary = {

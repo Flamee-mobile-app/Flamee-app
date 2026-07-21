@@ -1,6 +1,6 @@
 import { act, fireEvent, render } from '@testing-library/react-native';
 
-import { ROUTES } from '@/lib/navigation/routes';
+import { ROUTES } from '@/shared/lib/navigation/routes';
 
 import { BottomNav } from './BottomNav';
 
@@ -44,7 +44,7 @@ describe('BottomNav', () => {
 
   it.each([
     ['Trang chủ', ROUTES.home],
-    ['Hoạt động', ROUTES.memories],
+    ['Hoạt động', ROUTES.timeline],
     ['Nhiệm vụ', ROUTES.missions],
     ['Hồ sơ', ROUTES.profile],
   ] as const)('replaces the route when %s is pressed', async (label, route) => {
@@ -65,8 +65,8 @@ describe('BottomNav', () => {
     expect(getByTestId('bottom-nav-logo-svg')).toBeTruthy();
   });
 
-  it('marks Hoạt động as selected on the memories route', async () => {
-    mockPathname = '/memories';
+  it('marks Hoạt động as selected on the timeline route', async () => {
+    mockPathname = '/timeline';
     const { getByRole } = await render(<BottomNav />);
 
     expect(
@@ -92,7 +92,7 @@ describe('BottomNav', () => {
 
   it.each([
     ['home', { left: 23, top: 15, width: 57 }],
-    ['memories', { left: 100, top: 15, width: 60 }],
+    ['timeline', { left: 100, top: 15, width: 60 }],
     ['missions', { left: 242, top: 12, width: 55 }],
     ['profile', { left: 321, top: 12, width: 34 }],
   ] as const)('renders the %s visual at its Figma position', async (key, layout) => {

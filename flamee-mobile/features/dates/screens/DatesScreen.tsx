@@ -12,8 +12,8 @@ import {
   SafeAreaView,
 } from 'react-native';
 
-import { flameeTheme } from '@/constants/flameeTheme';
-import { StateView } from '@/components/ui';
+import { flameeTheme } from '@/shared/constants/flameeTheme';
+import { StateView } from '@/shared/components/ui';
 import { useDateSchedule } from '@/features/dates/hooks/useDateSchedule';
 
 const { width } = Dimensions.get('window');

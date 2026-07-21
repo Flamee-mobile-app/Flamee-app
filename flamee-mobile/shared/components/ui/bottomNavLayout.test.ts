@@ -3,7 +3,7 @@ import { getBottomNavTabLayout } from './bottomNavLayout';
 describe('getBottomNavTabLayout', () => {
   it.each([
     ['home', { left: 23, top: 15, width: 57 }],
-    ['memories', { left: 100, top: 15, width: 60 }],
+    ['timeline', { left: 100, top: 15, width: 60 }],
     ['missions', { left: 242, top: 12, width: 55 }],
     ['profile', { left: 321, top: 12, width: 34 }],
   ] as const)('returns the %s Figma position at 402px', (key, expected) => {

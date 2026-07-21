@@ -15,11 +15,12 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { Image } from 'expo-image';
+import { brandAssets } from '@/shared/assets';
 
-import { flameeTheme } from '@/constants/flameeTheme';
-import { GradientButton } from '@/components/ui';
+import { flameeTheme } from '@/shared/constants/flameeTheme';
+import { GradientButton } from '@/shared/components/ui';
 import { useRegisterForm } from '@/features/auth/hooks/useAuthForm';
-import { ROUTES } from '@/lib/navigation/routes';
+import { ROUTES } from '@/shared/lib/navigation/routes';
 
 const { width, height } = Dimensions.get('window');
 
@@ -101,7 +102,7 @@ export function RegisterScreen() {
   return (
     <View style={styles.container}>
       <Image
-        source={require('../../../assets/chinh_mau_1.png')}
+        source={brandAssets.background}
         style={StyleSheet.absoluteFillObject}
         contentFit="cover"
         transition={200}
@@ -113,7 +114,7 @@ export function RegisterScreen() {
       <SafeAreaView style={styles.logoArea}>
         <View style={styles.logoRow}>
           <Image
-            source={require('../../../assets/flamee_logo.png')}
+            source={brandAssets.logo}
             style={styles.logoIcon}
             contentFit="contain"
             transition={200}

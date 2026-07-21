@@ -1,7 +1,7 @@
 import type { PropsWithChildren } from 'react';
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { flameeTheme } from '@/constants/flameeTheme';
+import { flameeTheme } from '@/shared/constants/flameeTheme';
 
 export type CardProps = PropsWithChildren<{
   onPress?: () => void;

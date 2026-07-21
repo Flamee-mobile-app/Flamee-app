@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { AppText } from '@/components/ui';
-import { flameeTheme } from '@/constants/flameeTheme';
+import { AppText } from '@/shared/components/ui';
+import { flameeTheme } from '@/shared/constants/flameeTheme';
 import type { MoodOption } from '@/features/mood/types';
 
 export type MoodCardProps = {

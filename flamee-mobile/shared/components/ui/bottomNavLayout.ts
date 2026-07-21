@@ -1,6 +1,6 @@
 import type { ViewStyle } from 'react-native';
 
-import type { BottomNavItem } from '@/lib/navigation/routes';
+import type { BottomNavItem } from '@/shared/lib/navigation/routes';
 
 export const FIGMA_BOTTOM_NAV_WIDTH = 402;
 
@@ -14,7 +14,7 @@ export type BottomNavTabLayout = Pick<ViewStyle, 'left' | 'top' | 'width'>;
 
 const FIGMA_TAB_LAYOUT: Record<BottomNavItem['key'], FigmaTabLayout> = {
   home: { left: 23, top: 15, width: 57 },
-  memories: { left: 100, top: 15, width: 60 },
+  timeline: { left: 100, top: 15, width: 60 },
   missions: { left: 242, top: 12, width: 55 },
   profile: { left: 321, top: 12, width: 34 },
 };

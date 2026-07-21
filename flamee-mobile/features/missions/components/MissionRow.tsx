@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 
-import { AppText, Button, Card, ImageTile } from '@/components/ui';
-import { flameeTheme } from '@/constants/flameeTheme';
+import { AppText, Button, Card, ImageTile } from '@/shared/components/ui';
+import { flameeTheme } from '@/shared/constants/flameeTheme';
 import type { Mission } from '@/features/missions/types';
 
 export type MissionRowProps = {

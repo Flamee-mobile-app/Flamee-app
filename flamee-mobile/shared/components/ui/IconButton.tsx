@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, type ViewStyle } from 'react-native';
 
-import { flameeTheme } from '@/constants/flameeTheme';
+import { flameeTheme } from '@/shared/constants/flameeTheme';
 
 export type IconName = React.ComponentProps<typeof Ionicons>['name'];
 

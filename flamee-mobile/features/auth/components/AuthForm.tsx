@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { flameeTheme } from '@/constants/flameeTheme';
-import { AppText, Button, TextField } from '@/components/ui';
+import { flameeTheme } from '@/shared/constants/flameeTheme';
+import { AppText, Button, TextField } from '@/shared/components/ui';
 
 type LoginModeProps = {
   mode: 'login';

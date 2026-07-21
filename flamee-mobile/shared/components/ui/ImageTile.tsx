@@ -1,6 +1,6 @@
 import { StyleSheet, View, type DimensionValue, type ViewStyle } from 'react-native';
 
-import { flameeTheme } from '@/constants/flameeTheme';
+import { flameeTheme } from '@/shared/constants/flameeTheme';
 
 import { AppText } from './AppText';
 

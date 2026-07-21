@@ -12,8 +12,8 @@ import {
   SafeAreaView,
 } from 'react-native';
 
-import { flameeTheme } from '@/constants/flameeTheme';
-import { StateView } from '@/components/ui';
+import { flameeTheme } from '@/shared/constants/flameeTheme';
+import { StateView } from '@/shared/components/ui';
 import { useMissions } from '@/features/missions/hooks/useMissions';
 import { completeMissionById } from '@/features/missions/services/missionService';
 import type { Mission, MissionCategory } from '@/features/missions/types';

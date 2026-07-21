@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { flameeTheme } from '@/constants/flameeTheme';
+import { flameeTheme } from '@/shared/constants/flameeTheme';
 
-import { AppText, IconButton } from '@/components/ui';
+import { AppText, IconButton } from '@/shared/components/ui';
 
 export type ScreenHeaderProps = {
   title: string;

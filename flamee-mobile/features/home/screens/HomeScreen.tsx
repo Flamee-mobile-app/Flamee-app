@@ -11,9 +11,10 @@ import {
   ScrollView,
   Platform,
 } from 'react-native';
-import { Image } from 'expo-image';
 
-import { ROUTES } from '@/lib/navigation/routes';
+import { ROUTES } from '@/shared/lib/navigation/routes';
+import { brandAssets } from '@/shared/assets';
+import { AppImage } from '@/shared/components/media';
 
 const { width } = Dimensions.get('window');
 
@@ -30,9 +31,9 @@ export function HomeScreen() {
 
   const shortcuts = [
     { label: 'Chat AI', icon: 'chatbubble-ellipses', route: ROUTES.ai, push: true },
-    { label: 'Dòng thời gian', icon: 'time', route: ROUTES.memories, push: false },
+    { label: 'Dòng thời gian', icon: 'time', route: ROUTES.timeline, push: false },
     { label: 'Lịch hẹn hò', icon: 'calendar', route: ROUTES.dates, push: true },
-    { label: 'Sổ kỉ niệm', icon: 'heart', route: ROUTES.memories, push: false },
+    { label: 'Sổ kỉ niệm', icon: 'heart', route: ROUTES.memoryBook, push: true },
     { label: 'Mood checkin', icon: 'happy', route: ROUTES.mood, push: false },
     { label: 'Nhiệm vụ', icon: 'checkmark-circle', route: ROUTES.missions, push: false },
   ];
@@ -42,8 +43,8 @@ export function HomeScreen() {
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
       {/* Full screen artwork background */}
-      <Image
-        source={require('../../../assets/chinh_mau_1.png')}
+      <AppImage
+        source={brandAssets.background}
         style={StyleSheet.absoluteFillObject}
         contentFit="cover"
         transition={200}
@@ -56,8 +57,8 @@ export function HomeScreen() {
         {/* Top Header Row with Small Signature Logo and Chat Button */}
         <View style={styles.header}>
           <View style={styles.logoRow}>
-            <Image
-              source={require('../../../assets/flamee_logo.png')}
+            <AppImage
+              source={brandAssets.logo}
               style={styles.logoIcon}
               contentFit="contain"
               transition={200}

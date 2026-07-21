@@ -12,8 +12,9 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 
-import { flameeTheme } from '@/constants/flameeTheme';
-import { StateView } from '@/components/ui';
+import { flameeTheme } from '@/shared/constants/flameeTheme';
+import { StateView } from '@/shared/components/ui';
+import { brandAssets } from '@/shared/assets';
 import { useProfileData } from '@/features/profile/hooks/useProfileData';
 
 const { width, height } = Dimensions.get('window');
@@ -39,7 +40,7 @@ export function ProfileScreen() {
   return (
     <View style={styles.container}>
       <Image
-        source={require('../../../assets/chinh_mau_1.png')}
+        source={brandAssets.background}
         style={StyleSheet.absoluteFillObject}
         contentFit="cover"
         transition={200}

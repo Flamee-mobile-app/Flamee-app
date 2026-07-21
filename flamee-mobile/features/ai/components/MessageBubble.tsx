@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 
-import { AppText } from '@/components/ui';
-import { flameeTheme } from '@/constants/flameeTheme';
+import { AppText } from '@/shared/components/ui';
+import { flameeTheme } from '@/shared/constants/flameeTheme';
 import type { AiMessage } from '@/features/ai/types';
 
 export type MessageBubbleProps = {

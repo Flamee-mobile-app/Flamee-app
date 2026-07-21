@@ -1,4 +1,4 @@
-import type { IconName } from '@/components/ui/IconButton';
+import type { IconName } from '@/shared/components/ui/IconButton';
 
 export type ProfileStat = {
   label: string;

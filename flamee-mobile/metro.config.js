@@ -9,4 +9,4 @@ config.resolver.extraNodeModules = {
   'paths-js/pie': path.resolve(__dirname, 'node_modules/paths-js/pie.js'),
 };
 
-module.exports = withNativeWind(config, { input: './global.css' });
+module.exports = withNativeWind(config, { input: './styles/global.css' });

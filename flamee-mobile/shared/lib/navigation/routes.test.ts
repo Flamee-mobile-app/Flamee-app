@@ -1,21 +1,22 @@
 import { BOTTOM_NAV_ITEMS, isMainNavigationPath, ROUTES } from './routes';
 
-describe('memories navigation', () => {
-  it('uses /memories as the only memories route', () => {
-    expect(ROUTES.memories).toBe('/(main)/memories');
-    expect('timeline' in ROUTES).toBe(false);
-    expect(Object.values(ROUTES).some((href) => String(href).includes('/timeline'))).toBe(false);
+describe('timeline and memory book navigation', () => {
+  it('owns Timeline and Memory Book with separate routes', () => {
+    expect(ROUTES.timeline).toBe('/(main)/timeline');
+    expect(ROUTES.memoryBook).toBe('/(main)/memory-book');
+    expect('memories' in ROUTES).toBe(false);
   });
 
-  it('shows the bottom navigation on /memories', () => {
-    expect(isMainNavigationPath('/memories')).toBe(true);
+  it('shows the bottom navigation only on the Timeline route', () => {
+    expect(isMainNavigationPath('/timeline')).toBe(true);
+    expect(isMainNavigationPath('/memory-book')).toBe(false);
   });
 
-  it('routes Hoạt động to /memories', () => {
-    expect(BOTTOM_NAV_ITEMS.find((item) => item.key === 'memories')).toEqual({
-      key: 'memories',
+  it('routes Hoạt động to /timeline', () => {
+    expect(BOTTOM_NAV_ITEMS.find((item) => item.key === 'timeline')).toEqual({
+      key: 'timeline',
       label: 'Hoạt động',
-      href: ROUTES.memories,
+      href: ROUTES.timeline,
     });
   });
 });
@@ -24,7 +25,7 @@ describe('BOTTOM_NAV_ITEMS', () => {
   it('contains the four interactive tabs from Figma and excludes Mood', () => {
     expect(BOTTOM_NAV_ITEMS.map((item) => item.key)).toEqual([
       'home',
-      'memories',
+      'timeline',
       'missions',
       'profile',
     ]);

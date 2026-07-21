@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 
-import { AppText, Card } from '@/components/ui';
-import { flameeTheme } from '@/constants/flameeTheme';
+import { AppText, Card } from '@/shared/components/ui';
+import { flameeTheme } from '@/shared/constants/flameeTheme';
 import type { AiSuggestion } from '@/features/ai/types';
 
 export type AiSuggestionCardProps = {

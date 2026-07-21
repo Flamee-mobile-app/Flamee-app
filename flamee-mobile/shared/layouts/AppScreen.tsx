@@ -2,7 +2,7 @@ import type { PropsWithChildren } from 'react';
 import { ScrollView, useWindowDimensions, View, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { flameeTheme } from '@/constants/flameeTheme';
+import { flameeTheme } from '@/shared/constants/flameeTheme';
 
 export type AppScreenProps = PropsWithChildren<{
   scroll?: boolean;
