@@ -25,6 +25,7 @@ export type BottomNavItem = {
 export const MAIN_NAV_PATHS = [
   ROUTES.home,
   ROUTES.timeline,
+  ROUTES.memoryBook,
   ROUTES.mood,
   ROUTES.missions,
   ROUTES.profile,

@@ -7,9 +7,9 @@ describe('timeline and memory book navigation', () => {
     expect('memories' in ROUTES).toBe(false);
   });
 
-  it('shows the bottom navigation only on the Timeline route', () => {
+  it('shows the bottom navigation on the Timeline and Memory Book routes', () => {
     expect(isMainNavigationPath('/timeline')).toBe(true);
-    expect(isMainNavigationPath('/memory-book')).toBe(false);
+    expect(isMainNavigationPath('/memory-book')).toBe(true);
   });
 
   it('routes Hoạt động to /timeline', () => {

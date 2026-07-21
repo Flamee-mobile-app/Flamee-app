@@ -56,12 +56,15 @@ export function AppText({
   style,
   ...props
 }: AppTextProps) {
+  const flattenedStyle = StyleSheet.flatten(style as TextStyle);
+  const finalColor = flattenedStyle?.color || color;
+
   return (
     <Text
       {...props}
       style={[
         resolveFontStyle(variant, style as TextStyle),
-        { color, textAlign: align },
+        { color: finalColor, textAlign: align },
       ]}>
       {children}
     </Text>

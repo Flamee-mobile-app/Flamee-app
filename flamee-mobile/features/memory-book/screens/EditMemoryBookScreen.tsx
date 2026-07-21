@@ -1,8 +1,9 @@
-import { ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+
 import { MemoryBookForm } from '@/features/memory-book/components/MemoryBookForm';
+import type { MemoryBookDraft } from '@/features/memory-book/types';
 import { AppText } from '@/shared/components/ui/AppText';
 import { useAppSafeArea } from '@/shared/hooks';
-import type { MemoryBookDraft } from '@/features/memory-book/types';
 
 export function EditMemoryBookScreen(props: {
   draft: Partial<MemoryBookDraft>;
@@ -17,15 +18,16 @@ export function EditMemoryBookScreen(props: {
     <ScrollView
       contentContainerStyle={[
         styles.page,
-        { paddingTop: safeArea.top + 16, paddingBottom: safeArea.bottom + 24 },
+        { paddingTop: safeArea.top + 16, paddingBottom: safeArea.bottom + 40 },
       ]}
       showsVerticalScrollIndicator={false}>
-      <AppText style={styles.title} variant="heading">
-        Chỉnh sửa kỉ niệm
-      </AppText>
+      <View style={styles.header}>
+        <AppText style={styles.titleText}>Chỉnh sửa kỷ niệm</AppText>
+      </View>
       <MemoryBookForm
         draft={props.draft}
         errors={props.errors}
+        isEditMode={true}
         onCancel={props.onClose}
         onChange={props.onChange}
         onSubmit={props.onSave}
@@ -39,10 +41,18 @@ const styles = StyleSheet.create({
   page: {
     backgroundColor: '#FFFDFB',
     flexGrow: 1,
-    gap: 28,
+    gap: 20,
     paddingHorizontal: 20,
   },
-  title: {
-    fontSize: 30,
+  header: {
+    marginBottom: 4,
+    marginTop: 4,
+  },
+  titleText: {
+    color: '#FF7E67',
+    fontSize: 28,
+    fontWeight: '700',
+    letterSpacing: -0.4,
   },
 });
+
