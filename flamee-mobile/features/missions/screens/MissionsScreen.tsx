@@ -10,9 +10,10 @@ import {
   View,
   StatusBar,
   SafeAreaView,
+  Platform,
 } from 'react-native';
 
-import { flameeTheme } from '@/shared/constants/flameeTheme';
+import { flameeFonts, flameeTheme } from '@/shared/constants/flameeTheme';
 import { StateView } from '@/shared/components/ui';
 import { useMissions } from '@/features/missions/hooks/useMissions';
 import { completeMissionById } from '@/features/missions/services/missionService';
@@ -75,7 +76,7 @@ export function MissionsScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      {/* Custom Header with no mock status row */}
+      {/* Custom Header */}
       <SafeAreaView style={styles.headerSafeArea}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Nhiệm vụ nho nhỏ</Text>
@@ -190,6 +191,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#FFE6CE',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
   header: {
     flexDirection: 'row',
@@ -199,8 +201,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   headerTitle: {
+    fontFamily: flameeFonts.roundedBold,
     fontSize: 22,
-    fontWeight: '800',
     color: '#FF7158',
   },
   headerRight: {
@@ -213,6 +215,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 24,
     paddingTop: 20,
+    paddingBottom: 100,
   },
 
   // Category Selector Tabs
@@ -237,8 +240,8 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   tabText: {
+    fontFamily: flameeFonts.bold,
     fontSize: 13,
-    fontWeight: '600',
     color: '#FF7158',
   },
   tabTextActive: {
@@ -261,9 +264,9 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   featuredTag: {
+    fontFamily: flameeFonts.bold,
     color: '#888888',
     fontSize: 12,
-    fontWeight: '700',
     alignSelf: 'flex-start',
   },
   featuredRow: {
@@ -290,14 +293,14 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   featuredTitle: {
+    fontFamily: flameeFonts.roundedBold,
     fontSize: 16,
-    fontWeight: '700',
     color: '#2B2B2B',
     lineHeight: 20,
   },
   featuredXp: {
+    fontFamily: flameeFonts.bold,
     fontSize: 15,
-    fontWeight: '800',
     color: '#FF7158',
   },
   completeBtn: {
@@ -317,9 +320,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#CCCCCC',
   },
   completeBtnText: {
+    fontFamily: flameeFonts.bold,
     color: '#FFFFFF',
     fontSize: 15,
-    fontWeight: '600',
   },
 
   // Additional section
@@ -327,8 +330,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   additionalTitle: {
+    fontFamily: flameeFonts.roundedBold,
     fontSize: 18,
-    fontWeight: '800',
     color: '#FF7158',
   },
   additionalList: {
@@ -347,8 +350,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   itemText: {
+    fontFamily: flameeFonts.bold,
     fontSize: 14,
-    fontWeight: '600',
     color: '#2B2B2B',
     flex: 1,
     paddingRight: 8,
@@ -359,8 +362,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   itemXpText: {
+    fontFamily: flameeFonts.bold,
     fontSize: 13,
-    fontWeight: '700',
     color: '#2B2B2B',
   },
   starCircle: {

@@ -5,10 +5,10 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppText } from '@/shared/components/ui/AppText';
 import { flameeTheme } from '@/shared/constants/flameeTheme';
+import { useAppSafeArea } from '@/shared/hooks';
 import {
   getTimelineContentWidth,
   TIMELINE_LAYOUT,
@@ -42,6 +42,7 @@ export function TimelineOverview({
   onClearFilter,
 }: TimelineOverviewProps) {
   const { width } = useWindowDimensions();
+  const safeArea = useAppSafeArea();
   const contentWidth = getTimelineContentWidth(width);
   const floatingActionInset = Math.max(
     (width - contentWidth) / 2,
@@ -49,9 +50,9 @@ export function TimelineOverview({
   );
 
   return (
-    <SafeAreaView edges={['top']} style={styles.safeArea}>
+    <View style={styles.safeArea}>
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: safeArea.top + 8 }]}
         showsVerticalScrollIndicator={false}>
         <View style={[styles.content, { width: contentWidth }]}>
           <AppText
@@ -114,7 +115,7 @@ export function TimelineOverview({
           +
         </AppText>
       </Pressable>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -196,9 +197,8 @@ const styles = StyleSheet.create({
     gap: TIMELINE_LAYOUT.gridGap,
   },
   plus: {
-    fontFamily: 'SF-Pro',
+    fontFamily: flameeTheme.fonts.light,
     fontSize: 38,
-    fontWeight: '300',
     lineHeight: 42,
   },
   safeArea: {

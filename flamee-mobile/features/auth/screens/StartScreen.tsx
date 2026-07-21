@@ -12,6 +12,7 @@ import {
 import { Image } from 'expo-image';
 import { brandAssets } from '@/shared/assets';
 
+import { flameeFonts } from '@/shared/constants/flameeTheme';
 import { ROUTES } from '@/shared/lib/navigation/routes';
 
 const { width } = Dimensions.get('window');
@@ -128,17 +129,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   tagline: {
-    fontFamily: 'SF-Pro-Rounded',
+    fontFamily: flameeFonts.roundedBold,
     fontSize: 24,
-    fontWeight: '700',
     textAlign: 'center',
     lineHeight: 29,
     color: '#FFFFFF',
   },
   subTagline: {
-    fontFamily: 'SF-Pro',
+    fontFamily: flameeFonts.regular,
     fontSize: 14,
-    fontWeight: '400',
     textAlign: 'center',
     lineHeight: 17,
     color: '#FFFFFF',
@@ -164,9 +163,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   solidBtnText: {
-    fontFamily: 'SF-Pro',
+    fontFamily: flameeFonts.bold,
     fontSize: 14,
-    fontWeight: '600',
     color: '#5B4C1B',
   },
 
@@ -182,9 +180,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.08)', // glassmorphism backdrop
   },
   outlineBtnText: {
-    fontFamily: 'SF-Pro',
+    fontFamily: flameeFonts.bold,
     fontSize: 14,
-    fontWeight: '600',
     color: '#FAF9F7',
   },
 });

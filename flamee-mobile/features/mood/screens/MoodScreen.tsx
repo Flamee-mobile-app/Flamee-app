@@ -13,9 +13,10 @@ import {
   View,
   StatusBar,
   SafeAreaView,
+  Platform,
 } from 'react-native';
 
-import { flameeTheme } from '@/shared/constants/flameeTheme';
+import { flameeFonts, flameeTheme } from '@/shared/constants/flameeTheme';
 import { StateView } from '@/shared/components/ui';
 import { useMoodSummary } from '@/features/mood/hooks/useMoodSummary';
 const { width } = Dimensions.get('window');
@@ -23,7 +24,7 @@ const { width } = Dimensions.get('window');
 export function MoodScreen() {
   const router = useRouter();
   const [notification, setNotification] = useState('');
-  const [chartWidth, setChartWidth] = useState(0);
+  const [chartWidth, setChartWidth] = useState(width - 48 - 32);
 
   const chartPoints = [
     { xPercent: 10, y: 30, emoji: '😄', date: '10/5' },
@@ -38,7 +39,7 @@ export function MoodScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      {/* Custom Header with no mock status row */}
+      {/* Custom Header */}
       <SafeAreaView style={styles.headerSafeArea}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -142,7 +143,7 @@ export function MoodScreen() {
                   fillShadowGradientTo: '#FFFFFF',
                   fillShadowGradientOpacity: 0.4,
                   decimalPlaces: 0,
-                  color: (opacity = 1) => `rgba(252, 183, 109, ${opacity})`, // Cam nhạt cho line (#FCB76D)
+                  color: (opacity = 1) => `rgba(252, 183, 109, ${opacity})`,
                   labelColor: (opacity = 1) => `rgba(136, 136, 136, ${opacity})`,
                   style: {
                     borderRadius: 16,
@@ -152,37 +153,40 @@ export function MoodScreen() {
                     stroke: '#FAF9F7',
                   },
                   propsForDots: {
-                    r: '4',
-                    strokeWidth: '1.5',
+                    r: '5',
+                    strokeWidth: '2',
                     stroke: '#FF7158',
                     fill: '#FFFFFF',
                   },
                 }}
-                renderDotContent={({ x, y, index }) => (
-                  <Text
-                    key={`dot-${index}`}
-                    style={[
-                      styles.dotLabelText,
-                      {
-                        left: x - 9, // center the emoji
-                        top: y - 24, // place the emoji above the dot
-                      },
-                    ]}
-                  >
-                    {chartPoints[index].emoji}
-                  </Text>
-                )}
                 style={{
-                  marginVertical: 0,
-                  borderRadius: 16,
                   paddingRight: 0,
                   paddingLeft: 0,
+                  borderRadius: 16,
                 }}
               />
             )}
+
+            {/* Custom Emoji Overlay on Data Points */}
+            {chartWidth > 0 &&
+              chartPoints.map((pt, idx) => {
+                const leftPos = (pt.xPercent / 100) * chartWidth - 12;
+                const topPos = ((100 - pt.y) / 100) * 100 - 10;
+                return (
+                  <Text
+                    key={idx}
+                    style={[
+                      styles.dotLabelText,
+                      { left: leftPos, top: topPos },
+                    ]}
+                  >
+                    {pt.emoji}
+                  </Text>
+                );
+              })}
           </View>
-          
-          {/* Chart X axis dates */}
+
+          {/* X Axis Labels */}
           <View style={styles.chartXLabels}>
             {chartPoints.map((pt, idx) => (
               <Text key={`label-${idx}`} style={styles.xAxisLabel}>{pt.date}</Text>
@@ -190,7 +194,8 @@ export function MoodScreen() {
           </View>
         </View>
 
-        <View style={{ height: 100 }} />
+        {/* Bottom tab clearance spacing */}
+        <View style={{ height: 80 }} />
       </ScrollView>
     </View>
   );
@@ -202,6 +207,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#FFE6CE',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
   header: {
     flexDirection: 'row',
@@ -211,11 +217,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   backBtn: { padding: 4 },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: '#FF7158' },
+  headerTitle: { fontFamily: flameeFonts.roundedBold, fontSize: 22, color: '#FF7158' },
   headerRight: { flexDirection: 'row', gap: 12 },
   iconBtn: { padding: 4 },
   
-  scrollContent: { paddingHorizontal: 24, paddingTop: 20, gap: 20 },
+  scrollContent: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 100, gap: 20 },
 
   // Side-by-Side Mood Cards
   moodCardsRow: {
@@ -239,8 +245,8 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   moodCardTitle: {
+    fontFamily: flameeFonts.bold,
     fontSize: 14,
-    fontWeight: '700',
     color: '#888888',
   },
   emojiCircle: {
@@ -262,8 +268,8 @@ const styles = StyleSheet.create({
     fontSize: 36,
   },
   moodLabel: {
+    fontFamily: flameeFonts.bold,
     fontSize: 16,
-    fontWeight: '700',
     color: '#FF7158',
   },
 
@@ -282,8 +288,8 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   sectionTitle: {
+    fontFamily: flameeFonts.bold,
     fontSize: 14,
-    fontWeight: '700',
     color: '#FF7158',
   },
   inputWrapper: {
@@ -297,6 +303,7 @@ const styles = StyleSheet.create({
   },
   textInput: {
     flex: 1,
+    fontFamily: flameeFonts.regular,
     fontSize: 14,
     color: '#2B2B2B',
     paddingRight: 8,
@@ -321,13 +328,13 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   historyTitle: {
+    fontFamily: flameeFonts.roundedBold,
     fontSize: 18,
-    fontWeight: '800',
     color: '#FF7158',
   },
   seeDetailLink: {
+    fontFamily: flameeFonts.bold,
     fontSize: 13,
-    fontWeight: '600',
     color: '#FCB76D',
   },
 
@@ -356,8 +363,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   xAxisLabel: {
+    fontFamily: flameeFonts.medium,
     fontSize: 11,
     color: '#888888',
-    fontWeight: '600',
   },
 });

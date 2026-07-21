@@ -17,6 +17,7 @@ import {
 import { AppText } from '@/shared/components/ui/AppText';
 import { TextField } from '@/shared/components/ui/TextField';
 import { flameeTheme } from '@/shared/constants/flameeTheme';
+import { useAppSafeArea } from '@/shared/hooks';
 import { TimelineActionBar } from '@/features/timeline/components/TimelineActionBar';
 import { TimelineChip } from '@/features/timeline/components/TimelineChip';
 import { TimelineDetailsForm } from '@/features/timeline/components/TimelineDetailsForm';
@@ -78,16 +79,16 @@ export function CreateTimelineScreen({
   onComplete,
 }: CreateTimelineScreenProps) {
   const { width } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
+  const safeArea = useAppSafeArea();
   const contentWidth = getTimelineContentWidth(width);
   const typeCardWidth = getTimelineGridItemWidth(contentWidth);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.safeArea}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboard}>
-        <View style={[styles.header, { width: contentWidth }]}>
+        <View style={[styles.header, { width: contentWidth, paddingTop: safeArea.top }]}>
           <AppText
             align="center"
             color={flameeTheme.colors.brand}
@@ -131,10 +132,7 @@ export function CreateTimelineScreen({
           style={[
             styles.footer,
             {
-              paddingBottom: Math.max(
-                insets.bottom + flameeTheme.spacing[3],
-                flameeTheme.spacing[4],
-              ),
+              paddingBottom: safeArea.bottom + flameeTheme.spacing[2],
               width: contentWidth,
             },
           ]}>
@@ -146,7 +144,7 @@ export function CreateTimelineScreen({
           />
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 

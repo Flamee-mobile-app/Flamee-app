@@ -10,9 +10,10 @@ import {
   View,
   StatusBar,
   SafeAreaView,
+  Platform,
 } from 'react-native';
 
-import { flameeTheme } from '@/shared/constants/flameeTheme';
+import { flameeFonts, flameeTheme } from '@/shared/constants/flameeTheme';
 import { StateView } from '@/shared/components/ui';
 import { useDateSchedule } from '@/features/dates/hooks/useDateSchedule';
 
@@ -57,7 +58,7 @@ export function DatesScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      {/* Custom Header with no mock status row */}
+      {/* Custom Header */}
       <SafeAreaView style={styles.headerSafeArea}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -149,13 +150,13 @@ export function DatesScreen() {
                   <Text style={styles.ideaSubText}>{idea.details}</Text>
                 </View>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#FF7158" />
+              <Ionicons name="chevron-forward" size={18} color="rgba(43,43,43,0.3)" />
             </TouchableOpacity>
           ))}
         </View>
 
         {/* Bottom spacing */}
-        <View style={{ height: 100 }} />
+        <View style={{ height: 60 }} />
       </ScrollView>
     </View>
   );
@@ -170,6 +171,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#FFE6CE',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
   header: {
     flexDirection: 'row',
@@ -182,8 +184,8 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   headerTitle: {
+    fontFamily: flameeFonts.roundedBold,
     fontSize: 22,
-    fontWeight: '800',
     color: '#FF7158',
   },
   headerRight: {
@@ -196,6 +198,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 24,
     paddingTop: 20,
+    paddingBottom: 40,
   },
 
   // Calendar
@@ -203,8 +206,8 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   calendarMonth: {
+    fontFamily: flameeFonts.roundedBold,
     fontSize: 18,
-    fontWeight: '800',
     color: '#FF7158',
     marginBottom: 12,
   },
@@ -231,9 +234,9 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   dayLabel: {
+    fontFamily: flameeFonts.medium,
     fontSize: 11,
     color: '#888888',
-    fontWeight: '600',
   },
   dateCircle: {
     width: 26,
@@ -246,13 +249,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF7158',
   },
   dateText: {
+    fontFamily: flameeFonts.bold,
     fontSize: 13,
     color: '#2B2B2B',
-    fontWeight: '600',
   },
   dateTextActive: {
     color: '#FFFFFF',
-    fontWeight: '700',
   },
 
   // Sections
@@ -260,8 +262,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
+    fontFamily: flameeFonts.roundedBold,
     fontSize: 18,
-    fontWeight: '800',
     color: '#FF7158',
   },
 
@@ -285,22 +287,24 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   upcomingTime: {
+    fontFamily: flameeFonts.bold,
     fontSize: 12,
-    fontWeight: '700',
     color: '#FFFFFF',
     opacity: 0.9,
   },
   upcomingTitle: {
+    fontFamily: flameeFonts.roundedBold,
     fontSize: 18,
-    fontWeight: '800',
     color: '#FFFFFF',
   },
   upcomingLocation: {
+    fontFamily: flameeFonts.medium,
     fontSize: 12,
     color: '#FFFFFF',
     opacity: 0.95,
   },
   upcomingDuration: {
+    fontFamily: flameeFonts.regular,
     fontSize: 11,
     color: '#FFFFFF',
     opacity: 0.7,
@@ -351,9 +355,9 @@ const styles = StyleSheet.create({
     borderColor: '#FF7158',
   },
   cardRightText: {
+    fontFamily: flameeFonts.bold,
     fontSize: 12,
     color: '#FF7158',
-    fontWeight: '700',
   },
 
   // Ideas List
@@ -394,13 +398,13 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   ideaTitle: {
+    fontFamily: flameeFonts.bold,
     fontSize: 15,
-    fontWeight: '700',
     color: '#2B2B2B',
   },
   ideaSubText: {
+    fontFamily: flameeFonts.medium,
     fontSize: 12,
     color: '#888888',
-    fontWeight: '500',
   },
 });

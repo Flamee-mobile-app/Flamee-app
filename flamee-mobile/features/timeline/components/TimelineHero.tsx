@@ -106,9 +106,8 @@ const styles = StyleSheet.create({
     gap: flameeTheme.spacing[4],
   },
   days: {
-    fontFamily: 'SF-Pro-Rounded',
+    fontFamily: flameeTheme.fonts.roundedBold,
     fontSize: 36,
-    fontWeight: '700',
     lineHeight: 39,
   },
   subtitle: {

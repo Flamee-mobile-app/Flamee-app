@@ -14,6 +14,7 @@ import {
 
 import { AppText } from '@/shared/components/ui/AppText';
 import { flameeTheme } from '@/shared/constants/flameeTheme';
+import { useAppSafeArea } from '@/shared/hooks';
 import { TimelineChip } from '@/features/timeline/components/TimelineChip';
 import {
   TIMELINE_RANGE_LABELS,
@@ -60,7 +61,7 @@ export function TimelineFilterScreen({
 }: TimelineFilterScreenProps) {
   const [typeMenuOpen, setTypeMenuOpen] = useState(false);
   const { width } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
+  const safeArea = useAppSafeArea();
   const contentWidth = getTimelineContentWidth(width);
 
   const chooseType = (type: TimelineTypeFilter) => {
@@ -69,8 +70,8 @@ export function TimelineFilterScreen({
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={[styles.header, { width: contentWidth }]}>
+    <View style={styles.safeArea}>
+      <View style={[styles.header, { width: contentWidth, paddingTop: safeArea.top }]}>
         <Pressable
           accessibilityLabel="Đóng bộ lọc"
           accessibilityRole="button"
@@ -194,10 +195,7 @@ export function TimelineFilterScreen({
         style={[
           styles.footer,
           {
-            paddingBottom: Math.max(
-              insets.bottom + flameeTheme.spacing[4],
-              flameeTheme.spacing[6],
-            ),
+            paddingBottom: safeArea.bottom + flameeTheme.spacing[2],
           },
         ]}>
         <Pressable
@@ -219,7 +217,7 @@ export function TimelineFilterScreen({
           </LinearGradient>
         </Pressable>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 

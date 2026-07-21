@@ -1,12 +1,23 @@
 import type { TextStyle } from 'react-native';
 
+export const flameeFonts = {
+  roundedBold: 'SF-Pro-Rounded-Bold',
+  roundedSemibold: 'SF-Pro-Rounded-Semibold',
+  roundedMedium: 'SF-Pro-Rounded-Medium',
+  roundedRegular: 'SF-Pro-Rounded-Regular',
+  bold: 'SF-Pro-Bold',
+  medium: 'SF-Pro-Medium',
+  regular: 'SF-Pro-Regular',
+  light: 'SF-Pro-Light',
+} as const;
+
 export const flameeTheme = {
   colors: {
     brand: '#FF7158',
     brandSecondary: '#FCB76D',
     brandLight: '#FFF1E4',
     accentRed: '#E65C5C',
-    background: '#FAF9F7', // Updated from #FFFFFF
+    background: '#FAF9F7',
     cream: '#FFF1E4',
     softCream: '#FFE6CE',
     
@@ -30,15 +41,15 @@ export const flameeTheme = {
     },
 
     text: {
-      primary: '#2B2B2B', // Updated from #000000
+      primary: '#2B2B2B',
       secondary: '#555555',
       inverse: '#FFFFFF',
       brand: '#FF7158',
       muted: 'rgba(43,43,43,0.3)',
     },
-    success: '#76E69F', // Updated from #0FBB5D
+    success: '#76E69F',
     border: '#FCB76D',
-    mutedSurface: '#FAF9F7', // Updated from #F7F7F7
+    mutedSurface: '#FAF9F7',
     overlay: 'rgba(0,0,0,0.25)',
   },
   gradients: {
@@ -69,17 +80,18 @@ export const flameeTheme = {
     panel: 63,
     full: 999,
   },
+  fonts: flameeFonts,
   typography: {
-    display: { fontFamily: 'SF-Pro-Rounded', fontSize: 32, fontWeight: '700', lineHeight: 38 },
-    heading: { fontFamily: 'SF-Pro-Rounded', fontSize: 28, fontWeight: '700', lineHeight: 34 },
-    title: { fontFamily: 'SF-Pro-Rounded', fontSize: 24, fontWeight: '700', lineHeight: 30 },
-    sectionTitle: { fontFamily: 'SF-Pro-Rounded', fontSize: 20, fontWeight: '700', lineHeight: 26 },
-    subtitle: { fontFamily: 'SF-Pro-Rounded', fontSize: 18, fontWeight: '600', lineHeight: 22 },
-    body: { fontFamily: 'SF-Pro', fontSize: 16, fontWeight: '500', lineHeight: 22 },
-    bodyRegular: { fontFamily: 'SF-Pro', fontSize: 16, fontWeight: '400', lineHeight: 22 },
-    bodySmall: { fontFamily: 'SF-Pro', fontSize: 14, fontWeight: '400', lineHeight: 20 },
-    caption: { fontFamily: 'SF-Pro', fontSize: 12, fontWeight: '400', lineHeight: 16 },
-    micro: { fontFamily: 'SF-Pro', fontSize: 10, fontWeight: '300', lineHeight: 12 },
+    display: { fontFamily: flameeFonts.roundedBold, fontSize: 32, lineHeight: 38 },
+    heading: { fontFamily: flameeFonts.roundedBold, fontSize: 28, lineHeight: 34 },
+    title: { fontFamily: flameeFonts.roundedBold, fontSize: 24, lineHeight: 30 },
+    sectionTitle: { fontFamily: flameeFonts.roundedBold, fontSize: 20, lineHeight: 26 },
+    subtitle: { fontFamily: flameeFonts.roundedSemibold, fontSize: 18, lineHeight: 22 },
+    body: { fontFamily: flameeFonts.medium, fontSize: 16, lineHeight: 22 },
+    bodyRegular: { fontFamily: flameeFonts.regular, fontSize: 16, lineHeight: 22 },
+    bodySmall: { fontFamily: flameeFonts.regular, fontSize: 14, lineHeight: 20 },
+    caption: { fontFamily: flameeFonts.regular, fontSize: 12, lineHeight: 16 },
+    micro: { fontFamily: flameeFonts.light, fontSize: 10, lineHeight: 12 },
   } satisfies Record<string, TextStyle>,
 } as const;
 

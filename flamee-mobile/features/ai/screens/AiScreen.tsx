@@ -17,7 +17,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 
-import { flameeTheme } from '@/shared/constants/flameeTheme';
+import { flameeFonts, flameeTheme } from '@/shared/constants/flameeTheme';
 import { StateView } from '@/shared/components/ui';
 import { useAiChatSeed } from '@/features/ai/hooks/useAiChatSeed';
 import type { AiMessage } from '@/features/ai/types';
@@ -29,7 +29,7 @@ export function AiScreen() {
   const seed = useAiChatSeed();
   const [draft, setDraft] = useState('');
   const [messages, setMessages] = useState<AiMessage[]>([]);
-  const [chartWidth, setChartWidth] = useState(0);
+  const [chartWidth, setChartWidth] = useState(width - 48 - 40);
 
   if (seed.isLoading) return <StateView title="Đang mở Chat AI" loading />;
   if (seed.isError || !seed.data) {
@@ -42,19 +42,17 @@ export function AiScreen() {
     const text = draft.trim();
     if (!text) return;
     setMessages((current) => [
-      ...visibleMessages,
+      ...current,
       { id: `user-${Date.now()}`, author: 'user', text },
     ]);
     setDraft('');
   };
 
-  const showEmpty = visibleMessages.length === 0;
-
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      {/* Custom Header with no mock status row */}
+      {/* Custom Header */}
       <SafeAreaView style={styles.headerSafeArea}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -133,7 +131,7 @@ export function AiScreen() {
                     fillShadowGradientTo: '#FFFFFF',
                     fillShadowGradientOpacity: 0.4,
                     decimalPlaces: 0,
-                    color: (opacity = 1) => `rgba(252, 183, 109, ${opacity})`, // Cam nhạt cho line (#FCB76D)
+                    color: (opacity = 1) => `rgba(252, 183, 109, ${opacity})`,
                     labelColor: (opacity = 1) => `rgba(136, 136, 136, ${opacity})`,
                     style: {
                       borderRadius: 16,
@@ -150,48 +148,46 @@ export function AiScreen() {
                     },
                   }}
                   style={{
-                    marginVertical: 0,
-                    borderRadius: 16,
                     paddingRight: 0,
                     paddingLeft: 0,
+                    borderRadius: 16,
                   }}
                 />
               )}
             </View>
           </View>
 
-          {/* Empty state prompt area */}
-          {showEmpty && (
-            <View style={styles.emptyState}>
-              <Text style={styles.flameIcon}>🔥</Text>
-              <Text style={styles.emptyText}>Bạn chưa biết làm gì{"\n"}cho người yêu?</Text>
-            </View>
-          )}
-
-          {/* Chat messages */}
-          {!showEmpty && visibleMessages.map((msg) => (
-            <View key={msg.id} style={[styles.bubble, msg.author === 'user' ? styles.bubbleUser : styles.bubbleAi]}>
-              <Text style={[styles.bubbleText, msg.author === 'user' && styles.bubbleTextUser]}>{msg.text}</Text>
-            </View>
-          ))}
-
-          <View style={{ height: 100 }} />
+          {/* Chat Messages */}
+          {visibleMessages.map((msg) => {
+            const isUser = msg.author === 'user';
+            return (
+              <View
+                key={msg.id}
+                style={[
+                  styles.bubble,
+                  isUser ? styles.bubbleUser : styles.bubbleAi,
+                ]}
+              >
+                <Text style={[styles.bubbleText, isUser && styles.bubbleTextUser]}>
+                  {msg.text}
+                </Text>
+              </View>
+            );
+          })}
         </ScrollView>
 
-        {/* Bottom Input Area */}
+        {/* Input Bar */}
         <View style={styles.inputContainer}>
           <View style={styles.inputBorder}>
             <TextInput
+              style={styles.input}
+              placeholder="Nhập tin nhắn..."
+              placeholderTextColor="rgba(43,43,43,0.35)"
               value={draft}
               onChangeText={setDraft}
-              placeholder="Hỏi Flamee bất cứ điều gì..."
-              placeholderTextColor="rgba(43,43,43,0.35)"
-              style={styles.input}
-              multiline={false}
-              returnKeyType="send"
               onSubmitEditing={sendDraft}
             />
-            <TouchableOpacity style={styles.sendBtn} onPress={sendDraft} activeOpacity={0.85}>
+            <TouchableOpacity style={styles.sendBtn} onPress={sendDraft} activeOpacity={0.8}>
               <LinearGradient
                 colors={['#FCB76D', '#FF7158']}
                 style={styles.sendGradient}
@@ -207,101 +203,106 @@ export function AiScreen() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  container: { flex: 1, backgroundColor: '#FAF9F7' },
+  container: {
+    flex: 1,
+    backgroundColor: '#FAF9F7',
+  },
+  flex: {
+    flex: 1,
+  },
   headerSafeArea: {
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#FFE6CE',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 10,
   },
-  backBtn: { padding: 4 },
-  menuBtn: { padding: 4 },
+  backBtn: {
+    padding: 4,
+  },
   titleContainer: {
     alignItems: 'center',
-    justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '800',
+    fontFamily: flameeFonts.roundedBold,
+    fontSize: 18,
     color: '#FF7158',
   },
   headerSubtitle: {
-    fontSize: 12,
+    fontFamily: flameeFonts.regular,
+    fontSize: 11,
     color: '#888888',
-    fontWeight: '500',
-    marginTop: 2,
+  },
+  menuBtn: {
+    padding: 4,
   },
   scrollContent: {
-    padding: 24,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 24,
     gap: 16,
   },
 
-  // Suggestion Cards
+  // Suggestion Card
   suggestionCard: {
     backgroundColor: '#FFF1E4',
-    borderRadius: 24,
-    padding: 20,
     borderWidth: 1,
     borderColor: '#FFE6CE',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 3,
-    elevation: 1,
+    borderRadius: 24,
+    padding: 20,
+    position: 'relative',
   },
   suggestionLeft: {
     width: '65%',
     gap: 6,
   },
   cardTag: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FF7158',
-    marginBottom: 4,
+    fontFamily: flameeFonts.bold,
+    fontSize: 12,
+    color: '#888888',
   },
   suggestionBody: {
-    fontSize: 12,
-    color: '#777777',
-    lineHeight: 16,
+    fontFamily: flameeFonts.roundedBold,
+    fontSize: 15,
+    color: '#2B2B2B',
+    lineHeight: 20,
   },
   seeMoreBtn: {
     backgroundColor: '#FF7158',
-    borderRadius: 20,
+    borderRadius: 14,
+    paddingHorizontal: 14,
     paddingVertical: 6,
-    paddingHorizontal: 16,
     alignSelf: 'flex-start',
-    marginTop: 10,
+    marginTop: 6,
   },
   seeMoreText: {
+    fontFamily: flameeFonts.bold,
     color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: '600',
   },
   ramenContainer: {
     position: 'absolute',
     right: 20,
     top: 20,
-    width: 80,
-    height: 80,
+    width: 70,
+    height: 70,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 40,
+    borderRadius: 35,
     borderWidth: 1,
     borderColor: '#FFE6CE',
   },
   ramenEmoji: {
-    fontSize: 44,
+    fontSize: 38,
   },
 
-  // Emotion Chart Approximation
   chartContainer: {
     height: 100,
     backgroundColor: '#FFFFFF',
@@ -311,24 +312,6 @@ const styles = StyleSheet.create({
     borderColor: '#FFE6CE',
     position: 'relative',
     overflow: 'hidden',
-  },
-
-  // Empty State
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 40,
-    gap: 16,
-  },
-  flameIcon: {
-    fontSize: 70,
-  },
-  emptyText: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#FF7158',
-    textAlign: 'center',
-    lineHeight: 30,
   },
 
   // Chat Bubbles
@@ -352,6 +335,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 4,
   },
   bubbleText: {
+    fontFamily: flameeFonts.regular,
     fontSize: 14,
     color: '#2B2B2B',
     lineHeight: 18,
@@ -381,6 +365,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
+    fontFamily: flameeFonts.regular,
     fontSize: 14,
     color: '#2B2B2B',
   },

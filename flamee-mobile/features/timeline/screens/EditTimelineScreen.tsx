@@ -18,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText } from '@/shared/components/ui/AppText';
 import { Button } from '@/shared/components/ui/Button';
 import { flameeTheme } from '@/shared/constants/flameeTheme';
+import { useAppSafeArea } from '@/shared/hooks';
 import { TimelineDetailsForm } from '@/features/timeline/components/TimelineDetailsForm';
 import { getTimelineArtwork } from '@/features/timeline/timelineAssets';
 import {
@@ -61,10 +62,11 @@ export function EditTimelineScreen({
   onConfirmDelete,
 }: EditTimelineScreenProps) {
   const { width } = useWindowDimensions();
+  const safeArea = useAppSafeArea();
   const contentWidth = getTimelineContentWidth(width);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.safeArea}>
       <KeyboardAvoidingView
         accessibilityElementsHidden={deleteConfirmationVisible}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -73,7 +75,7 @@ export function EditTimelineScreen({
         }
         style={styles.keyboard}
         testID="edit-timeline-content">
-        <View style={[styles.header, { width: contentWidth }]}>
+        <View style={[styles.header, { width: contentWidth, paddingTop: safeArea.top }]}>
           <Pressable
             accessibilityLabel="Đóng chỉnh sửa"
             accessibilityRole="button"
@@ -97,7 +99,7 @@ export function EditTimelineScreen({
         </View>
 
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: safeArea.bottom + 24 }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
           <View style={[styles.content, { width: contentWidth }]}>
@@ -163,7 +165,7 @@ export function EditTimelineScreen({
           onConfirm={onConfirmDelete}
         />
       ) : null}
-    </SafeAreaView>
+    </View>
   );
 }
 

@@ -1,1 +1,1 @@
-export {};
+export { useAppSafeArea } from './useAppSafeArea';

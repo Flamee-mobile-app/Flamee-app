@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 
+import { flameeFonts } from '@/shared/constants/flameeTheme';
 import { ROUTES } from '@/shared/lib/navigation/routes';
 import { brandAssets } from '@/shared/assets';
 import { AppImage } from '@/shared/components/media';
@@ -135,7 +136,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingTop: Platform.OS === 'android' ? 16 : 8,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 16) + 8 : 8,
     paddingBottom: 8,
   },
   logoRow: {
@@ -148,8 +149,8 @@ const styles = StyleSheet.create({
     height: 24,
   },
   logoText: {
+    fontFamily: flameeFonts.roundedBold,
     fontSize: 22,
-    fontWeight: '800',
     color: '#FFFFFF',
     letterSpacing: 0.5,
   },
@@ -173,14 +174,14 @@ const styles = StyleSheet.create({
     marginTop: 40,
   },
   greetingTitle: {
+    fontFamily: flameeFonts.roundedBold,
     color: '#FFFFFF',
     fontSize: 36,
-    fontWeight: '700',
   },
   greetingQuote: {
+    fontFamily: flameeFonts.medium,
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '500',
     fontStyle: 'italic',
     lineHeight: 22,
     opacity: 0.95,
@@ -191,8 +192,8 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   shortcutsTitle: {
+    fontFamily: flameeFonts.bold,
     fontSize: 15,
-    fontWeight: '700',
     color: '#FFFFFF',
     opacity: 0.8,
     textTransform: 'uppercase',
@@ -229,8 +230,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   shortcutLabel: {
+    fontFamily: flameeFonts.bold,
     fontSize: 14,
-    fontWeight: '600',
     color: '#FFFFFF',
     flex: 1,
   },

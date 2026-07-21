@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 
-import { flameeTheme } from '@/shared/constants/flameeTheme';
+import { flameeFonts, flameeTheme } from '@/shared/constants/flameeTheme';
 import { StateView } from '@/shared/components/ui';
 import { brandAssets } from '@/shared/assets';
 import { useProfileData } from '@/features/profile/hooks/useProfileData';
@@ -118,133 +118,117 @@ export function ProfileScreen() {
             <View style={styles.streakRow}>
               <Ionicons name="flame" size={20} color="#FF7158" />
               <Text style={styles.streakText}>
-                {data.streakDays ?? 32} ngày streak 🔥
+                Chuỗi 14 ngày yêu thương
               </Text>
             </View>
           </View>
 
-          {/* Settings Menu grouped in a single container */}
+          {/* Menu items in unified list container */}
           <View style={styles.menuContainer}>
-            {MENU_ITEMS.map((item, index) => (
+            {MENU_ITEMS.map((item, idx) => (
               <View key={item.id}>
                 <TouchableOpacity style={styles.menuItemBtn} activeOpacity={0.7}>
                   <Text style={styles.menuItemLabel}>{item.label}</Text>
-                  <Ionicons name="chevron-forward" size={16} color="#FF7158" />
+                  <Ionicons name="chevron-forward" size={18} color="#FF7158" />
                 </TouchableOpacity>
-                {index < MENU_ITEMS.length - 1 && <View style={styles.menuDivider} />}
+                {idx < MENU_ITEMS.length - 1 && <View style={styles.menuDivider} />}
               </View>
             ))}
           </View>
-
-          {/* Spacer for bottom tab */}
-          <View style={{ height: 120 }} />
         </View>
       </ScrollView>
     </View>
   );
 }
 
+const ARTWORK_HEIGHT = height * 0.28;
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000000',
-  },
+  container: { flex: 1, backgroundColor: '#1a0a00' },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    backgroundColor: 'rgba(0,0,0,0.35)',
   },
-  scroll: {
-    flex: 1,
-  },
+  scroll: { flex: 1 },
   scrollContent: {
-    flexGrow: 1,
+    paddingBottom: 100,
   },
   topSpacer: {
-    height: 120,
+    height: ARTWORK_HEIGHT,
   },
   profilePanel: {
     backgroundColor: '#FAF9F7',
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
+    borderTopLeftRadius: 36,
+    borderTopRightRadius: 36,
     paddingHorizontal: 24,
-    paddingTop: 16,
-    gap: 16,
-    minHeight: height - 120,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 5,
+    paddingBottom: 40,
+    minHeight: height - ARTWORK_HEIGHT,
   },
   avatarWrapper: {
-    alignSelf: 'center',
-    marginTop: -80,
+    alignItems: 'center',
+    marginTop: -46,
     marginBottom: 8,
-    zIndex: 10,
   },
   avatarContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
-    backgroundColor: '#FFE6CE',
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    backgroundColor: '#FFFFFF',
+    padding: 3,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 6,
     elevation: 4,
-    overflow: 'hidden',
   },
   avatarBg: {
-    width: '100%',
-    height: '100%',
-    position: 'relative',
+    flex: 1,
+    borderRadius: 43,
+    backgroundColor: '#FFE6CE',
+    overflow: 'hidden',
     alignItems: 'center',
-    backgroundColor: '#FFF1E4',
-  },
-  bobHairTop: {
-    position: 'absolute',
-    top: 12,
-    width: 70,
-    height: 55,
-    backgroundColor: '#222222',
-    borderTopLeftRadius: 35,
-    borderTopRightRadius: 35,
+    justifyContent: 'center',
   },
   bobHairL: {
     position: 'absolute',
-    top: 30,
-    left: 18,
-    width: 22,
-    height: 55,
+    left: 10,
+    top: 18,
+    width: 24,
+    height: 52,
     backgroundColor: '#222222',
-    borderBottomLeftRadius: 12,
+    borderRadius: 12,
   },
   bobHairR: {
     position: 'absolute',
-    top: 30,
-    right: 18,
-    width: 22,
-    height: 55,
+    right: 10,
+    top: 18,
+    width: 24,
+    height: 52,
     backgroundColor: '#222222',
-    borderBottomRightRadius: 12,
+    borderRadius: 12,
+  },
+  bobHairTop: {
+    position: 'absolute',
+    top: 14,
+    width: 58,
+    height: 36,
+    backgroundColor: '#222222',
+    borderRadius: 20,
   },
   neck: {
     position: 'absolute',
-    top: 75,
+    bottom: 22,
     width: 14,
-    height: 22,
+    height: 16,
     backgroundColor: '#F5C6A5',
+    borderRadius: 6,
   },
   shirt: {
     position: 'absolute',
     bottom: 0,
-    width: 64,
-    height: 30,
-    backgroundColor: '#FF7158',
+    width: 56,
+    height: 26,
+    backgroundColor: '#FCB76D',
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
   },
@@ -291,8 +275,8 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 4,
   },
-  coupleName: { fontSize: 24, fontWeight: '700', color: '#2B2B2B' },
-  daysTogether: { fontSize: 14, color: '#888888', textAlign: 'center', fontWeight: '500', marginBottom: 8 },
+  coupleName: { fontFamily: flameeFonts.roundedBold, fontSize: 24, color: '#2B2B2B' },
+  daysTogether: { fontFamily: flameeFonts.medium, fontSize: 14, color: '#888888', textAlign: 'center', marginBottom: 8 },
   unifiedCard: {
     backgroundColor: '#FFFBF7',
     borderWidth: 1.5,
@@ -318,8 +302,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
   },
-  statNumber: { fontSize: 20, fontWeight: '700', color: '#2B2B2B' },
-  statLabel: { fontSize: 12, color: '#888888', fontWeight: '500' },
+  statNumber: { fontFamily: flameeFonts.roundedBold, fontSize: 20, color: '#2B2B2B' },
+  statLabel: { fontFamily: flameeFonts.medium, fontSize: 12, color: '#888888' },
   statDivider: {
     width: 1,
     height: 30,
@@ -337,8 +321,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   streakText: {
+    fontFamily: flameeFonts.bold,
     fontSize: 15,
-    fontWeight: '700',
     color: '#FF7158',
   },
   menuContainer: {
@@ -362,7 +346,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  menuItemLabel: { fontSize: 15, fontWeight: '600', color: '#2B2B2B' },
+  menuItemLabel: { fontFamily: flameeFonts.bold, fontSize: 15, color: '#2B2B2B' },
   menuDivider: {
     height: 1,
     backgroundColor: '#FFE6CE',

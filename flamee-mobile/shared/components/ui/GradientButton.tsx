@@ -1,5 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, TouchableOpacity, Text, ViewStyle, TextStyle } from 'react-native';
+import { flameeFonts } from '@/shared/constants/flameeTheme';
 
 interface GradientButtonProps {
   title: string;
@@ -58,10 +59,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   solidText: {
-    fontFamily: 'SF-Pro',
+    fontFamily: flameeFonts.bold,
     color: '#5B4C1B',
     fontSize: 14,
-    fontWeight: '600',
   },
   outlineWrapper: {
     borderRadius: 32,
@@ -80,9 +80,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   outlineText: {
-    fontFamily: 'SF-Pro',
+    fontFamily: flameeFonts.bold,
     fontSize: 14,
-    fontWeight: '600',
     color: '#FF7158',
   },
 });
