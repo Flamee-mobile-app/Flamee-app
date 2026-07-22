@@ -8,9 +8,11 @@ import {
   PERSISTENT_MAIN_SCREEN_OPTIONS,
 } from '@/shared/lib/navigation/mainStackOptions';
 import { isMainNavigationPath } from '@/shared/lib/navigation/routes';
+import { usePersistentMainBackGuard } from '@/shared/lib/navigation/usePersistentMainBackGuard';
 
 export default function MainLayout() {
   const pathname = usePathname();
+  usePersistentMainBackGuard(pathname);
 
   return (
     <BottomNavLayoutProvider>

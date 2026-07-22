@@ -1,4 +1,5 @@
 import { act, fireEvent, render } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 
 import { MascotSuggestBubble } from './MascotSuggestBubble';
 
@@ -36,8 +37,13 @@ describe('MascotSuggestBubble', () => {
     });
     expect(screen.getByTestId('mascot-suggest-expanded-bubble')).toBeTruthy();
 
+    const closeButton = screen.getByRole('button', { name: 'Đóng gợi ý lịch hẹn hò' });
+    expect(StyleSheet.flatten(closeButton.props.style)).toEqual(
+      expect.objectContaining({ height: 44, width: 44 }),
+    );
+
     await act(async () => {
-      fireEvent.press(screen.getByRole('button', { name: 'Đóng gợi ý lịch hẹn hò' }));
+      fireEvent.press(closeButton);
     });
     expect(screen.queryByTestId('mascot-message-dismiss-surface')).toBeNull();
     expect(onPressChat).not.toHaveBeenCalled();

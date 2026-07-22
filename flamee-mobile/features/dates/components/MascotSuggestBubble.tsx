@@ -65,13 +65,15 @@ export function MascotSuggestBubble({
                 <Ionicons name="sparkles" size={12} color="#FF7158" />
                 <Text style={styles.mascotTagText}>Mascot AI</Text>
               </View>
-              <TouchableOpacity
-                accessibilityLabel="Đóng gợi ý lịch hẹn hò"
-                accessibilityRole="button"
-                onPress={close}
-                style={styles.closeMiniBtn}>
-                <Ionicons name="close-circle" size={18} color="#FF7158" />
-              </TouchableOpacity>
+              <View style={styles.closeMiniBtnSlot}>
+                <TouchableOpacity
+                  accessibilityLabel="Đóng gợi ý lịch hẹn hò"
+                  accessibilityRole="button"
+                  onPress={close}
+                  style={styles.closeMiniBtn}>
+                  <Ionicons name="close-circle" size={18} color="#FF7158" />
+                </TouchableOpacity>
+              </View>
             </View>
 
             <Text style={styles.messageText}>{messageText}</Text>
@@ -164,8 +166,18 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#FF7158',
   },
+  closeMiniBtnSlot: {
+    height: 22,
+    width: 22,
+  },
   closeMiniBtn: {
-    padding: 2,
+    position: 'absolute',
+    top: -11,
+    left: -11,
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   messageText: {
     fontFamily: flameeFonts.medium,
