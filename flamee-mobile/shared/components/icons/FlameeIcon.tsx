@@ -1,9 +1,11 @@
 import { StyleSheet, View } from 'react-native';
 
 import {
+  AiIcon,
   HomeIcon,
   MissionsStarOneIcon,
   MissionsStarTwoIcon,
+  MoodIcon,
   ProfileBodyIcon,
   ProfileHeadIcon,
   TimelineIcon,
@@ -72,6 +74,30 @@ export function FlameeIcon({
           width={size * 0.3}
         />
       </View>
+    );
+  }
+
+  if (name === 'mood') {
+    return (
+      <MoodIcon
+        {...accessibilityProps}
+        color={color}
+        height={size}
+        testID="flamee-icon-mood"
+        width={size}
+      />
+    );
+  }
+
+  if (name === 'ai') {
+    return (
+      <AiIcon
+        {...accessibilityProps}
+        color={color}
+        height={size}
+        testID="flamee-icon-ai"
+        width={size}
+      />
     );
   }
 

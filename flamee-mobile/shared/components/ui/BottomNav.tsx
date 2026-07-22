@@ -10,6 +10,7 @@ import Svg, {
 } from 'react-native-svg';
 
 import { flameeTheme } from '@/shared/constants/flameeTheme';
+import { useBottomNavLayout } from '@/shared/layouts';
 import { BOTTOM_NAV_ITEMS, type BottomNavItem } from '@/shared/lib/navigation/routes';
 import { brandAssets } from '@/shared/assets';
 import { FlameeIcon } from '@/shared/components/icons';
@@ -17,6 +18,7 @@ import { AppImage } from '@/shared/components/media';
 
 import { AppText } from './AppText';
 import {
+  BOTTOM_NAV_BAR_HEIGHT,
   FIGMA_BOTTOM_NAV_WIDTH,
   getBottomNavTabLayout,
   type BottomNavTabLayout,
@@ -29,7 +31,7 @@ function BottomNavBackground() {
   return (
     <Svg
       accessible={false}
-      height={72}
+      height={BOTTOM_NAV_BAR_HEIGHT}
       pointerEvents="none"
       preserveAspectRatio="none"
       style={styles.background}
@@ -90,7 +92,7 @@ function FlameeLogoBadge() {
       testID="bottom-nav-logo-svg">
       <Svg
         accessible={false}
-        height={56}
+  height={56}
         style={StyleSheet.absoluteFill}
         viewBox="0 0 56 56"
         width={56}>
@@ -121,14 +123,23 @@ function FlameeLogoBadge() {
 export function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
+  const { setFrame } = useBottomNavLayout();
   const [barWidth, setBarWidth] = useState(FIGMA_BOTTOM_NAV_WIDTH);
 
   const onBarLayout = ({ nativeEvent }: LayoutChangeEvent) => {
     setBarWidth(nativeEvent.layout.width);
   };
 
+  const onContainerLayout = ({ nativeEvent }: LayoutChangeEvent) => {
+    setFrame(nativeEvent.layout);
+  };
+
   return (
-    <View pointerEvents="box-none" style={styles.container}>
+    <View
+      pointerEvents="box-none"
+      style={styles.container}
+      onLayout={onContainerLayout}
+      testID="bottom-nav-container">
       <View testID="bottom-nav-bar" onLayout={onBarLayout} style={styles.bar}>
         <BottomNavBackground />
 
@@ -176,7 +187,7 @@ const styles = StyleSheet.create({
   },
   bar: {
     elevation: 8,
-    height: 72,
+    height: BOTTOM_NAV_BAR_HEIGHT,
     position: 'relative',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },

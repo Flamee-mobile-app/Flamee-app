@@ -1,27 +1,58 @@
+import React, { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import {
   Dimensions,
+  Platform,
+  SafeAreaView,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  StatusBar,
-  SafeAreaView,
-  Platform,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
-import { flameeFonts, flameeTheme } from '@/shared/constants/flameeTheme';
+import { flameeFonts } from '@/shared/constants/flameeTheme';
 import { StateView } from '@/shared/components/ui';
-import { useDateSchedule } from '@/features/dates/hooks/useDateSchedule';
+import {
+  useCreateDate,
+  useDateSchedule,
+  useDeleteDate,
+  useUpdateDateStatus,
+} from '@/features/dates/hooks/useDateSchedule';
+import type { DateFilterType, DateItem } from '@/features/dates/types';
+import { ROUTES } from '@/shared/lib/navigation/routes';
+import { AddDateModal } from '@/features/dates/components/AddDateModal';
+import { DateDetailModal } from '@/features/dates/components/DateDetailModal';
+import { MascotSuggestBubble } from '@/features/dates/components/MascotSuggestBubble';
+
+
 
 const { width } = Dimensions.get('window');
+
+const FILTER_TABS: { key: DateFilterType; label: string }[] = [
+  { key: 'all', label: 'Tất cả' },
+  { key: 'upcoming', label: 'Sắp tới' },
+  { key: 'completed', label: 'Đã xong' },
+];
 
 export function DatesScreen() {
   const router = useRouter();
   const schedule = useDateSchedule();
+
+  const createMutation = useCreateDate();
+  const updateStatusMutation = useUpdateDateStatus();
+  const deleteMutation = useDeleteDate();
+
+  const [activeFilter, setActiveFilter] = useState<DateFilterType>('all');
+  const [selectedDayId, setSelectedDayId] = useState<string>('thu');
+
+  // Modals state
+  const [isAddModalVisible, setIsAddModalVisible] = useState(false);
+  const [selectedItemForDetail, setSelectedItemForDetail] = useState<DateItem | null>(null);
 
   if (schedule.isLoading) {
     return <StateView title="Đang tải lịch hẹn hò" loading />;
@@ -37,22 +68,24 @@ export function DatesScreen() {
     );
   }
 
-  // Define dates custom matching Figma layout
-  const weekDays = [
-    { label: 'T2', date: '11', active: false },
-    { label: 'T3', date: '12', active: false },
-    { label: 'T4', date: '13', active: false },
-    { label: 'T5', date: '14', active: true },
-    { label: 'T6', date: '15', active: false },
-    { label: 'T7', date: '16', active: false },
-    { label: 'CN', date: '17', active: false },
-  ];
+  const { week, upcoming, items } = schedule.data;
 
-  const dateIdeas = [
-    { id: '1', emoji: '🍕', title: 'Picnic công viên', details: 'Công viên thành phố • 14:00' },
-    { id: '2', emoji: '🍳', title: 'Nấu ăn cùng nhau', details: 'Tại nhà • 18:00' },
-    { id: '3', emoji: '☕', title: 'Cà phê trò chuyện', details: 'Quán cafe acoustic • 20:00' },
-  ];
+  // Filter items based on active filter
+  const filteredItems = items.filter((item) => {
+    if (activeFilter === 'upcoming') return item.status === 'upcoming';
+    if (activeFilter === 'completed') return item.status === 'completed';
+    return true; // 'all'
+  });
+
+  const handleOpenAddModal = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setIsAddModalVisible(true);
+  };
+
+  const handleSelectDay = (dayId: string) => {
+    Haptics.selectionAsync();
+    setSelectedDayId(dayId);
+  };
 
   return (
     <View style={styles.container}>
@@ -66,11 +99,11 @@ export function DatesScreen() {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Lịch hẹn hò</Text>
           <View style={styles.headerRight}>
-            <TouchableOpacity style={styles.headerIcon}>
-              <Ionicons name="search-outline" size={22} color="#FF7158" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.headerIcon}>
-              <Ionicons name="ellipsis-horizontal" size={22} color="#FF7158" />
+            <TouchableOpacity
+              style={styles.addHeaderBtn}
+              onPress={() => handleOpenAddModal()}
+            >
+              <Ionicons name="add" size={24} color="#FF7158" />
             </TouchableOpacity>
           </View>
         </View>
@@ -82,82 +115,170 @@ export function DatesScreen() {
       >
         {/* Calendar Month Selector & Week Scroller */}
         <View style={styles.calendarContainer}>
-          <Text style={styles.calendarMonth}>Tháng 5, 2026</Text>
-          
-          <View style={styles.calendarCard}>
-            {weekDays.map((day, idx) => (
-              <View key={idx} style={styles.dayCol}>
-                <Text style={styles.dayLabel}>{day.label}</Text>
-                <View style={[styles.dateCircle, day.active && styles.dateCircleActive]}>
-                  <Text style={[styles.dateText, day.active && styles.dateTextActive]}>
-                    {day.date}
-                  </Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        {/* Lịch hẹn sắp tới */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Lịch hẹn sắp tới</Text>
-        </View>
-
-        {/* Split screen card (Info on left, photo on right) */}
-        <View style={styles.splitCard}>
-          {/* Left card content */}
-          <View style={styles.cardLeft}>
-            <Text style={styles.upcomingTime}>16:00, Hôm nay</Text>
-            <Text style={styles.upcomingTitle}>Đi xem phim</Text>
-            <Text style={styles.upcomingLocation}>📍 CGV Vincom</Text>
-            <Text style={styles.upcomingDuration}>19:00</Text>
-          </View>
-
-          {/* Right card mockup photo */}
-          <View style={styles.cardRight}>
-            <View style={styles.cinemaSeatsMock}>
-              <View style={styles.screenBar} />
-              <View style={styles.seatsGrid}>
-                <View style={styles.seatRow}>
-                  <View style={styles.seat} /><View style={styles.seat} /><View style={styles.seat} /><View style={styles.seat} />
-                </View>
-                <View style={styles.seatRow}>
-                  <View style={styles.seat} /><View style={[styles.seat, styles.seatSelected]} /><View style={[styles.seat, styles.seatSelected]} /><View style={styles.seat} />
-                </View>
-                <View style={styles.seatRow}>
-                  <View style={styles.seat} /><View style={styles.seat} /><View style={styles.seat} /><View style={styles.seat} />
-                </View>
-              </View>
-              <Text style={styles.cardRightText}>Cinema</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Ý tưởng hẹn hò */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Ý tưởng hẹn hò</Text>
-        </View>
-
-        <View style={styles.ideasList}>
-          {dateIdeas.map((idea) => (
-            <TouchableOpacity key={idea.id} style={styles.ideaItem} activeOpacity={0.8}>
-              <View style={styles.ideaLeft}>
-                <View style={styles.emojiCircle}>
-                  <Text style={styles.ideaEmoji}>{idea.emoji}</Text>
-                </View>
-                <View style={styles.ideaInfo}>
-                  <Text style={styles.ideaTitle}>{idea.title}</Text>
-                  <Text style={styles.ideaSubText}>{idea.details}</Text>
-                </View>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color="rgba(43,43,43,0.3)" />
+          <View style={styles.calendarMonthRow}>
+            <Text style={styles.calendarMonth}>Tháng 5, 2026</Text>
+            <TouchableOpacity
+              style={styles.addQuickPill}
+              onPress={() => handleOpenAddModal()}
+            >
+              <Ionicons name="add-circle" size={16} color="#FF7158" />
+              <Text style={styles.addQuickPillText}>Thêm lịch hẹn</Text>
             </TouchableOpacity>
-          ))}
+          </View>
+
+          <View style={styles.calendarCard}>
+            {week.map((day) => {
+              const active = day.id === selectedDayId;
+              return (
+                <TouchableOpacity
+                  key={day.id}
+                  style={styles.dayCol}
+                  onPress={() => handleSelectDay(day.id)}
+                >
+                  <Text style={[styles.dayLabel, active && styles.dayLabelActive]}>
+                    {day.label}
+                  </Text>
+                  <View style={[styles.dateCircle, active && styles.dateCircleActive]}>
+                    <Text style={[styles.dateText, active && styles.dateTextActive]}>
+                      {day.date}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
 
-        {/* Bottom spacing */}
-        <View style={{ height: 60 }} />
+        {/* Upcoming Featured Date Card */}
+        {upcoming && activeFilter !== 'completed' && (
+          <View style={styles.sectionContainer}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Lịch hẹn sắp tới 💕</Text>
+            </View>
+
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={styles.splitCard}
+              onPress={() => setSelectedItemForDetail(upcoming)}
+            >
+              {/* Left card content */}
+              <View style={styles.cardLeft}>
+                <Text style={styles.upcomingTime}>{upcoming.displayTime}</Text>
+                <Text style={styles.upcomingTitle}>{upcoming.title}</Text>
+                <Text style={styles.upcomingLocation}>📍 {upcoming.location}</Text>
+                <View style={styles.badgeRow}>
+                  <Text style={styles.upcomingStatusBadge}>Sắp diễn ra • Chạm để xem</Text>
+                </View>
+              </View>
+
+              {/* Right card visual */}
+              <View style={styles.cardRight}>
+                <View style={styles.cinemaSeatsMock}>
+                  <Text style={styles.emojiVisual}>{upcoming.emoji || '🎬'}</Text>
+                  <View style={styles.screenBar} />
+                  <Text style={styles.cardRightText}>{upcoming.category.toUpperCase()}</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Filter Tabs Bar */}
+        <View style={styles.filterTabsRow}>
+          {FILTER_TABS.map((tab) => {
+            const active = activeFilter === tab.key;
+            return (
+              <TouchableOpacity
+                key={tab.key}
+                style={[styles.filterTab, active && styles.filterTabActive]}
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  setActiveFilter(tab.key);
+                }}
+              >
+                <Text style={[styles.filterTabText, active && styles.filterTabTextActive]}>
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* Filtered Items Section */}
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>
+              {activeFilter === 'completed'
+                ? 'Lịch hẹn đã hoàn thành'
+                : activeFilter === 'upcoming'
+                ? 'Danh sách sắp tới'
+                : 'Tất cả cuộc hẹn'}
+            </Text>
+          </View>
+
+          {filteredItems.length === 0 ? (
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyText}>Chưa có lịch hẹn nào ở mục này</Text>
+              <TouchableOpacity
+                style={styles.emptyAddBtn}
+                onPress={() => handleOpenAddModal()}
+              >
+                <Text style={styles.emptyAddBtnText}>+ Tạo lịch mới ngay</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.itemsList}>
+              {filteredItems.map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={styles.itemCard}
+                  activeOpacity={0.85}
+                  onPress={() => setSelectedItemForDetail(item)}
+                >
+                  <View style={styles.itemEmojiBox}>
+                    <Text style={styles.itemEmoji}>{item.emoji || '💖'}</Text>
+                  </View>
+                  <View style={styles.itemInfo}>
+                    <Text style={styles.itemTitle}>{item.title}</Text>
+                    <Text style={styles.itemSub}>{item.displayTime} • {item.location}</Text>
+                  </View>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={18}
+                    color="rgba(43,43,43,0.3)"
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
+
+        {/* Bottom Spacing for BottomNav */}
+        <View style={{ height: 100 }} />
       </ScrollView>
+
+      {/* Floating Mascot AI Suggestion Widget (Collapsible with smooth Reanimated transition) */}
+      <MascotSuggestBubble
+        onPressChat={() => router.push(ROUTES.ai)}
+      />
+
+
+
+      {/* Add Date Modal (Floating Popup with Custom Date & Time Pickers) */}
+      <AddDateModal
+        visible={isAddModalVisible}
+        onClose={() => setIsAddModalVisible(false)}
+        onSubmit={(payload) => createMutation.mutate(payload)}
+      />
+
+      {/* Date Detail Modal (Renders Mockup 3 Design) */}
+      <DateDetailModal
+        visible={!!selectedItemForDetail}
+        item={selectedItemForDetail}
+        onClose={() => setSelectedItemForDetail(null)}
+        onUpdateStatus={(id, status) => updateStatusMutation.mutate({ id, status })}
+        onDelete={(id) => deleteMutation.mutate(id)}
+      />
     </View>
   );
 }
@@ -190,26 +311,46 @@ const styles = StyleSheet.create({
   },
   headerRight: {
     flexDirection: 'row',
-    gap: 12,
+    alignItems: 'center',
+    gap: 8,
   },
-  headerIcon: {
+  addHeaderBtn: {
     padding: 4,
   },
   scrollContent: {
-    paddingHorizontal: 24,
-    paddingTop: 20,
+    paddingHorizontal: 20,
+    paddingTop: 16,
     paddingBottom: 40,
   },
 
   // Calendar
   calendarContainer: {
-    marginBottom: 24,
+    marginBottom: 20,
+  },
+  calendarMonthRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
   },
   calendarMonth: {
     fontFamily: flameeFonts.roundedBold,
     fontSize: 18,
     color: '#FF7158',
-    marginBottom: 12,
+  },
+  addQuickPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FFF1E4',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  addQuickPillText: {
+    fontFamily: flameeFonts.bold,
+    fontSize: 12,
+    color: '#FF7158',
   },
   calendarCard: {
     width: '100%',
@@ -221,7 +362,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.02,
@@ -238,10 +379,14 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#888888',
   },
+  dayLabelActive: {
+    color: '#FF7158',
+    fontFamily: flameeFonts.bold,
+  },
   dateCircle: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -258,8 +403,11 @@ const styles = StyleSheet.create({
   },
 
   // Sections
+  sectionContainer: {
+    marginBottom: 20,
+  },
   sectionHeader: {
-    marginBottom: 12,
+    marginBottom: 10,
   },
   sectionTitle: {
     fontFamily: flameeFonts.roundedBold,
@@ -270,14 +418,13 @@ const styles = StyleSheet.create({
   // Split Upcoming Card
   splitCard: {
     flexDirection: 'row',
-    gap: 14,
-    height: 150,
-    marginBottom: 28,
+    gap: 12,
+    height: 145,
   },
   cardLeft: {
     flex: 1.1,
-    borderRadius: 24,
-    padding: 16,
+    borderRadius: 22,
+    padding: 14,
     justifyContent: 'space-between',
     backgroundColor: '#FF7158',
     shadowColor: '#FF7158',
@@ -294,7 +441,7 @@ const styles = StyleSheet.create({
   },
   upcomingTitle: {
     fontFamily: flameeFonts.roundedBold,
-    fontSize: 18,
+    fontSize: 17,
     color: '#FFFFFF',
   },
   upcomingLocation: {
@@ -303,18 +450,24 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     opacity: 0.95,
   },
-  upcomingDuration: {
-    fontFamily: flameeFonts.regular,
-    fontSize: 11,
+  badgeRow: {
+    alignSelf: 'flex-start',
+  },
+  upcomingStatusBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    fontSize: 10,
+    fontFamily: flameeFonts.bold,
     color: '#FFFFFF',
-    opacity: 0.7,
   },
   cardRight: {
     flex: 0.9,
     backgroundColor: '#FFFFFF',
     borderWidth: 1.5,
     borderColor: '#FCB76D',
-    borderRadius: 24,
+    borderRadius: 22,
     overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
@@ -324,87 +477,181 @@ const styles = StyleSheet.create({
     height: '100%',
     padding: 12,
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     backgroundColor: '#FFF1E4',
+    gap: 8,
+  },
+  emojiVisual: {
+    fontSize: 32,
   },
   screenBar: {
-    width: '70%',
+    width: '60%',
     height: 3,
     backgroundColor: '#FCB76D',
     borderRadius: 2,
   },
-  seatsGrid: {
-    gap: 4,
-    width: '80%',
-    alignItems: 'center',
-  },
-  seatRow: {
-    flexDirection: 'row',
-    gap: 4,
-  },
-  seat: {
-    width: 8,
-    height: 8,
-    borderRadius: 2,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#FCB76D',
-  },
-  seatSelected: {
-    backgroundColor: '#FF7158',
-    borderColor: '#FF7158',
-  },
   cardRightText: {
     fontFamily: flameeFonts.bold,
-    fontSize: 12,
+    fontSize: 11,
     color: '#FF7158',
   },
 
-  // Ideas List
-  ideasList: {
-    gap: 12,
+  // Filter Tabs
+  filterTabsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
   },
-  ideaItem: {
-    width: '100%',
-    height: 60,
-    borderWidth: 1.5,
-    borderColor: '#FCB76D',
+  filterTab: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
     borderRadius: 16,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     backgroundColor: '#FFFFFF',
-  },
-  ideaLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  emojiCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#FFF1E4',
     borderWidth: 1,
     borderColor: '#FFE6CE',
+  },
+  filterTabActive: {
+    backgroundColor: '#FF7158',
+    borderColor: '#FF7158',
+  },
+  filterTabText: {
+    fontFamily: flameeFonts.medium,
+    fontSize: 13,
+    color: '#2B2B2B',
+  },
+  filterTabTextActive: {
+    color: '#FFFFFF',
+    fontFamily: flameeFonts.bold,
+  },
+
+  // Items List
+  itemsList: {
+    gap: 10,
+  },
+  itemCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#FFE6CE',
+    padding: 12,
+    gap: 12,
+  },
+  itemEmojiBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFF1E4',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  ideaEmoji: {
-    fontSize: 18,
+  itemEmoji: {
+    fontSize: 20,
   },
-  ideaInfo: {
+  itemInfo: {
+    flex: 1,
     gap: 2,
   },
-  ideaTitle: {
+  itemTitle: {
     fontFamily: flameeFonts.bold,
     fontSize: 15,
     color: '#2B2B2B',
   },
-  ideaSubText: {
-    fontFamily: flameeFonts.medium,
+  itemSub: {
+    fontFamily: flameeFonts.regular,
     fontSize: 12,
     color: '#888888',
   },
+
+  // Empty Card
+  emptyCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#FFE6CE',
+    padding: 24,
+    alignItems: 'center',
+    gap: 12,
+  },
+  emptyText: {
+    fontFamily: flameeFonts.medium,
+    fontSize: 14,
+    color: '#888888',
+  },
+  emptyAddBtn: {
+    backgroundColor: '#FFF1E4',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+  },
+  emptyAddBtnText: {
+    fontFamily: flameeFonts.bold,
+    fontSize: 13,
+    color: '#FF7158',
+  },
+
+  // Mascot FAB & Speech Bubble
+  mascotFabContainer: {
+    position: 'absolute',
+    bottom: 85,
+    right: 16,
+    alignItems: 'flex-end',
+    zIndex: 99,
+  },
+  speechBubble: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#FFE6CE',
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    maxWidth: 220,
+    marginBottom: 8,
+    shadowColor: '#FF7158',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  speechText: {
+    fontFamily: flameeFonts.medium,
+    fontSize: 13,
+    color: '#2B2B2B',
+    lineHeight: 18,
+  },
+  speechArrow: {
+    position: 'absolute',
+    bottom: -8,
+    right: 24,
+    width: 0,
+    height: 0,
+    borderLeftWidth: 7,
+    borderRightWidth: 7,
+    borderTopWidth: 8,
+    borderStyle: 'solid',
+    backgroundColor: 'transparent',
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: '#FFFFFF',
+  },
+  mascotAvatarBtn: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#FFF1E4',
+    borderWidth: 2,
+    borderColor: '#FF7158',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#FF7158',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 6,
+  },
 });
+
+
+
+

@@ -5,3 +5,5 @@ export { default as MissionsStarOneIcon } from './MissionsStarOneIcon';
 export { default as MissionsStarTwoIcon } from './MissionsStarTwoIcon';
 export { default as ProfileHeadIcon } from './ProfileHeadIcon';
 export { default as ProfileBodyIcon } from './ProfileBodyIcon';
+export { default as MoodIcon } from './MoodIcon';
+export { default as AiIcon } from './AiIcon';

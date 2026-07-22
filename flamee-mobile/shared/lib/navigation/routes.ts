@@ -28,6 +28,7 @@ export const MAIN_NAV_PATHS = [
   ROUTES.memoryBook,
   ROUTES.mood,
   ROUTES.missions,
+  ROUTES.dates,
   ROUTES.profile,
 ] as const;
 

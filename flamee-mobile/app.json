@@ -39,6 +39,22 @@
             "backgroundColor": "#000000"
           }
         }
+      ],
+      [
+        "expo-asset",
+        {
+          "assets": [
+            "./assets/mascot"
+          ]
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "15.1"
+          }
+        }
       ]
     ],
     "experiments": {

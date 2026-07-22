@@ -3,6 +3,8 @@ export const FLAMEE_ICON_NAMES = [
   'timeline',
   'missions',
   'profile',
+  'mood',
+  'ai',
 ] as const;
 
 export type FlameeIconName = (typeof FLAMEE_ICON_NAMES)[number];

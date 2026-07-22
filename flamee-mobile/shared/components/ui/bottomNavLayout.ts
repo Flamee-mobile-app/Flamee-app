@@ -3,6 +3,7 @@ import type { ViewStyle } from 'react-native';
 import type { BottomNavItem } from '@/shared/lib/navigation/routes';
 
 export const FIGMA_BOTTOM_NAV_WIDTH = 402;
+export const BOTTOM_NAV_BAR_HEIGHT = 72;
 
 type FigmaTabLayout = Readonly<{
   left: number;

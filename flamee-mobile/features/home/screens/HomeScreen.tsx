@@ -16,6 +16,7 @@ import { flameeFonts } from '@/shared/constants/flameeTheme';
 import { ROUTES } from '@/shared/lib/navigation/routes';
 import { brandAssets } from '@/shared/assets';
 import { AppImage } from '@/shared/components/media';
+import { HomeMascotCompanion } from '@/features/mascot';
 
 const { width } = Dimensions.get('window');
 
@@ -114,7 +115,8 @@ export function HomeScreen() {
             {/* Spacer for bottom tab bar */}
             <View style={{ height: 100 }} />
           </ScrollView>
-        </SafeAreaView>
+      </SafeAreaView>
+      <HomeMascotCompanion />
     </View>
   );
 }

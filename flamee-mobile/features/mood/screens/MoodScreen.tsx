@@ -1,4 +1,4 @@
-import { useState, Fragment } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,15 +16,32 @@ import {
   Platform,
 } from 'react-native';
 
-import { flameeFonts, flameeTheme } from '@/shared/constants/flameeTheme';
-import { StateView } from '@/shared/components/ui';
+import { flameeFonts } from '@/shared/constants/flameeTheme';
+import { MascotArtwork } from '@/features/mascot/components/MascotArtwork';
 import { useMoodSummary } from '@/features/mood/hooks/useMoodSummary';
+import { MoodCheckinModal } from '@/features/mood/components/MoodCheckinModal';
+import type { MoodEntry } from '@/features/mood/types';
+
 const { width } = Dimensions.get('window');
 
 export function MoodScreen() {
   const router = useRouter();
+  const { data: summary, refetch: refresh } = useMoodSummary();
   const [notification, setNotification] = useState('');
   const [chartWidth, setChartWidth] = useState(width - 48 - 32);
+  const [isCheckinModalOpen, setIsCheckinModalOpen] = useState(false);
+  const [userMood, setUserMood] = useState<MoodEntry | undefined>(summary?.userMood);
+
+  useEffect(() => {
+    if (summary?.userMood) {
+      setUserMood(summary.userMood);
+    }
+  }, [summary]);
+
+  const handleCheckinSuccess = (entry: MoodEntry) => {
+    setUserMood(entry);
+    refresh();
+  };
 
   const chartPoints = [
     { xPercent: 10, y: 30, emoji: '😄', date: '10/5' },
@@ -58,24 +75,50 @@ export function MoodScreen() {
       </SafeAreaView>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Banner: Check-in Mood Ngay */}
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={() => setIsCheckinModalOpen(true)}
+          style={styles.checkinBannerWrapper}
+        >
+          <LinearGradient
+            colors={['#FCB76D', '#FF7158']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.checkinBanner}
+          >
+            <View style={styles.bannerTextCol}>
+              <Text style={styles.bannerTitle}>Check-in Mood hôm nay</Text>
+              <Text style={styles.bannerSubtitle}>Chia sẻ cảm xúc của bạn với người ấy ngay nào 💕</Text>
+            </View>
+            <View style={styles.bannerBtn}>
+              <Ionicons name="add-circle" size={32} color="#FFFFFF" />
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
+
         {/* Side-by-Side Mood Cards */}
         <View style={styles.moodCardsRow}>
           {/* Card: Bạn */}
-          <View style={styles.moodCard}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setIsCheckinModalOpen(true)}
+            style={styles.moodCard}
+          >
             <Text style={styles.moodCardTitle}>Bạn</Text>
             <View style={styles.emojiCircle}>
-              <Text style={styles.moodEmoji}>😄</Text>
+              <MascotArtwork mood={userMood?.mood || 'happy'} size={48} />
             </View>
-            <Text style={styles.moodLabel}>Vui vẻ</Text>
-          </View>
+            <Text style={styles.moodLabel}>{userMood?.label || 'Vui vẻ'}</Text>
+          </TouchableOpacity>
 
           {/* Card: Đối phương */}
           <View style={styles.moodCard}>
             <Text style={styles.moodCardTitle}>Đối phương</Text>
             <View style={styles.emojiCircle}>
-              <Text style={styles.moodEmoji}>🥰</Text>
+              <MascotArtwork mood="calm" size={48} />
             </View>
-            <Text style={styles.moodLabel}>Hạnh phúc</Text>
+            <Text style={styles.moodLabel}>Bình yên</Text>
           </View>
         </View>
 
@@ -197,11 +240,51 @@ export function MoodScreen() {
         {/* Bottom tab clearance spacing */}
         <View style={{ height: 80 }} />
       </ScrollView>
+
+      {/* Mood Checkin 2-Step Modal */}
+      <MoodCheckinModal
+        onClose={() => setIsCheckinModalOpen(false)}
+        onSuccess={handleCheckinSuccess}
+        visible={isCheckinModalOpen}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  bannerBtn: {
+    paddingLeft: 8,
+  },
+  bannerSubtitle: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontFamily: flameeFonts.medium,
+    fontSize: 13,
+  },
+  bannerTextCol: {
+    flex: 1,
+    gap: 4,
+  },
+  bannerTitle: {
+    color: '#FFFFFF',
+    fontFamily: flameeFonts.bold,
+    fontSize: 17,
+  },
+  checkinBanner: {
+    alignItems: 'center',
+    borderRadius: 24,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  checkinBannerWrapper: {
+    borderRadius: 24,
+    elevation: 4,
+    shadowColor: '#FF7158',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+  },
   container: { flex: 1, backgroundColor: '#FAF9F7' },
   headerSafeArea: {
     backgroundColor: '#FFFFFF',
