@@ -1,6 +1,6 @@
 # Flamee Mobile — UI, navigation flow, and Home redesign requirements
 
-**Status:** Issues 1 and 2 implemented and verified automatically; Issue 3 remains pending.  
+**Status:** Issues 1–3 implemented and verified automatically; manual Android/device checks remain pending.
 **Date recorded:** 2026-07-22
 
 ## Product context
@@ -130,6 +130,17 @@ The current bottom navigation visually resembles the Figma frame but behaves as 
 
 ## Issue 3 — Rebuild and redesign the Home screen
 
+### Implementation status — completed in code 2026-07-23
+
+- Replaced the static, Figma-frame-style Home composition with a responsive welcome-first dashboard while retaining `brandAssets.background`, the warm Flamee overlay, signature logo/header and Chat AI action.
+- Home now resolves Vietnamese local-time greetings (`Chào buổi sáng`, `Chào buổi trưa`, `Chào buổi chiều`, or `Chào buổi tối`) with a deterministic supporting quote. The greeting then quote enter once per in-memory app session; navigating away and back does not replay the sequence.
+- Added a reduced-motion path so the welcome and bento content render immediately at their final state when the device requests it.
+- Replaced the fixed shortcut frame with a responsive six-function bento: featured `Mood check-in`, `Chat AI`, `Dòng thời gian`, `Lịch hẹn hò`, `Sổ kỉ niệm`, and `Nhiệm vụ`. Each destination preserves its intended push/replace navigation mode.
+- Retained `HomeMascotCompanion` as the existing app-shell overlay and keeps 128 px of scroll-space clear for it and the floating Bottom Nav from Issue 2. The Home redesign does not alter bottom-nav geometry, mascot behaviour, route protection or any destination-screen layout.
+- Verification: 42/42 Jest suites and 151/151 tests pass; Expo lint and configured TypeScript checking pass.
+
+Manual Android/device visual verification remains pending because no emulator or ADB-connected device was available. It should confirm greeting motion on a cold app session, reduced-motion behaviour, bento scrolling behind the floating shell, and layout at the supported phone widths.
+
 ### Current context
 
 The existing Home screen is a hard-coded Figma-frame recreation: greeting, feature buttons, notification card, mascot, and bottom nav are arranged as static fixed elements. It needs to be rebuilt as responsive, stateful app UI while retaining the supplied background image and Flamee identity.
@@ -165,11 +176,11 @@ The existing Home screen is a hard-coded Figma-frame recreation: greeting, featu
 
 ### Acceptance criteria
 
-- The Home entry renders an animated, time-aware greeting and quote on first load.
-- The original background image remains the visual base of the screen.
-- Users can understand and access every major Flamee function from the Home overview.
-- The feature overview is implemented as a mobile-friendly bento layout rather than hard-coded frame coordinates.
-- Home works as part of the protected, floating-nav main app shell.
+- [x] The Home entry renders an animated, time-aware greeting and quote on first load.
+- [x] The original background image remains the visual base of the screen.
+- [x] Users can understand and access every major Flamee function from the Home overview.
+- [x] The feature overview is implemented as a mobile-friendly bento layout rather than hard-coded frame coordinates.
+- [x] Home works as part of the protected, floating-nav main app shell.
 
 ## Cross-issue definition of done
 

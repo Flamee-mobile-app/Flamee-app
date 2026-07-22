@@ -1,240 +1,140 @@
-import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import {
-  Dimensions,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  StatusBar,
-  SafeAreaView,
-  ScrollView,
-  Platform,
-} from 'react-native';
+import { type Href, useRouter } from 'expo-router';
+import { StatusBar } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { flameeFonts } from '@/shared/constants/flameeTheme';
-import { ROUTES } from '@/shared/lib/navigation/routes';
+import { HomeMascotCompanion } from '@/features/mascot';
 import { brandAssets } from '@/shared/assets';
 import { AppImage } from '@/shared/components/media';
-import { HomeMascotCompanion } from '@/features/mascot';
+import { flameeFonts } from '@/shared/constants/flameeTheme';
+import { ROUTES } from '@/shared/lib/navigation/routes';
 
-const { width } = Dimensions.get('window');
+import { HomeBentoGrid } from '../components/HomeBentoGrid';
+import { HomeWelcomeHeader } from '../components/HomeWelcomeHeader';
+import { useHomeWelcome } from '../hooks/useHomeWelcome';
+
+type HomeNavigationMode = 'push' | 'replace';
 
 export function HomeScreen() {
   const router = useRouter();
+  const { content, greetingStyle, quoteStyle, shouldAnimate } = useHomeWelcome();
 
-  const handleNavigateTab = (route: string) => {
-    router.replace(route as any);
+  const handleNavigate = (route: Href, mode: HomeNavigationMode) => {
+    if (mode === 'push') {
+      router.push(route);
+      return;
+    }
+
+    router.replace(route);
   };
-
-  const handlePushRoute = (route: string) => {
-    router.push(route as any);
-  };
-
-  const shortcuts = [
-    { label: 'Chat AI', icon: 'chatbubble-ellipses', route: ROUTES.ai, push: true },
-    { label: 'Dòng thời gian', icon: 'time', route: ROUTES.timeline, push: false },
-    { label: 'Lịch hẹn hò', icon: 'calendar', route: ROUTES.dates, push: true },
-    { label: 'Sổ kỉ niệm', icon: 'heart', route: ROUTES.memoryBook, push: true },
-    { label: 'Mood checkin', icon: 'happy', route: ROUTES.mood, push: false },
-    { label: 'Nhiệm vụ', icon: 'checkmark-circle', route: ROUTES.missions, push: false },
-  ];
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      {/* Full screen artwork background */}
       <AppImage
+        contentFit="cover"
         source={brandAssets.background}
         style={StyleSheet.absoluteFillObject}
-        contentFit="cover"
+        testID="home-background"
         transition={200}
       />
+      <View pointerEvents="none" style={styles.overlay} />
 
-      {/* Semi-transparent dark overlay for high text readability */}
-      <View style={styles.overlay} />
-
-      <SafeAreaView style={styles.safeArea}>
-        {/* Top Header Row with Small Signature Logo and Chat Button */}
+      <SafeAreaView edges={['top']} style={styles.safeArea}>
         <View style={styles.header}>
           <View style={styles.logoRow}>
             <AppImage
+              contentFit="contain"
               source={brandAssets.logo}
               style={styles.logoIcon}
-              contentFit="contain"
               transition={200}
             />
             <Text style={styles.logoText}>Flamee</Text>
           </View>
-            
-            <TouchableOpacity 
-              style={styles.chatHeaderBtn} 
-              onPress={() => handlePushRoute(ROUTES.ai)}
-            >
-              <Ionicons name="chatbubble-ellipses-outline" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
+          <Pressable
+            accessibilityLabel="Mở Chat AI"
+            accessibilityRole="button"
+            hitSlop={8}
+            onPress={() => handleNavigate(ROUTES.ai, 'push')}
+            style={({ pressed }) => [styles.chatHeaderButton, pressed && styles.chatHeaderButtonPressed]}>
+            <Ionicons color="#FFFFFF" name="chatbubble-ellipses-outline" size={22} />
+          </Pressable>
+        </View>
 
-          {/* Scrollable middle container to hold the quote and shortcuts */}
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
-          >
-            {/* Greeting & Quote */}
-            <View style={styles.greetingContainer}>
-              <Text style={styles.greetingTitle}>Good evening</Text>
-              <Text style={styles.greetingQuote}>
-                {"\"Tình yêu được nuôi dưỡng từ những kỷ niệm.\""}
-              </Text>
-            </View>
-
-            {/* Test Navigation Shortcuts (Glassmorphism layout) */}
-            <View style={styles.shortcutsContainer}>
-              <Text style={styles.shortcutsTitle}>Danh mục chức năng</Text>
-              
-              <View style={styles.grid}>
-                {shortcuts.map((item, idx) => (
-                  <TouchableOpacity
-                    key={idx}
-                    style={styles.shortcutBtn}
-                    onPress={() => item.push ? handlePushRoute(item.route) : handleNavigateTab(item.route)}
-                    activeOpacity={0.8}
-                  >
-                    <View style={styles.shortcutIconBg}>
-                      <Ionicons name={item.icon as any} size={18} color="#FF7158" />
-                    </View>
-                    <Text style={styles.shortcutLabel} numberOfLines={1}>
-                      {item.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            {/* Spacer for bottom tab bar */}
-            <View style={{ height: 100 }} />
-          </ScrollView>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          style={styles.scrollView}>
+          <HomeWelcomeHeader
+            content={content}
+            greetingStyle={greetingStyle}
+            quoteStyle={quoteStyle}
+          />
+          <HomeBentoGrid onNavigate={handleNavigate} shouldAnimate={shouldAnimate} />
+        </ScrollView>
       </SafeAreaView>
+
       <HomeMascotCompanion />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  chatHeaderButton: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.14)',
+    borderColor: 'rgba(255, 255, 255, 0.24)',
+    borderRadius: 20,
+    borderWidth: 1,
+    height: 40,
+    justifyContent: 'center',
+    width: 40,
+  },
+  chatHeaderButtonPressed: {
+    opacity: 0.78,
+  },
   container: {
+    backgroundColor: '#3B1717',
     flex: 1,
-    backgroundColor: '#000000',
+  },
+  header: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingBottom: 10,
+    paddingHorizontal: 24,
+    paddingTop: 8,
+  },
+  logoIcon: {
+    height: 24,
+    width: 24,
+  },
+  logoRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  logoText: {
+    color: '#FFFFFF',
+    fontFamily: flameeFonts.roundedBold,
+    fontSize: 22,
+    letterSpacing: 0.5,
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    backgroundColor: 'rgba(65, 17, 4, 0.47)',
   },
   safeArea: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 16) + 8 : 8,
-    paddingBottom: 8,
-  },
-  logoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  logoIcon: {
-    width: 24,
-    height: 24,
-  },
-  logoText: {
-    fontFamily: flameeFonts.roundedBold,
-    fontSize: 22,
-    color: '#FFFFFF',
-    letterSpacing: 0.5,
-  },
-  chatHeaderBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
   scrollContent: {
+    gap: 28,
+    paddingBottom: 128,
     paddingHorizontal: 24,
-    paddingTop: 30,
-    gap: 36,
   },
-  greetingContainer: {
-    gap: 12,
-    marginTop: 40,
-  },
-  greetingTitle: {
-    fontFamily: flameeFonts.roundedBold,
-    color: '#FFFFFF',
-    fontSize: 36,
-  },
-  greetingQuote: {
-    fontFamily: flameeFonts.medium,
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontStyle: 'italic',
-    lineHeight: 22,
-    opacity: 0.95,
-  },
-  
-  // Shortcuts
-  shortcutsContainer: {
-    gap: 16,
-  },
-  shortcutsTitle: {
-    fontFamily: flameeFonts.bold,
-    fontSize: 15,
-    color: '#FFFFFF',
-    opacity: 0.8,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    paddingLeft: 4,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  shortcutBtn: {
-    width: (width - 48 - 12) / 2, // 2-column layout
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 20,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  shortcutIconBg: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#FFF1E4',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  shortcutLabel: {
-    fontFamily: flameeFonts.bold,
-    fontSize: 14,
-    color: '#FFFFFF',
+  scrollView: {
     flex: 1,
   },
 });

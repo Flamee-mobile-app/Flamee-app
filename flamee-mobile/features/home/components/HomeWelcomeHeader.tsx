@@ -1,13 +1,10 @@
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import { Animated, StyleSheet, Text, type ViewStyle, View } from 'react-native';
 
 import { flameeFonts } from '@/shared/constants/flameeTheme';
 
 import type { HomeWelcomeContent } from '../lib/homeWelcomeContent';
 
-type AnimatedViewStyle = {
-  opacity: Animated.Value | number;
-  transform: ReadonlyArray<{ translateY: Animated.Value | number }>;
-};
+type AnimatedViewStyle = Animated.AnimatedProps<ViewStyle>;
 
 type HomeWelcomeHeaderProps = {
   content: HomeWelcomeContent;
