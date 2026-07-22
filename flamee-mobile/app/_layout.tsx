@@ -10,6 +10,7 @@ import '../styles/global.css';
 
 import { fontAssets } from '@/shared/assets';
 import { queryClient } from '@/shared/lib/api/queryClient';
+import { ROOT_MAIN_SCREEN_OPTIONS } from '@/shared/lib/navigation/mainStackOptions';
 
 // Prevent splash screen from auto-hiding until custom fonts are loaded
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -33,7 +34,7 @@ export default function RootLayout() {
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="index" />
           <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(main)" />
+          <Stack.Screen name="(main)" options={ROOT_MAIN_SCREEN_OPTIONS} />
         </Stack>
         <StatusBar style="dark" />
       </QueryClientProvider>
