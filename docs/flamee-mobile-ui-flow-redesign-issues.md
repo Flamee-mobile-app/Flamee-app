@@ -1,6 +1,6 @@
 # Flamee Mobile — UI, navigation flow, and Home redesign requirements
 
-**Status:** Issue 1 implemented and verified automatically; Issue 2 is the active workstream.  
+**Status:** Issues 1 and 2 implemented and verified automatically; Issue 3 remains pending.  
 **Date recorded:** 2026-07-22
 
 ## Product context
@@ -59,9 +59,22 @@ The provided visual evidence shows the Home screen sliding as separate frames, r
 
 - [x] Home mascot message uses the same coherent interaction/motion language as the Dating Schedule mascot.
 - [x] On Dating Schedule, an open mascot message closes with either `×` or an outside-screen tap.
-- [~] The main/Home shell now consumes Android system back at persistent destinations and disables native-stack gestures. Preventing access to Login through session-aware route history is completed with Issue 2 protected routing.
+- [~] The main/Home shell consumes Android system back at persistent destinations, disables native-stack gestures and now has session-aware protected routing. Manual Android device verification remains pending.
 
 ## Issue 2 — Complete login flow, protected routes, and functional floating bottom navigation
+
+### Implementation status — completed in code 2026-07-23
+
+- Added an Expo-compatible AsyncStorage fake-session boundary. It persists only `userId`, `displayName` and `email`; passwords and unknown restored fields are excluded.
+- Any login/register form submission that passes the existing validation creates a persisted fake session. The current visual UI and validation rules remain in place; no local credential database was added.
+- Added hydrated auth state to the existing Zustand store. The root layout keeps the native splash while session restoration is in progress, then chooses the correct route group without a Login/Home flash.
+- Added root and group-level route guards. Authenticated sessions replace auth/start history with Home; unauthenticated access to a main route replaces to Login. Session and tab navigation use `replace`, never `push`.
+- Added `Đăng xuất` to Profile. It removes persisted session before returning to Login and keeps the user in place with an error message if storage removal fails.
+- Preserved the existing custom Flamee floating bottom nav, including its orange gradient, curved flame badge, icons, labels and shell visibility on the existing Home/Timeline/Mood/Missions/Profile/Dates/Memory Book flow. AI remains the existing nav-hidden route.
+- The active tab is now route-driven: only the matching Home, Activities, Missions or Profile tab is fully opaque with a stronger label; the other three are visibly inactive. No active Home state is hard-coded.
+- Verification: automated regression and full validation pass (36/36 Jest suites, 137/137 tests, Expo lint and configured TypeScript check). Final code review found no Critical or Important issues.
+
+Manual Android acceptance verification remains pending because no emulator or ADB-connected device was available. It should cover cold-start restoration, Android back/edge-back, logout/relaunch and the nav on detail screens.
 
 ### 2.1 Fake authentication until backend integration
 
@@ -107,12 +120,13 @@ The current bottom navigation visually resembles the Figma frame but behaves as 
 
 ### Acceptance criteria
 
-- A newly created local account can sign in and its fake session survives app re-entry.
-- Authenticated users enter the main app directly and cannot reach Login by swipe/back-history behaviour.
-- Unauthenticated users cannot access main routes.
-- Bottom nav stays visible as the intended floating app-shell control across its primary screens.
-- Exactly the current primary destination has active styling; every other tab is inactive.
-- The existing Flamee bottom-nav visual identity is retained.
+- [x] Any schema-valid local account entry can sign in and its fake session is persisted without a password.
+- [x] Authenticated sessions enter the protected main shell; auth history is replaced and Issue 1 persistent main-screen Android-back protection remains active.
+- [x] Unauthenticated attempts to render a main route are guarded and replaced with Login.
+- [x] Bottom nav remains the floating custom app-shell control in its established Flamee visual flow.
+- [x] Exactly the current primary destination has active styling; every other tab is inactive.
+- [x] The existing Flamee bottom-nav visual identity is retained.
+- [~] Manual Android/device validation remains pending.
 
 ## Issue 3 — Rebuild and redesign the Home screen
 
