@@ -28,7 +28,8 @@ describe('MascotSuggestBubble', () => {
   });
 
   it('opens from its mascot trigger and closes through the existing close button', async () => {
-    const screen = await renderBubble();
+    const onPressChat = jest.fn();
+    const screen = await renderBubble(onPressChat);
 
     await act(async () => {
       fireEvent.press(screen.getByTestId('mascot-suggest-trigger'));
@@ -39,10 +40,12 @@ describe('MascotSuggestBubble', () => {
       fireEvent.press(screen.getByRole('button', { name: 'Đóng gợi ý lịch hẹn hò' }));
     });
     expect(screen.queryByTestId('mascot-message-dismiss-surface')).toBeNull();
+    expect(onPressChat).not.toHaveBeenCalled();
   });
 
   it('closes when the user taps outside the message', async () => {
-    const screen = await renderBubble();
+    const onPressChat = jest.fn();
+    const screen = await renderBubble(onPressChat);
 
     await act(async () => {
       fireEvent.press(screen.getByTestId('mascot-suggest-trigger'));
@@ -52,6 +55,7 @@ describe('MascotSuggestBubble', () => {
     });
 
     expect(screen.queryByTestId('mascot-message-dismiss-surface')).toBeNull();
+    expect(onPressChat).not.toHaveBeenCalled();
   });
 
   it('runs only the chat action when the message action is tapped', async () => {
