@@ -60,32 +60,32 @@ export function MascotSuggestBubble({
             style={[styles.expandedBubble, expandedBubbleStyle]}
             testID="mascot-suggest-expanded-bubble">
             <View style={styles.expandedContent}>
-            <View style={styles.headerRow}>
-              <View style={styles.mascotTag}>
-                <Ionicons name="sparkles" size={12} color="#FF7158" />
-                <Text style={styles.mascotTagText}>Mascot AI</Text>
+              <View style={styles.headerRow}>
+                <View style={styles.mascotTag}>
+                  <Ionicons name="sparkles" size={12} color="#FF7158" />
+                  <Text style={styles.mascotTagText}>Mascot AI</Text>
+                </View>
+                <View style={styles.closeMiniBtnSlot}>
+                  <TouchableOpacity
+                    accessibilityLabel="Đóng gợi ý lịch hẹn hò"
+                    accessibilityRole="button"
+                    onPress={close}
+                    style={styles.closeMiniBtn}>
+                    <Ionicons name="close-circle" size={18} color="#FF7158" />
+                  </TouchableOpacity>
+                </View>
               </View>
-              <View style={styles.closeMiniBtnSlot}>
-                <TouchableOpacity
-                  accessibilityLabel="Đóng gợi ý lịch hẹn hò"
-                  accessibilityRole="button"
-                  onPress={close}
-                  style={styles.closeMiniBtn}>
-                  <Ionicons name="close-circle" size={18} color="#FF7158" />
-                </TouchableOpacity>
-              </View>
-            </View>
 
-            <Text style={styles.messageText}>{messageText}</Text>
+              <Text style={styles.messageText}>{messageText}</Text>
 
-            <TouchableOpacity
-              activeOpacity={0.9}
-              onPress={handleOpenChat}
-              style={styles.actionRow}
-              testID="mascot-suggest-chat-action">
-              <Text style={styles.actionText}>Hỏi tớ ngay</Text>
-              <Ionicons name="arrow-forward-circle" size={18} color="#FF7158" />
-            </TouchableOpacity>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={handleOpenChat}
+                style={styles.actionRow}
+                testID="mascot-suggest-chat-action">
+                <Text style={styles.actionText}>Hỏi tớ ngay</Text>
+                <Ionicons name="arrow-forward-circle" size={18} color="#FF7158" />
+              </TouchableOpacity>
             </View>
             <View style={styles.speechArrow} />
           </Animated.View>

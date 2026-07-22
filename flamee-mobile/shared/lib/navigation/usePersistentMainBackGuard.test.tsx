@@ -3,6 +3,10 @@ import { BackHandler, Platform } from 'react-native';
 
 import { usePersistentMainBackGuard } from './usePersistentMainBackGuard';
 
+type BackGuardProps = {
+  pathname: string;
+};
+
 jest.mock('expo-router', () => {
   const actualReact = jest.requireActual<typeof import('react')>('react');
 
@@ -53,6 +57,20 @@ describe('usePersistentMainBackGuard', () => {
       expect(BackHandler.addEventListener).not.toHaveBeenCalled();
     },
   );
+
+  it('removes the Android guard when navigation changes from a persistent screen to a detail route', async () => {
+    const { rerender } = await renderHook<void, BackGuardProps>(
+      ({ pathname }) => usePersistentMainBackGuard(pathname),
+      { initialProps: { pathname: '/home' } },
+    );
+
+    expect(BackHandler.addEventListener).toHaveBeenCalledTimes(1);
+
+    await rerender({ pathname: '/dates' });
+
+    expect(remove).toHaveBeenCalledTimes(1);
+    expect(BackHandler.addEventListener).toHaveBeenCalledTimes(1);
+  });
 
   it('does not install the native back guard outside Android', async () => {
     Object.defineProperty(Platform, 'OS', { configurable: true, value: 'ios' });
