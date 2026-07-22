@@ -49,7 +49,7 @@ type AuthState = {
 };
 ```
 
-The root auth gate calls `hydrate()` exactly once after fonts are available. While `status === 'hydrating'`, it renders no route content beyond the existing splash state. This prevents a transient Login or Home screen from appearing before the stored session is known.
+The root layout calls `hydrate()` exactly once after fonts are available and keeps the existing native splash visible while `status === 'hydrating'`. Once hydration resolves, it mounts the root stack and an auth gate performs any required replacement. This prevents a transient Login or Home screen from appearing before the stored session is known without creating a navigation-mount race.
 
 `setSession` writes storage first and then exposes the authenticated state. If the write fails, it rejects and leaves the store unauthenticated, so the form remains on the auth route and can show its existing submission-error state. `clearSession` removes storage first and then exposes the unauthenticated state. If removal fails, it rejects, leaves the current authenticated state intact and does not redirect, preventing a stale persisted session from silently returning on the next app entry. Hydration failures resolve to unauthenticated; there is no backend-error UI in this phase.
 
@@ -109,7 +109,7 @@ The center Flamee badge remains decorative in this scope; it is not an extra fif
 | `features/auth/services/authSessionStorage.ts` | AsyncStorage read/write/remove and session validation only |
 | `features/auth/store/authStore.ts` | Hydrated in-memory session state and persistence orchestration |
 | `features/auth/components/AuthGate.tsx` | Route-group decision after hydration; `replace` navigation only |
-| `app/_layout.tsx` | Mounts the root gate around the root stack once fonts are ready |
+| `app/_layout.tsx` | Starts hydration, retains splash until ready, then mounts the root gate around the stack |
 | `app/(auth)/_layout.tsx`, `app/(main)/_layout.tsx` | Group-level guards for deep links and direct route changes |
 | `features/auth/hooks/useAuthForm.ts` | Awaits persisted session before calling existing success navigation |
 | `features/profile/screens/ProfileScreen.tsx` | Renders the scoped logout action |
