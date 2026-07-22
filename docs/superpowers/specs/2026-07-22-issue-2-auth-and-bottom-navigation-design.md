@@ -83,8 +83,8 @@ This complements Issue 1’s Android `BackHandler` guard on persistent main scre
 The existing custom bottom navigation is preserved rather than replaced by a generic tab bar:
 
 - Warm orange gradient floating bar, curved center cut-out, central Flamee flame badge, generated icons, four labels, height, spacing and responsive visual geometry remain intact.
-- It stays absolutely attached to the bottom of the `(main)` shell and remains visible on the four primary destinations: Home, Activities/Timeline, Missions and Profile.
-- It is hidden on detail routes such as AI, Dates, Mood and Memory Book, matching the existing main-shell visibility rule. These remain accessible through Home or other flows rather than becoming new tabs.
+- It stays absolutely attached to the bottom of the `(main)` shell and preserves the existing visibility behavior on Home, Activities/Timeline, Mood, Missions, Profile, Dates and Memory Book. This retains the approved Dating Schedule composition, which includes the floating nav.
+- AI remains the existing exception where the nav is not shown. Dates, Mood and Memory Book do not become extra tabs; they simply retain the shell-level nav already present in the current visual flow.
 - Bottom content continues to use the existing BottomNav layout frame so mascot positioning remains correct.
 
 ### Interaction and state
