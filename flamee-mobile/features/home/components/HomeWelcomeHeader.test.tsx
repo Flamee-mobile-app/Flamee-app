@@ -18,5 +18,6 @@ describe('HomeWelcomeHeader', () => {
     expect(screen.getByTestId('home-welcome-header')).toBeTruthy();
     expect(screen.getByText('Chào buổi sáng')).toBeTruthy();
     expect(screen.getByText('Tình yêu được nuôi dưỡng từ những kỷ niệm.')).toBeTruthy();
+    expect(screen.queryByText('FLAMEE HÔM NAY')).toBeNull();
   });
 });

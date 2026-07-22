@@ -135,7 +135,7 @@ The current bottom navigation visually resembles the Figma frame but behaves as 
 - Replaced the static, Figma-frame-style Home composition with a responsive welcome-first dashboard while retaining `brandAssets.background`, the warm Flamee overlay, signature logo/header and Chat AI action.
 - Home now resolves Vietnamese local-time greetings (`Chào buổi sáng`, `Chào buổi trưa`, `Chào buổi chiều`, or `Chào buổi tối`) with a deterministic supporting quote. The greeting then quote enter once per in-memory app session; navigating away and back does not replay the sequence.
 - Added a reduced-motion path so the welcome and bento content render immediately at their final state when the device requests it.
-- Replaced the fixed shortcut frame with a responsive six-function bento: featured `Mood check-in`, `Chat AI`, `Dòng thời gian`, `Lịch hẹn hò`, `Sổ kỉ niệm`, and `Nhiệm vụ`. Each destination preserves its intended push/replace navigation mode.
+- Replaced the fixed shortcut frame with a responsive six-function bento: `Mood check-in`, `Chat AI`, `Dòng thời gian`, `Lịch hẹn hò`, `Sổ kỉ niệm`, and `Nhiệm vụ`. A separate `Flamee gợi ý` interaction card now leads into Chat AI, while all six functional shortcuts retain balanced two-column sizing and their intended push/replace navigation modes.
 - Retained `HomeMascotCompanion` as the existing app-shell overlay and keeps 128 px of scroll-space clear for it and the floating Bottom Nav from Issue 2. The Home redesign does not alter bottom-nav geometry, mascot behaviour, route protection or any destination-screen layout.
 - Verification: 42/42 Jest suites and 151/151 tests pass; Expo lint and configured TypeScript checking pass.
 

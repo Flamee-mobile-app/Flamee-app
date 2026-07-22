@@ -11,6 +11,8 @@ import {
 } from 'react-native';
 
 import { flameeFonts } from '@/shared/constants/flameeTheme';
+import { MascotArtwork } from '@/features/mascot/components/MascotArtwork';
+import { ROUTES } from '@/shared/lib/navigation/routes';
 
 import { HOME_BENTO_ITEMS } from './homeBentoItems';
 
@@ -22,7 +24,10 @@ export type HomeBentoGridProps = {
 export function HomeBentoGrid({ onNavigate, shouldAnimate }: HomeBentoGridProps) {
   const { width } = useWindowDimensions();
   const entryValues = useRef(
-    HOME_BENTO_ITEMS.map(() => new Animated.Value(shouldAnimate ? 0 : 1)),
+    Array.from(
+      { length: HOME_BENTO_ITEMS.length + 1 },
+      () => new Animated.Value(shouldAnimate ? 0 : 1),
+    ),
   ).current;
   const smallCardWidth = (width - 48 - 12) / 2;
 
@@ -51,45 +56,54 @@ export function HomeBentoGrid({ onNavigate, shouldAnimate }: HomeBentoGridProps)
   return (
     <View style={styles.container} testID="home-bento-grid">
       <Text style={styles.title}>Khám phá cùng nhau</Text>
+      <Animated.View style={[styles.suggestionShell, getEntryStyle(entryValues[0])]}>
+        <Pressable
+          accessibilityLabel="Flamee gợi ý: Hỏi nhau một điều nhỏ nhé"
+          accessibilityRole="button"
+          onPress={() => onNavigate(ROUTES.ai, 'push')}
+          style={({ pressed }) => [styles.suggestionCard, pressed && styles.pressed]}>
+          <View style={styles.suggestionCopy}>
+            <Text style={styles.suggestionTag}>FLAMEE GỢI Ý</Text>
+            <Text numberOfLines={1} style={styles.suggestionTitle}>
+              Hỏi nhau một điều nhỏ nhé
+            </Text>
+            <Text numberOfLines={2} style={styles.suggestionPrompt}>
+              Hôm nay điều gì làm bạn mỉm cười?
+            </Text>
+            <View style={styles.suggestionAction}>
+              <Text style={styles.suggestionActionText}>Cùng chia sẻ</Text>
+              <Ionicons color="#FF7158" name="arrow-forward" size={16} />
+            </View>
+          </View>
+          <View pointerEvents="none" style={styles.suggestionMascot}>
+            <MascotArtwork mood="happy" size={68} />
+          </View>
+        </Pressable>
+      </Animated.View>
       <View style={styles.grid}>
         {HOME_BENTO_ITEMS.map((item, index) => {
-          const entryValue = entryValues[index];
-          const entryStyle = {
-            opacity: entryValue,
-            transform: [
-              {
-                translateY: entryValue.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }),
-              },
-            ],
-          };
+          const entryStyle = getEntryStyle(entryValues[index + 1]);
 
           return (
             <Animated.View
               key={item.id}
-              style={[
-                styles.cardShell,
-                item.featured ? styles.featuredShell : { width: smallCardWidth },
-                entryStyle,
-              ]}>
+              style={[styles.cardShell, { width: smallCardWidth }, entryStyle]}>
               <Pressable
                 accessibilityLabel={item.label}
                 accessibilityRole="button"
                 onPress={() => onNavigate(item.route, item.mode)}
                 style={({ pressed }) => [
                   styles.card,
-                  item.featured && styles.featuredCard,
                   pressed && styles.pressed,
                 ]}>
-                <View style={[styles.iconCircle, item.featured && styles.featuredIconCircle]}>
-                  <Ionicons color={item.featured ? '#FF7158' : '#FFFFFF'} name={item.icon} size={20} />
+                <View style={styles.iconCircle}>
+                  <Ionicons color="#FFFFFF" name={item.icon} size={20} />
                 </View>
                 <View style={styles.copy}>
-                  <Text numberOfLines={1} style={[styles.label, item.featured && styles.featuredLabel]}>
+                  <Text numberOfLines={1} style={styles.label}>
                     {item.label}
                   </Text>
-                  <Text
-                    numberOfLines={item.featured ? 2 : 3}
-                    style={[styles.subtitle, item.featured && styles.featuredSubtitle]}>
+                  <Text numberOfLines={3} style={styles.subtitle}>
                     {item.subtitle}
                   </Text>
                 </View>
@@ -100,6 +114,17 @@ export function HomeBentoGrid({ onNavigate, shouldAnimate }: HomeBentoGridProps)
       </View>
     </View>
   );
+}
+
+function getEntryStyle(entryValue: Animated.Value) {
+  return {
+    opacity: entryValue,
+    transform: [
+      {
+        translateY: entryValue.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }),
+      },
+    ],
+  };
 }
 
 const styles = StyleSheet.create({
@@ -121,23 +146,6 @@ const styles = StyleSheet.create({
   },
   copy: {
     gap: 4,
-  },
-  featuredCard: {
-    backgroundColor: 'rgba(255, 241, 228, 0.94)',
-    flexDirection: 'row',
-    minHeight: 108,
-  },
-  featuredIconCircle: {
-    backgroundColor: '#FFFFFF',
-  },
-  featuredLabel: {
-    color: '#FF7158',
-  },
-  featuredShell: {
-    width: '100%',
-  },
-  featuredSubtitle: {
-    color: '#8E4D42',
   },
   grid: {
     flexDirection: 'row',
@@ -166,6 +174,66 @@ const styles = StyleSheet.create({
     fontFamily: flameeFonts.regular,
     fontSize: 12,
     lineHeight: 16,
+  },
+  suggestionAction: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 4,
+    marginTop: 'auto',
+  },
+  suggestionActionText: {
+    color: '#FF7158',
+    fontFamily: flameeFonts.roundedBold,
+    fontSize: 13,
+    lineHeight: 17,
+  },
+  suggestionCard: {
+    backgroundColor: 'rgba(255, 241, 228, 0.96)',
+    borderColor: 'rgba(255,255,255,0.62)',
+    borderRadius: 22,
+    borderWidth: 1,
+    flex: 1,
+    flexDirection: 'row',
+    minHeight: 154,
+    overflow: 'hidden',
+    padding: 18,
+  },
+  suggestionCopy: {
+    flex: 1,
+    gap: 5,
+    paddingRight: 6,
+  },
+  suggestionMascot: {
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    backgroundColor: 'rgba(255,255,255,0.62)',
+    borderRadius: 34,
+    height: 68,
+    justifyContent: 'center',
+    marginBottom: 1,
+    width: 68,
+  },
+  suggestionPrompt: {
+    color: '#8E4D42',
+    fontFamily: flameeFonts.regular,
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  suggestionShell: {
+    minHeight: 154,
+  },
+  suggestionTag: {
+    color: '#D8634D',
+    fontFamily: flameeFonts.bold,
+    fontSize: 10,
+    letterSpacing: 1,
+    lineHeight: 13,
+  },
+  suggestionTitle: {
+    color: '#FF7158',
+    fontFamily: flameeFonts.roundedBold,
+    fontSize: 18,
+    lineHeight: 23,
   },
   title: {
     color: '#FFFFFF',

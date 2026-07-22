@@ -20,7 +20,6 @@ export function HomeWelcomeHeader({
   return (
     <View style={styles.container} testID="home-welcome-header">
       <Animated.View style={greetingStyle}>
-        <Text style={styles.eyebrow}>FLAMEE HÔM NAY</Text>
         <Text style={styles.greeting}>{content.greeting}</Text>
       </Animated.View>
       <Animated.View style={quoteStyle}>
@@ -32,14 +31,8 @@ export function HomeWelcomeHeader({
 
 const styles = StyleSheet.create({
   container: {
-    gap: 10,
-    paddingTop: 20,
-  },
-  eyebrow: {
-    color: 'rgba(255,255,255,0.78)',
-    fontFamily: flameeFonts.bold,
-    fontSize: 12,
-    letterSpacing: 1.4,
+    gap: 8,
+    paddingTop: 24,
   },
   greeting: {
     color: '#FFFFFF',

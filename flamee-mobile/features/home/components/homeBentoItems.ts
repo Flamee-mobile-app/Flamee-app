@@ -10,7 +10,6 @@ export type HomeBentoItem = {
   icon: keyof typeof Ionicons.glyphMap;
   route: Href;
   mode: 'push' | 'replace';
-  featured?: boolean;
 };
 
 export const HOME_BENTO_ITEMS: readonly HomeBentoItem[] = [
@@ -21,7 +20,6 @@ export const HOME_BENTO_ITEMS: readonly HomeBentoItem[] = [
     icon: 'happy-outline',
     route: ROUTES.mood,
     mode: 'replace',
-    featured: true,
   },
   {
     id: 'ai',
