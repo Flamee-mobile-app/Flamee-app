@@ -62,10 +62,11 @@ function BottomNavIcon({
   itemKey: BottomNavItem['key'];
   selected: boolean;
 }) {
-  const iconName =
-    itemKey === 'home' ? (selected ? 'homeActive' : 'homeInactive') : itemKey;
+  if (itemKey === 'home') {
+    return <FlameeIcon color="#FFFFFF" filled={selected} name="home" size={32} />;
+  }
 
-  return <FlameeIcon color="#FFFFFF" name={iconName} size={32} />;
+  return <FlameeIcon color="#FFFFFF" name={itemKey} size={32} />;
 }
 
 function BottomNavVisualTab({

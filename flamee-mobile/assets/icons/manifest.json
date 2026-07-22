@@ -1,19 +1,4 @@
 {
-  "home": {
-    "kind": "icon",
-    "source": "../navigation/bottom-nav-home.svg",
-    "viewBox": "0 0 27.3599 24.2099"
-  },
-  "homeActive": {
-    "kind": "icon",
-    "source": "../navigation/bottom-nav-home-active.svg",
-    "viewBox": "0 0 27.3599 24.2099"
-  },
-  "homeInactive": {
-    "kind": "icon",
-    "source": "../navigation/bottom-nav-home-inactive.svg",
-    "viewBox": "6 9 88 77"
-  },
   "timeline": {
     "kind": "icon",
     "source": "../navigation/bottom-nav-activities.svg",

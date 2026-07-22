@@ -2,9 +2,6 @@ import { StyleSheet, View } from 'react-native';
 
 import {
   AiIcon,
-  HomeActiveIcon,
-  HomeIcon,
-  HomeInactiveIcon,
   LogoIcon,
   MissionsStarOneIcon,
   MissionsStarTwoIcon,
@@ -13,12 +10,14 @@ import {
   ProfileHeadIcon,
   TimelineIcon,
 } from './generated';
+import { HomeNavIcon } from './HomeNavIcon';
 import type { FlameeIconName } from './iconNames';
 
 export type FlameeIconProps = {
   name: FlameeIconName;
   size?: number;
   color?: string;
+  filled?: boolean;
   accessibilityLabel?: string;
 };
 
@@ -26,6 +25,7 @@ export function FlameeIcon({
   name,
   size = 24,
   color = '#FF7158',
+  filled = false,
   accessibilityLabel,
 }: FlameeIconProps) {
   const accessibilityProps = {
@@ -47,39 +47,7 @@ export function FlameeIcon({
   }
 
   if (name === 'home') {
-    return (
-      <HomeIcon
-        {...accessibilityProps}
-        color={color}
-        height={size}
-        testID="flamee-icon-home"
-        width={size}
-      />
-    );
-  }
-
-  if (name === 'homeActive') {
-    return (
-      <HomeActiveIcon
-        {...accessibilityProps}
-        color={color}
-        height={size}
-        testID="flamee-icon-home-active"
-        width={size}
-      />
-    );
-  }
-
-  if (name === 'homeInactive') {
-    return (
-      <HomeInactiveIcon
-        {...accessibilityProps}
-        color={color}
-        height={size}
-        testID="flamee-icon-home-inactive"
-        width={size}
-      />
-    );
+    return <HomeNavIcon {...accessibilityProps} color={color} filled={filled} size={size} />;
   }
 
   if (name === 'timeline') {

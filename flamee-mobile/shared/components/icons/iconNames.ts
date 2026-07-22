@@ -1,7 +1,5 @@
 export const FLAMEE_ICON_NAMES = [
   'home',
-  'homeActive',
-  'homeInactive',
   'timeline',
   'missions',
   'profile',

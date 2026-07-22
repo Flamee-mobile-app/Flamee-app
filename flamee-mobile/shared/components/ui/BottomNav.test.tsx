@@ -1,4 +1,4 @@
-import { act, fireEvent, render, within } from '@testing-library/react-native';
+import { act, fireEvent, render } from '@testing-library/react-native';
 
 import { ROUTES } from '@/shared/lib/navigation/routes';
 
@@ -12,6 +12,12 @@ const primaryTabs = [
   { key: 'timeline', label: 'Hoạt động', pathname: '/timeline' },
   { key: 'missions', label: 'Nhiệm vụ', pathname: '/missions' },
   { key: 'profile', label: 'Hồ sơ', pathname: '/profile' },
+] as const;
+
+const HOME_PATH_TEST_IDS = [
+  'flamee-icon-home-roof',
+  'flamee-icon-home-body',
+  'flamee-icon-home-heart',
 ] as const;
 
 jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }));
@@ -81,22 +87,25 @@ describe('BottomNav', () => {
     ).toEqual({ selected: true });
   });
 
-  it('uses the filled Home artwork while Home is selected', async () => {
-    mockPathname = '/home';
+  it.each([
+    ['/home', true],
+    ['/timeline', false],
+  ] as const)('renders one Home icon filled=%s on %s', async (pathname, filled) => {
+    mockPathname = pathname;
     const { getByTestId } = await render(<BottomNav />);
-    const homeVisual = getByTestId('bottom-nav-visual-home');
 
-    expect(within(homeVisual).getByTestId('flamee-icon-home-active')).toBeTruthy();
-    expect(within(homeVisual).queryByTestId('flamee-icon-home-inactive')).toBeNull();
-  });
+    expect(getByTestId('flamee-icon-home')).toBeTruthy();
+    HOME_PATH_TEST_IDS.forEach((testID) => {
+      const path = getByTestId(testID);
 
-  it('uses the white outline Home artwork while another tab is selected', async () => {
-    mockPathname = '/timeline';
-    const { getByTestId } = await render(<BottomNav />);
-    const homeVisual = getByTestId('bottom-nav-visual-home');
-
-    expect(within(homeVisual).getByTestId('flamee-icon-home-inactive')).toBeTruthy();
-    expect(within(homeVisual).queryByTestId('flamee-icon-home-active')).toBeNull();
+      if (filled) {
+        expect(path.props.fill).not.toBeNull();
+        expect(path.props.stroke).toBeFalsy();
+      } else {
+        expect(path.props.fill).toBeNull();
+        expect(path.props.stroke).not.toBeNull();
+      }
+    });
   });
 
   it.each(primaryTabs)('visually activates only $label on $pathname', async ({ key, label, pathname }) => {
