@@ -55,8 +55,16 @@ function BottomNavBackground() {
   );
 }
 
-function BottomNavIcon({ itemKey }: { itemKey: BottomNavItem['key'] }) {
-  return <FlameeIcon color="#FFFFFF" name={itemKey} size={32} />;
+function BottomNavIcon({
+  itemKey,
+  selected,
+}: {
+  itemKey: BottomNavItem['key'];
+  selected: boolean;
+}) {
+  const iconName = itemKey === 'home' && !selected ? 'homeInactive' : itemKey;
+
+  return <FlameeIcon color="#FFFFFF" name={iconName} size={32} />;
 }
 
 function BottomNavVisualTab({
@@ -73,7 +81,7 @@ function BottomNavVisualTab({
       pointerEvents="none"
       style={[styles.tabVisual, layout, selected ? styles.tabVisualActive : styles.tabVisualInactive]}
       testID={`bottom-nav-visual-${item.key}`}>
-      <BottomNavIcon itemKey={item.key} />
+      <BottomNavIcon itemKey={item.key} selected={selected} />
       <AppText
         variant="micro"
         color={flameeTheme.colors.text.inverse}

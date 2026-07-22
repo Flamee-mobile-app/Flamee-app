@@ -1,4 +1,4 @@
-import { act, fireEvent, render } from '@testing-library/react-native';
+import { act, fireEvent, render, within } from '@testing-library/react-native';
 
 import { ROUTES } from '@/shared/lib/navigation/routes';
 
@@ -79,6 +79,15 @@ describe('BottomNav', () => {
     expect(
       getByRole('tab', { name: 'Hoạt động' }).props.accessibilityState,
     ).toEqual({ selected: true });
+  });
+
+  it('uses the supplied gradient Home artwork only while Home is inactive', async () => {
+    mockPathname = '/timeline';
+    const { getByTestId } = await render(<BottomNav />);
+    const homeVisual = getByTestId('bottom-nav-visual-home');
+
+    expect(within(homeVisual).getByTestId('flamee-icon-home-inactive')).toBeTruthy();
+    expect(within(homeVisual).queryByTestId('flamee-icon-home')).toBeNull();
   });
 
   it.each(primaryTabs)('visually activates only $label on $pathname', async ({ key, label, pathname }) => {

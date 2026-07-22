@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import {
   AiIcon,
   HomeIcon,
+  HomeInactiveIcon,
   LogoIcon,
   MissionsStarOneIcon,
   MissionsStarTwoIcon,
@@ -51,6 +52,17 @@ export function FlameeIcon({
         color={color}
         height={size}
         testID="flamee-icon-home"
+        width={size}
+      />
+    );
+  }
+
+  if (name === 'homeInactive') {
+    return (
+      <HomeInactiveIcon
+        {...accessibilityProps}
+        height={size}
+        testID="flamee-icon-home-inactive"
         width={size}
       />
     );

@@ -4,6 +4,11 @@
     "source": "../navigation/bottom-nav-home.svg",
     "viewBox": "0 0 27.3599 24.2099"
   },
+  "homeInactive": {
+    "kind": "icon",
+    "source": "../navigation/bottom-nav-home-inactive.svg",
+    "viewBox": "0 0 100 100"
+  },
   "timeline": {
     "kind": "icon",
     "source": "../navigation/bottom-nav-activities.svg",
