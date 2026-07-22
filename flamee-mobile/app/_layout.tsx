@@ -3,12 +3,13 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import '../styles/global.css';
 
 import { fontAssets } from '@/shared/assets';
+import { AuthBootstrap } from '@/features/auth/components/AuthBootstrap';
+import { AuthGate } from '@/features/auth/components/AuthGate';
 import { queryClient } from '@/shared/lib/api/queryClient';
 import { ROOT_MAIN_SCREEN_OPTIONS } from '@/shared/lib/navigation/mainStackOptions';
 
@@ -18,12 +19,6 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
 
-  useEffect(() => {
-    if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync().catch(() => {});
-    }
-  }, [fontsLoaded, fontError]);
-
   if (!fontsLoaded && !fontError) {
     return null;
   }
@@ -31,12 +26,16 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(main)" options={ROOT_MAIN_SCREEN_OPTIONS} />
-        </Stack>
-        <StatusBar style="dark" />
+        <AuthBootstrap>
+          <AuthGate>
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="index" />
+              <Stack.Screen name="(auth)" />
+              <Stack.Screen name="(main)" options={ROOT_MAIN_SCREEN_OPTIONS} />
+            </Stack>
+            <StatusBar style="dark" />
+          </AuthGate>
+        </AuthBootstrap>
       </QueryClientProvider>
     </SafeAreaProvider>
   );
