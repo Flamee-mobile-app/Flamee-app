@@ -31,7 +31,7 @@ describe('MascotActionHalo', () => {
   it('exposes Mood Check and AI Chat from a compact message halo', async () => {
     const onAction = jest.fn();
     const screen = await render(
-      <MascotActionHalo layout={layout} nudge={tiredNudge} onAction={onAction} />,
+      <MascotActionHalo isExpanded layout={layout} nudge={tiredNudge} onAction={onAction} />,
     );
 
     expect(screen.getByText(tiredNudge.message)).toBeTruthy();

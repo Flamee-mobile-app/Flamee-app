@@ -83,7 +83,23 @@ describe('HomeMascotCompanion', () => {
       fireEvent.press(screen.getByTestId('mascot-halo-dismiss-surface'));
     });
 
-    expect(screen.queryByTestId('mascot-action-halo')).toBeNull();
+    expect(screen.queryByTestId('mascot-halo-dismiss-surface')).toBeNull();
+    expect(screen.getByTestId('mascot-action-halo')).toBeTruthy();
+  });
+
+  it('keeps the existing Mood check and Chat AI actions when the message opens', async () => {
+    const screen = await render(
+      <BottomNavLayoutProvider>
+        <HomeMascotCompanion />
+      </BottomNavLayoutProvider>,
+    );
+
+    await act(async () => {
+      fireEvent.press(screen.getByRole('button', { name: 'Flamee có một gợi ý mới' }));
+    });
+
+    expect(screen.getByRole('button', { name: 'Mood check ngay' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Nhắn AI cùng Flamee' })).toBeTruthy();
   });
 
   it('anchors the mascot above the measured Bottom Navigation', async () => {

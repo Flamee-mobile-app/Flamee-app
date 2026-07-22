@@ -9,6 +9,7 @@ import { useMascotCompanion } from '../hooks/useMascotCompanion';
 import { MASCOT_VISUAL_SIZE, resolveMascotHaloLayout } from '../mascotLayout';
 
 import { MascotActionHalo } from './MascotActionHalo';
+import { MascotMessageDismissLayer } from './MascotMessageDismissLayer';
 import { MascotVisual } from './MascotVisual';
 
 export function HomeMascotCompanion() {
@@ -52,13 +53,7 @@ export function HomeMascotCompanion() {
   return (
     <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
       {isExpanded && nudge && (
-        <Pressable
-          accessibilityLabel="Đóng gợi ý Flamee"
-          accessibilityRole="button"
-          onPress={dismiss}
-          style={StyleSheet.absoluteFill}
-          testID="mascot-halo-dismiss-surface"
-        />
+        <MascotMessageDismissLayer onDismiss={dismiss} testID="mascot-halo-dismiss-surface" />
       )}
       <View
         pointerEvents="box-none"
@@ -67,8 +62,8 @@ export function HomeMascotCompanion() {
           { bottom: haloLayout.anchor.bottom, right: haloLayout.anchor.right },
         ]}
         testID="home-mascot-anchor">
-        {isExpanded && nudge && (
-          <MascotActionHalo layout={haloLayout} nudge={nudge} onAction={complete} />
+        {nudge && (
+          <MascotActionHalo isExpanded={isExpanded} layout={haloLayout} nudge={nudge} onAction={complete} />
         )}
         <Pressable
           accessibilityLabel={accessibilityLabel}

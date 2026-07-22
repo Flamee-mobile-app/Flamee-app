@@ -1,20 +1,25 @@
 import { Pressable, StyleSheet, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import { FlameeIcon } from '@/shared/components/icons';
 import { AppText } from '@/shared/components/ui';
 import { flameeTheme } from '@/shared/constants/flameeTheme';
 
 import { MASCOT_VISUAL_SIZE } from '../mascotLayout';
+import { useMascotMessageMotion } from '../hooks/useMascotMessageMotion';
 import type { MascotHaloLayout } from '../mascotLayout';
 import type { MascotAction, MascotNudge } from '../types';
 
 type MascotActionHaloProps = {
+  isExpanded: boolean;
   layout: MascotHaloLayout;
   nudge: MascotNudge;
   onAction: (action: MascotAction) => void;
 };
 
-export function MascotActionHalo({ layout, nudge, onAction }: MascotActionHaloProps) {
+export function MascotActionHalo({ isExpanded, layout, nudge, onAction }: MascotActionHaloProps) {
+  const { expandedBubbleStyle, shouldRenderExpandedBubble } = useMascotMessageMotion(isExpanded);
+
   const getActionLabel = (action: MascotAction) => {
     if (action.id === 'mood') return 'Mood check';
     if (action.id === 'ai') return 'Chat AI';
@@ -23,51 +28,55 @@ export function MascotActionHalo({ layout, nudge, onAction }: MascotActionHaloPr
 
   return (
     <View accessibilityRole="menu" pointerEvents="box-none" style={styles.layer} testID="mascot-action-halo">
-      <View
-        accessible
-        accessibilityLabel={`Flamee gợi ý: ${nudge.message}`}
-        style={[
-          styles.bubbleCard,
-          {
-            bottom: MASCOT_VISUAL_SIZE + 10,
-            right: 0,
-            width: layout.bubble.width,
-          },
-        ]}>
-        {/* Tail pointing directly down to mascot */}
-        <View style={styles.tail} />
+      {shouldRenderExpandedBubble && (
+        <Animated.View
+          accessible
+          accessibilityLabel={`Flamee gợi ý: ${nudge.message}`}
+          pointerEvents={isExpanded ? 'auto' : 'none'}
+          style={[
+            styles.bubbleCard,
+            {
+              bottom: MASCOT_VISUAL_SIZE + 10,
+              right: 0,
+              width: layout.bubble.width,
+            },
+            expandedBubbleStyle,
+          ]}>
+          {/* Tail pointing directly down to mascot */}
+          <View style={styles.tail} />
 
-        {/* Top Header Tag */}
-        <View style={styles.headerTagRow}>
-          <View style={styles.badgeTag}>
-            <AppText style={styles.badgeTagText}>Flamee</AppText>
+          {/* Top Header Tag */}
+          <View style={styles.headerTagRow}>
+            <View style={styles.badgeTag}>
+              <AppText style={styles.badgeTagText}>Flamee</AppText>
+            </View>
           </View>
-        </View>
 
-        {/* Full Message Content (Up to 3 lines, un-truncated & sharp typography) */}
-        <View style={styles.messageContainer}>
-          <AppText numberOfLines={3} style={styles.message} testID="mascot-halo-message" variant="body">
-            {nudge.message}
-          </AppText>
-        </View>
-
-        {/* Labeled Quick Navigation Action Pills */}
-        {nudge.actions.length > 0 && (
-          <View style={styles.actionsRow}>
-            {nudge.actions.map((action) => (
-              <Pressable
-                key={action.id}
-                accessibilityLabel={action.label}
-                accessibilityRole="button"
-                onPress={() => onAction(action)}
-                style={({ pressed }) => [styles.actionPill, pressed && styles.actionPillPressed]}>
-                <FlameeIcon color="#FF7158" name={action.id} size={15} />
-                <AppText style={styles.actionPillText}>{getActionLabel(action)}</AppText>
-              </Pressable>
-            ))}
+          {/* Full Message Content (Up to 3 lines, un-truncated & sharp typography) */}
+          <View style={styles.messageContainer}>
+            <AppText numberOfLines={3} style={styles.message} testID="mascot-halo-message" variant="body">
+              {nudge.message}
+            </AppText>
           </View>
-        )}
-      </View>
+
+          {/* Labeled Quick Navigation Action Pills */}
+          {nudge.actions.length > 0 && (
+            <View style={styles.actionsRow}>
+              {nudge.actions.map((action) => (
+                <Pressable
+                  key={action.id}
+                  accessibilityLabel={action.label}
+                  accessibilityRole="button"
+                  onPress={() => onAction(action)}
+                  style={({ pressed }) => [styles.actionPill, pressed && styles.actionPillPressed]}>
+                  <FlameeIcon color="#FF7158" name={action.id} size={15} />
+                  <AppText style={styles.actionPillText}>{getActionLabel(action)}</AppText>
+                </Pressable>
+              ))}
+            </View>
+          )}
+        </Animated.View>
+      )}
     </View>
   );
 }
@@ -168,5 +177,4 @@ const styles = StyleSheet.create({
     width: 11,
   },
 });
-
 
