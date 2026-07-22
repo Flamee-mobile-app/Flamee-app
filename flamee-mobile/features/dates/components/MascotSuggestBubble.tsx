@@ -99,7 +99,9 @@ export function MascotSuggestBubble({
 
       {/* Collapsed Ellipses Badge (...) */}
       {!isExpanded && (
-        <Animated.View style={[styles.collapsedBadgeContainer, collapsedBadgeStyle]}>
+        <Animated.View
+          style={[styles.collapsedBadgeContainer, collapsedBadgeStyle]}
+          testID="mascot-suggest-collapsed-badge">
           <TouchableOpacity
             activeOpacity={0.85}
             onPress={toggleExpand}
@@ -210,8 +212,10 @@ const styles = StyleSheet.create({
 
   // Collapsed Ellipses Badge
   collapsedBadgeContainer: {
-    marginBottom: 8,
-    marginRight: 12,
+    bottom: 48,
+    position: 'absolute',
+    right: 40,
+    zIndex: 1,
   },
   collapsedBadge: {
     alignItems: 'center',
