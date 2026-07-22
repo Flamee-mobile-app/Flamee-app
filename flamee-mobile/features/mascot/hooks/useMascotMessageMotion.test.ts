@@ -5,9 +5,14 @@ import {
   useMascotMessageMotion,
 } from './useMascotMessageMotion';
 
+type MotionProps = { isExpanded: boolean };
+
 describe('useMascotMessageMotion', () => {
   it('uses the shared 200 ms contract and mounts an expanded bubble when requested', async () => {
-    const { result, rerender } = await renderHook(
+    const { result, rerender } = await renderHook<
+      ReturnType<typeof useMascotMessageMotion>,
+      MotionProps
+    >(
       ({ isExpanded }) => useMascotMessageMotion(isExpanded),
       { initialProps: { isExpanded: false } },
     );
