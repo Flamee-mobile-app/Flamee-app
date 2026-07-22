@@ -7,6 +7,13 @@ import { BottomNav } from './BottomNav';
 const mockReplace = jest.fn();
 let mockPathname = '/home';
 
+const primaryTabs = [
+  { key: 'home', label: 'Trang chủ', pathname: '/home' },
+  { key: 'timeline', label: 'Hoạt động', pathname: '/timeline' },
+  { key: 'missions', label: 'Nhiệm vụ', pathname: '/missions' },
+  { key: 'profile', label: 'Hồ sơ', pathname: '/profile' },
+] as const;
+
 jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }));
 
 jest.mock('expo-router', () => ({
@@ -72,6 +79,23 @@ describe('BottomNav', () => {
     expect(
       getByRole('tab', { name: 'Hoạt động' }).props.accessibilityState,
     ).toEqual({ selected: true });
+  });
+
+  it.each(primaryTabs)('visually activates only $label on $pathname', async ({ key, label, pathname }) => {
+    mockPathname = pathname;
+    const { getByRole, getByTestId } = await render(<BottomNav />);
+    const inactive = primaryTabs.find((item) => item.key !== key)!;
+
+    expect(getByTestId(`bottom-nav-visual-${key}`).props.style).toEqual(
+      expect.arrayContaining([expect.objectContaining({ opacity: 1 })]),
+    );
+    expect(getByTestId(`bottom-nav-visual-${inactive.key}`).props.style).toEqual(
+      expect.arrayContaining([expect.objectContaining({ opacity: 0.62 })]),
+    );
+    expect(getByRole('tab', { name: label }).props.accessibilityState).toEqual({ selected: true });
+    expect(getByRole('tab', { name: inactive.label }).props.accessibilityState).toEqual({
+      selected: false,
+    });
   });
 
   it('uses measured numeric Figma coordinates after the bar is laid out', async () => {

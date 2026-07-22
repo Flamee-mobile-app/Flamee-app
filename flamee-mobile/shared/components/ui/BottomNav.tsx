@@ -62,14 +62,16 @@ function BottomNavIcon({ itemKey }: { itemKey: BottomNavItem['key'] }) {
 function BottomNavVisualTab({
   item,
   layout,
+  selected,
 }: {
   item: BottomNavItem;
   layout: BottomNavTabLayout;
+  selected: boolean;
 }) {
   return (
     <View
       pointerEvents="none"
-      style={[styles.tabVisual, layout]}
+      style={[styles.tabVisual, layout, selected ? styles.tabVisualActive : styles.tabVisualInactive]}
       testID={`bottom-nav-visual-${item.key}`}>
       <BottomNavIcon itemKey={item.key} />
       <AppText
@@ -77,7 +79,7 @@ function BottomNavVisualTab({
         color={flameeTheme.colors.text.inverse}
         align="center"
         numberOfLines={1}
-        style={styles.label}>
+        style={[styles.label, selected ? styles.labelActive : styles.labelInactive]}>
         {item.label}
       </AppText>
     </View>
@@ -149,6 +151,7 @@ export function BottomNav() {
               key={item.key}
               item={item}
               layout={getBottomNavTabLayout(item.key, barWidth)}
+              selected={String(item.href).replace('/(main)', '') === pathname}
             />
           ))}
         </View>
@@ -235,6 +238,18 @@ const styles = StyleSheet.create({
   tabVisual: {
     alignItems: 'center',
     position: 'absolute',
+  },
+  tabVisualActive: {
+    opacity: 1,
+  },
+  tabVisualInactive: {
+    opacity: 0.62,
+  },
+  labelActive: {
+    fontWeight: '700',
+  },
+  labelInactive: {
+    fontWeight: '400',
   },
   visualTabs: {
     bottom: 0,
