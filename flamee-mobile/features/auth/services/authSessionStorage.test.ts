@@ -46,6 +46,7 @@ describe('authSessionStorage', () => {
         userId: 'demo-user',
         displayName: 'An & Bình',
         email: 'an@example.com',
+        password: 'stale-secret',
       }),
     );
 

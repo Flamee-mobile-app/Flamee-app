@@ -27,14 +27,13 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
         <AuthBootstrap>
-          <AuthGate>
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="index" />
-              <Stack.Screen name="(auth)" />
-              <Stack.Screen name="(main)" options={ROOT_MAIN_SCREEN_OPTIONS} />
-            </Stack>
-            <StatusBar style="dark" />
-          </AuthGate>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="(main)" options={ROOT_MAIN_SCREEN_OPTIONS} />
+          </Stack>
+          <AuthGate />
+          <StatusBar style="dark" />
         </AuthBootstrap>
       </QueryClientProvider>
     </SafeAreaProvider>

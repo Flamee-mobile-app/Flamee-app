@@ -25,7 +25,11 @@ export async function readPersistedSession(): Promise<AuthSession | null> {
     const parsed: unknown = JSON.parse(raw);
 
     if (isAuthSession(parsed)) {
-      return parsed;
+      return {
+        userId: parsed.userId,
+        displayName: parsed.displayName,
+        email: parsed.email,
+      };
     }
   } catch {}
 

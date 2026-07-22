@@ -8,11 +8,11 @@ import { AuthGate, getAuthRedirect } from './AuthGate';
 const mockReplace = jest.fn();
 const mockUseAuthStore = jest.fn();
 let mockSegments: string[] = [];
-let mockRootNavigationState: { key: string } | undefined = { key: 'root-navigation' };
+let mockNavigationRef: { current: object | null } = { current: {} };
 let mockStatus: 'hydrating' | 'authenticated' | 'unauthenticated' = 'unauthenticated';
 
 jest.mock('expo-router', () => ({
-  useRootNavigationState: () => mockRootNavigationState,
+  useNavigationContainerRef: () => mockNavigationRef,
   useRouter: () => ({ replace: mockReplace }),
   useSegments: () => mockSegments,
 }));
@@ -26,7 +26,7 @@ describe('AuthGate', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockSegments = [];
-    mockRootNavigationState = { key: 'root-navigation' };
+    mockNavigationRef = { current: {} };
     mockStatus = 'unauthenticated';
     mockUseAuthStore.mockImplementation(
       (selector: (state: { status: typeof mockStatus }) => unknown) => selector({ status: mockStatus }),
@@ -45,10 +45,10 @@ describe('AuthGate', () => {
     expect(getAuthRedirect('unauthenticated', [])).toBeNull();
   });
 
-  it('does not replace until the root navigator is available', async () => {
+  it('does not replace until the root navigation container is available', async () => {
     mockStatus = 'authenticated';
     mockSegments = ['(auth)', 'login'];
-    mockRootNavigationState = undefined;
+    mockNavigationRef = { current: null };
 
     const screen = await render(
       <AuthGate>
