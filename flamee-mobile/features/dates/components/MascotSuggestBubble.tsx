@@ -1,16 +1,13 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
 import { flameeFonts } from '@/shared/constants/flameeTheme';
 import { MascotArtwork } from '@/features/mascot/components/MascotArtwork';
+import { MascotMessageDismissLayer } from '@/features/mascot/components/MascotMessageDismissLayer';
+import { useMascotMessageMotion } from '@/features/mascot/hooks/useMascotMessageMotion';
 
 export type MascotSuggestBubbleProps = {
   onPressChat: () => void;
@@ -24,18 +21,26 @@ export function MascotSuggestBubble({
   defaultExpanded = false,
 }: MascotSuggestBubbleProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const { collapsedBadgeStyle, expandedBubbleStyle, shouldRenderExpandedBubble } =
+    useMascotMessageMotion(isExpanded);
 
-  // Reanimated shared values for fluid transitions
-  const expandProgress = useSharedValue(defaultExpanded ? 1 : 0);
+  const open = () => {
+    Haptics.selectionAsync();
+    setIsExpanded(true);
+  };
+
+  const close = () => {
+    Haptics.selectionAsync();
+    setIsExpanded(false);
+  };
 
   const toggleExpand = () => {
-    Haptics.selectionAsync();
-    const nextState = !isExpanded;
-    setIsExpanded(nextState);
-    expandProgress.value = withTiming(nextState ? 1 : 0, {
-      duration: 200,
-      easing: Easing.out(Easing.quad),
-    });
+    if (isExpanded) {
+      close();
+      return;
+    }
+
+    open();
   };
 
   const handleOpenChat = () => {
@@ -43,85 +48,71 @@ export function MascotSuggestBubble({
     onPressChat();
   };
 
-  // Subtle & gentle animation styles for Expanded Speech Bubble
-  const expandedBubbleStyle = useAnimatedStyle(() => {
-    return {
-      opacity: expandProgress.value,
-      transform: [
-        { scale: 0.95 + expandProgress.value * 0.05 },
-        { translateY: (1 - expandProgress.value) * 6 },
-      ],
-    };
-  });
-
-  // Gentle animation styles for Collapsed Ellipses Badge
-  const collapsedBadgeStyle = useAnimatedStyle(() => {
-    return {
-      opacity: 1 - expandProgress.value,
-      transform: [
-        { scale: 1 - expandProgress.value * 0.05 },
-        { translateY: expandProgress.value * -4 },
-      ],
-    };
-  });
-
-
   return (
-    <View style={styles.container}>
-      {/* Expanded Speech Card */}
-      {isExpanded && (
-        <Animated.View style={[styles.expandedBubble, expandedBubbleStyle]}>
-          <TouchableOpacity
-            activeOpacity={0.9}
-            onPress={handleOpenChat}
-            style={styles.expandedContent}
-          >
+    <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
+      {isExpanded && <MascotMessageDismissLayer onDismiss={close} />}
+
+      <View pointerEvents="box-none" style={styles.container}>
+        {/* Expanded Speech Card */}
+        {shouldRenderExpandedBubble && (
+          <Animated.View
+            pointerEvents={isExpanded ? 'auto' : 'none'}
+            style={[styles.expandedBubble, expandedBubbleStyle]}
+            testID="mascot-suggest-expanded-bubble">
+            <View style={styles.expandedContent}>
             <View style={styles.headerRow}>
               <View style={styles.mascotTag}>
                 <Ionicons name="sparkles" size={12} color="#FF7158" />
                 <Text style={styles.mascotTagText}>Mascot AI</Text>
               </View>
-              <TouchableOpacity onPress={toggleExpand} style={styles.closeMiniBtn}>
+              <TouchableOpacity
+                accessibilityLabel="Đóng gợi ý lịch hẹn hò"
+                accessibilityRole="button"
+                onPress={close}
+                style={styles.closeMiniBtn}>
                 <Ionicons name="close-circle" size={18} color="#FF7158" />
               </TouchableOpacity>
             </View>
 
             <Text style={styles.messageText}>{messageText}</Text>
 
-            <View style={styles.actionRow}>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={handleOpenChat}
+              style={styles.actionRow}
+              testID="mascot-suggest-chat-action">
               <Text style={styles.actionText}>Hỏi tớ ngay</Text>
               <Ionicons name="arrow-forward-circle" size={18} color="#FF7158" />
+            </TouchableOpacity>
             </View>
-          </TouchableOpacity>
-          <View style={styles.speechArrow} />
-        </Animated.View>
-      )}
+            <View style={styles.speechArrow} />
+          </Animated.View>
+        )}
 
-      {/* Collapsed Ellipses Badge (...) */}
-      {!isExpanded && (
-        <Animated.View
-          style={[styles.collapsedBadgeContainer, collapsedBadgeStyle]}
-          testID="mascot-suggest-collapsed-badge">
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={toggleExpand}
-            style={styles.collapsedBadge}
-          >
-            <Ionicons name="chatbubble-ellipses" size={20} color="#FF7158" />
-          </TouchableOpacity>
-          <View style={styles.collapsedArrow} />
-        </Animated.View>
-      )}
+        {/* Collapsed Ellipses Badge (...) */}
+        {!isExpanded && (
+          <Animated.View
+            style={[styles.collapsedBadgeContainer, collapsedBadgeStyle]}
+            testID="mascot-suggest-collapsed-badge">
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={open}
+              style={styles.collapsedBadge}>
+              <Ionicons name="chatbubble-ellipses" size={20} color="#FF7158" />
+            </TouchableOpacity>
+            <View style={styles.collapsedArrow} />
+          </Animated.View>
+        )}
 
-
-      {/* Mascot Avatar Trigger */}
-      <TouchableOpacity
-        activeOpacity={0.85}
-        onPress={toggleExpand}
-        style={styles.mascotBtn}
-      >
-        <MascotArtwork mood="happy" size={56} />
-      </TouchableOpacity>
+        {/* Mascot Avatar Trigger */}
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={toggleExpand}
+          style={styles.mascotBtn}
+          testID="mascot-suggest-trigger">
+          <MascotArtwork mood="happy" size={56} />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
