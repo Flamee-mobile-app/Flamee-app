@@ -1,65 +1,174 @@
-import { useEffect, useMemo, useState } from 'react';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useEffect, useState } from 'react';
 import {
-  Dimensions,
-  ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
   StatusBar,
   SafeAreaView,
+  TouchableOpacity,
+  ScrollView,
   Platform,
 } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+  withSequence,
+  runOnJS,
+} from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
-import { flameeFonts, flameeTheme } from '@/shared/constants/flameeTheme';
+import { flameeFonts } from '@/shared/constants/flameeTheme';
 import { StateView } from '@/shared/components/ui';
 import { useMissions } from '@/features/missions/hooks/useMissions';
-import { completeMissionById } from '@/features/missions/services/missionService';
-import type { Mission, MissionCategory } from '@/features/missions/types';
+import {
+  INITIAL_USER_PROGRESS,
+  calculateNewProgress,
+  completeMissionById,
+  sortMissionsWithCompletedFirst,
+} from '@/features/missions/services/missionService';
+import type {
+  Mission,
+  MissionCategory,
+  MissionViewMode,
+  UserProgress,
+} from '@/features/missions/types';
 
-const { width } = Dimensions.get('window');
+import { MascotExpHeader } from '../components/MascotExpHeader';
+import { GamifiedTaskList } from '../components/GamifiedTaskList';
+import { MissionCategoryTabs } from '../components/MissionCategoryTabs';
+import { StreakCalendarView } from '../components/StreakCalendarView';
+import { RewardModal } from '../components/RewardModal';
+import { FeaturedSuggestCard } from '../components/FeaturedSuggestCard';
 
-const categoryTabs = [
-  { label: 'Hàng ngày', value: 'daily' },
-  { label: 'Hàng tuần', value: 'weekly' },
-  { label: 'Hàng tháng', value: 'surprise' },
-];
+interface AnimatedListItemCardProps {
+  item: Mission;
+  onComplete: (id: string) => void;
+  onDismiss: (id: string) => void;
+}
+
+function AnimatedListItemCard({ item, onComplete, onDismiss }: AnimatedListItemCardProps) {
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(1);
+  const height = useSharedValue(54);
+
+  const handlePress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    if (item.completed) {
+      // Juicy UI Transition: Shrink, fade out, collapse height and remove!
+      scale.value = withSpring(0.4, { damping: 10, stiffness: 120 });
+      opacity.value = withTiming(0, { duration: 220 });
+      height.value = withTiming(0, { duration: 280 }, (finished) => {
+        if (finished) {
+          runOnJS(onDismiss)(item.id);
+        }
+      });
+    } else {
+      // Bounce feedback & complete mission
+      scale.value = withSequence(
+        withSpring(0.96, { damping: 8 }),
+        withSpring(1.0, { damping: 6 })
+      );
+      onComplete(item.id);
+    }
+  };
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: opacity.value,
+    height: height.value,
+    marginBottom: opacity.value === 0 ? 0 : 10,
+  }));
+
+  return (
+    <Animated.View style={[styles.listItemWrapper, animatedStyle]}>
+      <TouchableOpacity
+        onPress={handlePress}
+        activeOpacity={0.85}
+        style={[
+          styles.listItemCard,
+          item.completed ? styles.listItemCompleted : styles.listItemPending,
+        ]}
+      >
+        <View style={styles.listItemLeft}>
+          <Text style={styles.listItemTitle}>{item.title}</Text>
+        </View>
+
+        <View style={styles.xpStarBadgeRow}>
+          <Text
+            style={[
+              styles.listItemXpText,
+              item.completed && styles.listItemXpTextDone,
+            ]}
+          >
+            +{item.xp} XP
+          </Text>
+          <View
+            style={[
+              styles.starBadge,
+              item.completed && styles.starBadgeDone,
+            ]}
+          >
+            <Ionicons
+              name={item.completed ? 'checkmark' : 'star'}
+              size={13}
+              color={item.completed ? '#6EBD8B' : '#FF7158'}
+            />
+          </View>
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
 
 export function MissionsScreen() {
   const missionsQuery = useMissions();
+  const [viewMode, setViewMode] = useState<MissionViewMode>('hub');
   const [category, setCategory] = useState<MissionCategory>('daily');
   const [missions, setMissions] = useState<Mission[]>([]);
+  const [userProgress, setUserProgress] = useState<UserProgress>(INITIAL_USER_PROGRESS);
+  const [isLevelUp, setIsLevelUp] = useState(false);
+  const [rewardModalVisible, setRewardModalVisible] = useState(false);
 
   useEffect(() => {
     if (missionsQuery.data) {
-      setMissions(missionsQuery.data);
+      setMissions(sortMissionsWithCompletedFirst(missionsQuery.data));
     }
   }, [missionsQuery.data]);
 
-  const filteredMissions = useMemo(
-    () => missions.filter((mission) => mission.category === category),
-    [category, missions]
-  );
+  const handleCompleteMission = (id: string) => {
+    const { updatedMissions, earnedXp } = completeMissionById(missions, id);
+    setMissions(updatedMissions);
 
-  // The first mission is featured today
-  const featured = filteredMissions[0];
-  
-  // The rest are additional/suggested missions
-  const additional = [
-    { id: 'add-1', title: 'Chia sẻ 1 điều biết ơn', xp: 20, completed: false },
-    { id: 'add-2', title: 'Gửi ảnh đáng yêu cho nhau', xp: 20, completed: false },
-    { id: 'add-3', title: 'Lên kế hoạch cho cuối tuần', xp: 20, completed: false },
-    { id: 'add-4', title: 'Gọi video call cho nhau', xp: 20, completed: false },
-  ];
+    if (earnedXp > 0) {
+      const { newProgress, didLevelUp } = calculateNewProgress(userProgress, earnedXp);
+      setUserProgress(newProgress);
+      if (didLevelUp) {
+        setIsLevelUp(true);
+      }
+    }
+  };
 
-  const handleComplete = (id: string) => {
-    setMissions((current) => completeMissionById(current, id));
+  const handleDismissTask = (id: string) => {
+    setMissions((prev) => prev.filter((m) => m.id !== id));
+  };
+
+  const handleOpenRewardModal = () => {
+    setRewardModalVisible(true);
+    if (isLevelUp) {
+      setIsLevelUp(false);
+    }
+  };
+
+  const handleCategorySelect = (selectedCat: MissionCategory) => {
+    setCategory(selectedCat);
   };
 
   if (missionsQuery.isLoading) {
-    return <StateView title="Đang tải nhiệm vụ" loading />;
+    return <StateView title="Đang tải nhiệm vụ..." loading />;
   }
 
   if (missionsQuery.isError) {
@@ -72,112 +181,132 @@ export function MissionsScreen() {
     );
   }
 
-  return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-
-      {/* Custom Header */}
-      <SafeAreaView style={styles.headerSafeArea}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Nhiệm vụ nho nhỏ</Text>
-          <View style={styles.headerRight}>
-            <TouchableOpacity style={styles.iconBtn}>
-              <Ionicons name="search-outline" size={22} color="#FF7158" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconBtn}>
-              <Ionicons name="ellipsis-horizontal" size={22} color="#FF7158" />
-            </TouchableOpacity>
-          </View>
-        </View>
+  // --- Frame 4: Streak & Calendar View ---
+  if (viewMode === 'streak') {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor="#FAF9F7" />
+        <StreakCalendarView
+          progress={userProgress}
+          onBack={() => setViewMode('list')}
+        />
       </SafeAreaView>
+    );
+  }
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Category Tabs */}
-        <View style={styles.tabContainer}>
-          {categoryTabs.map((tab) => {
-            const active = category === tab.value;
-            return (
-              <TouchableOpacity
-                key={tab.value}
-                onPress={() => setCategory(tab.value as MissionCategory)}
-                style={[styles.tabButton, active && styles.tabButtonActive]}
-                activeOpacity={0.8}
-              >
-                {active ? (
-                  <LinearGradient
-                    colors={['#FCB76D', '#FF7158']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={StyleSheet.absoluteFillObject}
-                  />
-                ) : null}
-                <Text style={[styles.tabText, active && styles.tabTextActive]}>
-                  {tab.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+  // --- Frame 1: Detailed Mission List Screen ---
+  if (viewMode === 'list') {
+    const categoryMissions = missions.filter((m) => m.category === category);
+    const sortedCategoryMissions = sortMissionsWithCompletedFirst(categoryMissions);
 
-        {/* Featured Daily Mission */}
-        <View style={styles.featuredCard}>
-          <Text style={styles.featuredTag}>Nhiệm vụ hôm nay</Text>
-          
-          <View style={styles.featuredRow}>
-            <View style={styles.featuredImgWrapper}>
-              <Text style={styles.featuredEmoji}>🎁</Text>
-            </View>
-            <View style={styles.featuredTextCol}>
-              <Text style={styles.featuredTitle} numberOfLines={2}>
-                {featured?.title || 'Gửi một lời khen dành cho đối phương'}
-              </Text>
-              <Text style={styles.featuredXp}>+20 SP</Text>
-            </View>
-          </View>
+    // Featured suggested mission (first mission in category)
+    const featuredMission = sortedCategoryMissions[0];
+    // Remaining additional missions
+    const additionalMissions = sortedCategoryMissions.slice(1);
 
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+        
+        {/* Header with Title "Nhiệm vụ nho nhỏ" & Route Link to Streak View */}
+        <View style={styles.listHeader}>
           <TouchableOpacity
-            style={[styles.completeBtn, featured?.completed && styles.completeBtnDone]}
-            disabled={featured?.completed}
-            onPress={() => featured && handleComplete(featured.id)}
-            activeOpacity={0.85}
+            onPress={() => {
+              Haptics.selectionAsync();
+              setViewMode('hub');
+            }}
+            style={styles.backBtn}
+            activeOpacity={0.8}
           >
-            <Text style={styles.completeBtnText}>
-              {featured?.completed ? 'Đã hoàn thành' : 'Hoàn thành'}
-            </Text>
+            <Ionicons name="arrow-back" size={22} color="#FF7158" />
+          </TouchableOpacity>
+          <Text style={styles.listHeaderTitle}>Nhiệm vụ nho nhỏ</Text>
+
+          {/* Route Link to Streak Calendar View */}
+          <TouchableOpacity
+            onPress={() => {
+              Haptics.selectionAsync();
+              setViewMode('streak');
+            }}
+            style={styles.streakLinkBtn}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.streakLinkEmoji}>🔥</Text>
+            <Text style={styles.streakLinkText}>Chuỗi</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Additional Missions Section */}
-        <View style={styles.additionalHeader}>
-          <Text style={styles.additionalTitle}>Nhiệm vụ thêm</Text>
-        </View>
+        <ScrollView
+          contentContainerStyle={styles.listScrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Category Filter Chips (Daily, Weekly, Monthly) */}
+          <MissionCategoryTabs
+            selectedCategory={category}
+            onSelectCategory={handleCategorySelect}
+          />
 
-        {/* Missions list */}
-        <View style={styles.additionalList}>
-          {additional.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              style={styles.listItem}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.itemText}>{item.title}</Text>
-              
-              <View style={styles.itemRight}>
-                <Text style={styles.itemXpText}>+{item.xp} SP</Text>
-                <View style={styles.starCircle}>
-                  <Text style={styles.starEmoji}>⭐</Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
+          {/* Card Suggest "Nhiệm vụ hôm nay / tuần này / tháng này" */}
+          {featuredMission && (
+            <FeaturedSuggestCard
+              mission={featuredMission}
+              category={category}
+              onComplete={handleCompleteMission}
+              onDismiss={handleDismissTask}
+            />
+          )}
 
-        {/* Bottom spacing */}
-        <View style={{ height: 100 }} />
+          {/* Section "Nhiệm vụ thêm" (Additional Tasks) */}
+          <View style={styles.additionalSectionHeader}>
+            <Text style={styles.additionalSectionTitle}>Nhiệm vụ thêm</Text>
+          </View>
+
+          {/* Additional Tasks List with Juicy UI Dismissal for Completed Tasks */}
+          <View style={styles.missionsListWrapper}>
+            {additionalMissions.map((item) => (
+              <AnimatedListItemCard
+                key={item.id}
+                item={item}
+                onComplete={handleCompleteMission}
+                onDismiss={handleDismissTask}
+              />
+            ))}
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // --- Frame 3: Default Main Mission Hub Screen ---
+  return (
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFE6CE" />
+
+      <ScrollView
+        contentContainerStyle={styles.hubScrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Top Half: Sunset Gradient Header + Logo + Streak + Emotion 08 Mascot Sticker + EXP Bar */}
+        <MascotExpHeader
+          progress={userProgress}
+          isLevelUp={isLevelUp}
+          onClaimReward={handleOpenRewardModal}
+        />
+
+        {/* Bottom Half: Curved White Card + Gamified Task List + Juicy UI dismissal */}
+        <GamifiedTaskList
+          missions={missions}
+          onCompleteMission={handleCompleteMission}
+          onDismissTask={handleDismissTask}
+          onNavigateToList={() => setViewMode('list')}
+        />
       </ScrollView>
+
+      {/* Reward Pop-up Modal */}
+      <RewardModal
+        visible={rewardModalVisible}
+        onClose={() => setRewardModalVisible(false)}
+      />
     </View>
   );
 }
@@ -187,196 +316,126 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FAF9F7',
   },
-  headerSafeArea: {
+  hubScrollContent: {
+    paddingBottom: 100,
+  },
+  listHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#FFE6CE',
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
-  header: {
-    flexDirection: 'row',
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFF1E4',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
+    justifyContent: 'center',
   },
-  headerTitle: {
+  listHeaderTitle: {
     fontFamily: flameeFonts.roundedBold,
     fontSize: 22,
     color: '#FF7158',
   },
-  headerRight: {
+  streakLinkBtn: {
     flexDirection: 'row',
-    gap: 12,
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
+    backgroundColor: '#FFF1E4',
+    borderWidth: 1,
+    borderColor: '#FFE6CE',
   },
-  iconBtn: {
-    padding: 4,
+  streakLinkEmoji: {
+    fontSize: 14,
   },
-  scrollContent: {
-    paddingHorizontal: 24,
-    paddingTop: 20,
+  streakLinkText: {
+    fontFamily: flameeFonts.bold,
+    fontSize: 12,
+    color: '#FF7158',
+  },
+  listScrollContent: {
+    paddingHorizontal: 20,
     paddingBottom: 100,
   },
-
-  // Category Selector Tabs
-  tabContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 24,
+  additionalSectionHeader: {
+    marginTop: 16,
+    marginBottom: 10,
   },
-  tabButton: {
-    flex: 1,
-    height: 38,
-    backgroundColor: '#FFF1E4',
-    borderWidth: 1,
-    borderColor: '#FCB76D',
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+  additionalSectionTitle: {
+    fontFamily: flameeFonts.roundedBold,
+    fontSize: 20,
+    color: '#FF7158',
+  },
+  missionsListWrapper: {
+    width: '100%',
+  },
+  listItemWrapper: {
+    width: '100%',
     overflow: 'hidden',
-    position: 'relative',
   },
-  tabButtonActive: {
-    borderColor: 'transparent',
-  },
-  tabText: {
-    fontFamily: flameeFonts.bold,
-    fontSize: 13,
-    color: '#FF7158',
-  },
-  tabTextActive: {
-    color: '#FFFFFF',
-  },
-
-  // Featured card
-  featuredCard: {
-    backgroundColor: '#FFF1E4',
-    borderWidth: 1,
-    borderColor: '#FFE6CE',
-    borderRadius: 24,
-    padding: 20,
-    gap: 16,
-    marginBottom: 30,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 3,
-    elevation: 1,
-  },
-  featuredTag: {
-    fontFamily: flameeFonts.bold,
-    color: '#888888',
-    fontSize: 12,
-    alignSelf: 'flex-start',
-  },
-  featuredRow: {
-    flexDirection: 'row',
+  listItemCard: {
     width: '100%',
-    alignItems: 'center',
-    gap: 16,
-  },
-  featuredImgWrapper: {
-    width: 60,
-    height: 60,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#FFE6CE',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  featuredEmoji: {
-    fontSize: 34,
-  },
-  featuredTextCol: {
-    flex: 1,
-    gap: 4,
-  },
-  featuredTitle: {
-    fontFamily: flameeFonts.roundedBold,
-    fontSize: 16,
-    color: '#2B2B2B',
-    lineHeight: 20,
-  },
-  featuredXp: {
-    fontFamily: flameeFonts.bold,
-    fontSize: 15,
-    color: '#FF7158',
-  },
-  completeBtn: {
-    width: '100%',
-    height: 44,
-    backgroundColor: '#FF7158',
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  completeBtnDone: {
-    backgroundColor: '#CCCCCC',
-  },
-  completeBtnText: {
-    fontFamily: flameeFonts.bold,
-    color: '#FFFFFF',
-    fontSize: 15,
-  },
-
-  // Additional section
-  additionalHeader: {
-    marginBottom: 16,
-  },
-  additionalTitle: {
-    fontFamily: flameeFonts.roundedBold,
-    fontSize: 18,
-    color: '#FF7158',
-  },
-  additionalList: {
-    gap: 12,
-  },
-  listItem: {
-    width: '100%',
-    height: 52,
-    borderWidth: 1.5,
-    borderColor: '#FCB76D',
-    borderRadius: 16,
-    paddingHorizontal: 16,
+    height: 54,
+    borderRadius: 27,
+    paddingHorizontal: 18,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
   },
-  itemText: {
-    fontFamily: flameeFonts.bold,
-    fontSize: 14,
-    color: '#2B2B2B',
+  listItemCompleted: {
+    backgroundColor: '#E8F8EE',
+    borderColor: '#6EBD8B',
+  },
+  listItemPending: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#FFE6CE',
+  },
+  listItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
     paddingRight: 8,
   },
-  itemRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  itemXpText: {
+  listItemTitle: {
     fontFamily: flameeFonts.bold,
-    fontSize: 13,
+    fontSize: 14,
     color: '#2B2B2B',
   },
-  starCircle: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+  xpStarBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  listItemXpText: {
+    fontFamily: flameeFonts.bold,
+    fontSize: 12,
+    color: '#888888',
+  },
+  listItemXpTextDone: {
+    color: '#2D8A4E',
+  },
+  starBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: '#FFF1E4',
     borderWidth: 1,
-    borderColor: '#FCB76D',
+    borderColor: '#FFE6CE',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  starEmoji: {
-    fontSize: 12,
+  starBadgeDone: {
+    backgroundColor: '#E8F8EE',
+    borderColor: '#6EBD8B',
   },
 });

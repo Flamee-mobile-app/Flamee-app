@@ -38,5 +38,10 @@
     "kind": "icon",
     "source": "mascot-ai.svg",
     "viewBox": "0 0 24 24"
+  },
+  "logo": {
+    "kind": "icon",
+    "source": "flamee-logo.svg",
+    "viewBox": "0 0 66 79"
   }
 }

@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import {
   AiIcon,
   HomeIcon,
+  LogoIcon,
   MissionsStarOneIcon,
   MissionsStarTwoIcon,
   MoodIcon,
@@ -22,7 +23,7 @@ export type FlameeIconProps = {
 export function FlameeIcon({
   name,
   size = 24,
-  color = '#FFFFFF',
+  color = '#FF7158',
   accessibilityLabel,
 }: FlameeIconProps) {
   const accessibilityProps = {
@@ -30,6 +31,18 @@ export function FlameeIcon({
     accessibilityLabel,
     accessibilityRole: 'image' as const,
   };
+
+  if (name === 'logo') {
+    return (
+      <LogoIcon
+        {...accessibilityProps}
+        color={color}
+        height={size}
+        testID="flamee-icon-logo"
+        width={size}
+      />
+    );
+  }
 
   if (name === 'home') {
     return (

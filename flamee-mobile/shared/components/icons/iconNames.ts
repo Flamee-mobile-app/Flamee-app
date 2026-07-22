@@ -5,6 +5,7 @@ export const FLAMEE_ICON_NAMES = [
   'profile',
   'mood',
   'ai',
+  'logo',
 ] as const;
 
 export type FlameeIconName = (typeof FLAMEE_ICON_NAMES)[number];

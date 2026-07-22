@@ -5,7 +5,7 @@ import type { MoodCheckinItem } from '../types';
 
 describe('useMoodCheckin', () => {
   it('initializes with default selected index and option', async () => {
-    const { result } = await renderHook(() => useMoodCheckin('happy_joy'));
+    const { result } = await renderHook(() => useMoodCheckin('happy'));
 
     expect(result.current.selectedIndex).toBeGreaterThanOrEqual(0);
     expect(result.current.selectedOption.label).toBe('Hạnh phúc');
@@ -14,7 +14,7 @@ describe('useMoodCheckin', () => {
   });
 
   it('navigates between mood options by index or option object', async () => {
-    const { result } = await renderHook(() => useMoodCheckin('happy_joy'));
+    const { result } = await renderHook(() => useMoodCheckin('happy'));
 
     await act(async () => {
       result.current.selectMoodByIndex(2);

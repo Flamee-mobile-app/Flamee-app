@@ -10,11 +10,15 @@ import type { MascotMood, MascotNudge, MascotSignal } from '../types';
 const MOOD_SIGNAL_CONFIG: Record<MascotMood, Pick<MascotSignal, 'mood' | 'confidence' | 'priority'>> = {
   neutral: { mood: 'neutral', confidence: 0.7, priority: 5 },
   happy: { mood: 'happy', confidence: 0.8, priority: 20 },
+  great: { mood: 'great', confidence: 0.8, priority: 25 },
+  very_happy: { mood: 'very_happy', confidence: 0.85, priority: 30 },
   calm: { mood: 'calm', confidence: 0.8, priority: 10 },
   sad: { mood: 'sad', confidence: 0.85, priority: 70 },
+  very_sad: { mood: 'very_sad', confidence: 0.9, priority: 75 },
   tired: { mood: 'tired', confidence: 0.9, priority: 80 },
   angry: { mood: 'angry', confidence: 0.9, priority: 85 },
   surprised: { mood: 'surprised', confidence: 0.85, priority: 65 },
+  default: { mood: 'default', confidence: 0.7, priority: 5 },
 };
 
 export function createMoodMascotSignal(summary: MoodSummary): MascotSignal {

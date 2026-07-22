@@ -17,11 +17,15 @@ import { MascotArtwork } from './MascotArtwork';
 export const MOOD_AURA_COLORS: Record<MascotMood, string> = {
   neutral: 'rgba(255, 113, 88, 0.28)',
   happy: 'rgba(255, 165, 0, 0.35)',
+  great: 'rgba(255, 149, 0, 0.35)',
+  very_happy: 'rgba(255, 179, 71, 0.35)',
   calm: 'rgba(76, 217, 100, 0.30)',
   sad: 'rgba(0, 122, 255, 0.28)',
+  very_sad: 'rgba(88, 86, 214, 0.28)',
   tired: 'rgba(142, 142, 147, 0.25)',
   angry: 'rgba(255, 59, 48, 0.45)',
   surprised: 'rgba(255, 204, 0, 0.45)',
+  default: 'rgba(255, 113, 88, 0.28)',
 };
 
 type MascotVisualProps = {

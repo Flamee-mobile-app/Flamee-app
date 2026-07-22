@@ -24,7 +24,9 @@ function componentNameFor(iconName) {
 function makeColorCustomizable(componentCode) {
   return componentCode
     .replaceAll('fill="var(--fill-0, white)"', "fill={props.color ?? '#FFFFFF'}")
-    .replaceAll('fill="white"', "fill={props.color ?? '#FFFFFF'}");
+    .replaceAll('fill="white"', "fill={props.color ?? '#FFFFFF'}")
+    .replaceAll('fill="#fff"', "fill={props.color ?? '#FFFFFF'}")
+    .replaceAll('fill="#FFF"', "fill={props.color ?? '#FFFFFF'}");
 }
 
 async function writeGeneratedFile(filePath, contents) {

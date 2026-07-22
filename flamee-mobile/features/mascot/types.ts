@@ -3,11 +3,15 @@ import type { Href } from 'expo-router';
 export type MascotMood =
   | 'neutral'
   | 'happy'
+  | 'great'
+  | 'very_happy'
   | 'calm'
-  | 'sad'
+  | 'surprised'
   | 'tired'
+  | 'sad'
+  | 'very_sad'
   | 'angry'
-  | 'surprised';
+  | 'default';
 
 export type MascotSignal = {
   id: string;

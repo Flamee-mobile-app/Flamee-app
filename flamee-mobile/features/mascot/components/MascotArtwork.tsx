@@ -6,13 +6,17 @@ import { AppImage } from '@/shared/components/media';
 import type { MascotMood } from '../types';
 
 export const MASCOT_STICKERS: Record<MascotMood, ImageSourcePropType> = {
-  neutral: require('../../../assets/images/mascot/emotion_11_binh_thuong.png'),
-  happy: require('../../../assets/images/mascot/emotion_04_hanh_phuc.png'),
-  calm: require('../../../assets/images/mascot/emotion_06_binh_yen.png'),
-  sad: require('../../../assets/images/mascot/emotion_09_buon.png'),
-  tired: require('../../../assets/images/mascot/emotion_13_met_moi.png'),
-  angry: require('../../../assets/images/mascot/emotion_12_gian_du.png'),
-  surprised: require('../../../assets/images/mascot/emotion_07_bat_ngo.png'),
+  surprised: require('../../../assets/images/mascot/emotion_04_bat_ngo.png'),
+  very_sad: require('../../../assets/images/mascot/emotion_05_khoc_huhu.png'),
+  angry: require('../../../assets/images/mascot/emotion_06_tuc_gian.png'),
+  sad: require('../../../assets/images/mascot/emotion_07_buon.png'),
+  great: require('../../../assets/images/mascot/emotion_08_om_mieng_coi.png'),
+  happy: require('../../../assets/images/mascot/emotion_09_hanh_phuc.png'),
+  very_happy: require('../../../assets/images/mascot/emotion_10_vui_qua_di_thoi.png'),
+  neutral: require('../../../assets/images/mascot/emotion_11_tinh_tam.png'),
+  tired: require('../../../assets/images/mascot/emotion_12_buon_ngu_ee.png'),
+  calm: require('../../../assets/images/mascot/emotion_13_met_moi.png'),
+  default: require('../../../assets/images/mascot/mascot_default.png'),
 };
 
 export const MASCOT_DEFAULT_STICKER = require('../../../assets/images/mascot/mascot_default.png');

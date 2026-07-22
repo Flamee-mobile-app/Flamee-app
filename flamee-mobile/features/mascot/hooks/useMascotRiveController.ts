@@ -9,11 +9,15 @@ export const RIVE_TAP_TRIGGER_NAME = 'tapTrigger';
 export const MOOD_RIVE_INPUT_MAP: Record<MascotMood, number> = {
   neutral: 0,
   happy: 1,
+  great: 1,
+  very_happy: 1,
   calm: 2,
   sad: 3,
+  very_sad: 3,
   tired: 4,
   angry: 5,
   surprised: 6,
+  default: 0,
 };
 
 export function useMascotRiveController(mood: MascotMood) {

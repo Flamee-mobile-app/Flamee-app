@@ -7,3 +7,4 @@ export { default as ProfileHeadIcon } from './ProfileHeadIcon';
 export { default as ProfileBodyIcon } from './ProfileBodyIcon';
 export { default as MoodIcon } from './MoodIcon';
 export { default as AiIcon } from './AiIcon';
+export { default as LogoIcon } from './LogoIcon';

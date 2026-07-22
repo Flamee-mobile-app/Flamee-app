@@ -18,12 +18,24 @@ export const MASCOT_NUDGE_CONTENT: Record<MascotMood, MascotNudgeContent> = {
     message: 'Có một niềm vui nhỏ đang chờ được chia sẻ đó.',
     hasUnreadNudge: false,
   },
+  great: {
+    message: 'Hôm nay thật tuyệt vời! Cùng chia sẻ với người ấy nhé.',
+    hasUnreadNudge: false,
+  },
+  very_happy: {
+    message: 'Niềm vui đang lan tỏa! Nhắn gửi người ấy ngay nào.',
+    hasUnreadNudge: false,
+  },
   calm: {
     message: 'Hôm nay có vẻ thật nhẹ nhàng. Mình cùng lưu lại một khoảnh khắc nhé?',
     hasUnreadNudge: false,
   },
   sad: {
     message: 'Có vẻ người ấy đang cần một chút quan tâm. Mình gửi một lời hỏi han nhé?',
+    hasUnreadNudge: true,
+  },
+  very_sad: {
+    message: 'Một cái ôm ấm áp lúc này sẽ ý nghĩa lắm đấy.',
     hasUnreadNudge: true,
   },
   tired: {
@@ -38,14 +50,22 @@ export const MASCOT_NUDGE_CONTENT: Record<MascotMood, MascotNudgeContent> = {
     message: 'Có một điều mới đang chờ hai bạn khám phá đó.',
     hasUnreadNudge: true,
   },
+  default: {
+    message: 'Lúc này ai cũng cần một cái ôm. Mình ở đây bên bạn nhé.',
+    hasUnreadNudge: true,
+  },
 };
 
 export const MASCOT_MOOD_LABELS: Record<MascotMood, string> = {
-  neutral: 'Bình thường',
-  happy: 'Rất vui',
-  calm: 'Bình yên',
-  sad: 'Hơi buồn',
-  tired: 'Hơi mệt',
-  angry: 'Cần một nhịp thở',
   surprised: 'Bất ngờ',
+  very_sad: 'Khóc huhu',
+  angry: 'Tức giận',
+  sad: 'Buồn',
+  great: 'Ôm miếng coi',
+  happy: 'Hạnh phúc',
+  very_happy: 'Vui quá đi thôi',
+  neutral: 'Tĩnh tâm',
+  tired: 'Buồn ngủ',
+  calm: 'Mệt mỏi',
+  default: 'Tuyệt vọng',
 };
