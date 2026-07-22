@@ -179,6 +179,7 @@ export function LoginScreen() {
             </View>
 
             {/* Submit Button */}
+            {form.submitError ? <Text style={inputStyles.error}>{form.submitError}</Text> : null}
             <GradientButton
               title={form.submitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
               onPress={form.submit}

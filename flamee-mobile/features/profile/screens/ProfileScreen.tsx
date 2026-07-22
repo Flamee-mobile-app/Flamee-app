@@ -1,5 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import {
   Dimensions,
   ScrollView,
@@ -16,6 +18,8 @@ import { flameeFonts, flameeTheme } from '@/shared/constants/flameeTheme';
 import { StateView } from '@/shared/components/ui';
 import { brandAssets } from '@/shared/assets';
 import { useProfileData } from '@/features/profile/hooks/useProfileData';
+import { useAuthStore } from '@/features/auth/store/authStore';
+import { ROUTES } from '@/shared/lib/navigation/routes';
 
 const { width, height } = Dimensions.get('window');
 
@@ -29,6 +33,10 @@ const MENU_ITEMS = [
 
 export function ProfileScreen() {
   const profile = useProfileData();
+  const router = useRouter();
+  const clearSession = useAuthStore((state) => state.clearSession);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState<string>();
 
   if (profile.isLoading) return <StateView title="Đang tải Profile" loading />;
   if (profile.isError || !profile.data) {
@@ -36,6 +44,20 @@ export function ProfileScreen() {
   }
 
   const data = profile.data;
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    setLogoutError(undefined);
+
+    try {
+      await clearSession();
+      router.replace(ROUTES.login);
+    } catch {
+      setLogoutError('Không thể đăng xuất. Vui lòng thử lại.');
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -134,7 +156,19 @@ export function ProfileScreen() {
                 {idx < MENU_ITEMS.length - 1 && <View style={styles.menuDivider} />}
               </View>
             ))}
+            <View style={styles.menuDivider} />
+            <TouchableOpacity
+              accessibilityLabel="Đăng xuất"
+              accessibilityRole="button"
+              activeOpacity={0.7}
+              disabled={isLoggingOut}
+              onPress={handleLogout}
+              style={styles.menuItemBtn}>
+              <Text style={styles.logoutLabel}>{isLoggingOut ? 'Đang đăng xuất...' : 'Đăng xuất'}</Text>
+              <Ionicons name="log-out-outline" size={18} color="#FF7158" />
+            </TouchableOpacity>
           </View>
+          {logoutError ? <Text style={styles.logoutError}>{logoutError}</Text> : null}
         </View>
       </ScrollView>
     </View>
@@ -347,6 +381,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   menuItemLabel: { fontFamily: flameeFonts.bold, fontSize: 15, color: '#2B2B2B' },
+  logoutLabel: { fontFamily: flameeFonts.bold, fontSize: 15, color: '#FF7158' },
+  logoutError: {
+    color: '#FF7158',
+    fontFamily: flameeFonts.regular,
+    fontSize: 12,
+    marginTop: 8,
+    textAlign: 'center',
+  },
   menuDivider: {
     height: 1,
     backgroundColor: '#FFE6CE',

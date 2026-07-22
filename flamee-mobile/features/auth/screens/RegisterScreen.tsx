@@ -184,6 +184,7 @@ export function RegisterScreen() {
             )}
 
             {/* Submit Button */}
+            {form.submitError ? <Text style={inputStyles.error}>{form.submitError}</Text> : null}
             <GradientButton
               title={form.submitting ? 'Đang đăng ký...' : 'Đăng ký'}
               onPress={form.submit}

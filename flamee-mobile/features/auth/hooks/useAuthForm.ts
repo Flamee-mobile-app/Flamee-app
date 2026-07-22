@@ -26,6 +26,7 @@ export function useLoginForm(onSuccess: () => void) {
   });
   const [errors, setErrors] = useState<FieldErrors<LoginFormValues>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string>();
   const setSession = useAuthStore((state) => state.setSession);
 
   const update = <TKey extends keyof LoginFormValues>(key: TKey, value: LoginFormValues[TKey]) => {
@@ -40,16 +41,19 @@ export function useLoginForm(onSuccess: () => void) {
     }
 
     setSubmitting(true);
+    setSubmitError(undefined);
     try {
       const session = await login(parsed.data);
-      setSession(session);
+      await setSession(session);
       onSuccess();
+    } catch {
+      setSubmitError('Không thể lưu phiên đăng nhập. Vui lòng thử lại.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  return { values, errors, submitting, update, submit };
+  return { values, errors, submitting, submitError, update, submit };
 }
 
 export function useRegisterForm(onSuccess: () => void) {
@@ -61,6 +65,7 @@ export function useRegisterForm(onSuccess: () => void) {
   });
   const [errors, setErrors] = useState<FieldErrors<RegisterFormValues>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string>();
   const setSession = useAuthStore((state) => state.setSession);
 
   const update = <TKey extends keyof RegisterFormValues>(
@@ -78,14 +83,17 @@ export function useRegisterForm(onSuccess: () => void) {
     }
 
     setSubmitting(true);
+    setSubmitError(undefined);
     try {
       const session = await register(parsed.data);
-      setSession(session);
+      await setSession(session);
       onSuccess();
+    } catch {
+      setSubmitError('Không thể lưu phiên đăng nhập. Vui lòng thử lại.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  return { values, errors, submitting, update, submit };
+  return { values, errors, submitting, submitError, update, submit };
 }
