@@ -62,7 +62,8 @@ function BottomNavIcon({
   itemKey: BottomNavItem['key'];
   selected: boolean;
 }) {
-  const iconName = itemKey === 'home' && !selected ? 'homeInactive' : itemKey;
+  const iconName =
+    itemKey === 'home' ? (selected ? 'homeActive' : 'homeInactive') : itemKey;
 
   return <FlameeIcon color="#FFFFFF" name={iconName} size={32} />;
 }

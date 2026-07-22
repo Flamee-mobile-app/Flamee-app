@@ -81,13 +81,22 @@ describe('BottomNav', () => {
     ).toEqual({ selected: true });
   });
 
-  it('uses the supplied gradient Home artwork only while Home is inactive', async () => {
+  it('uses the filled Home artwork while Home is selected', async () => {
+    mockPathname = '/home';
+    const { getByTestId } = await render(<BottomNav />);
+    const homeVisual = getByTestId('bottom-nav-visual-home');
+
+    expect(within(homeVisual).getByTestId('flamee-icon-home-active')).toBeTruthy();
+    expect(within(homeVisual).queryByTestId('flamee-icon-home-inactive')).toBeNull();
+  });
+
+  it('uses the white outline Home artwork while another tab is selected', async () => {
     mockPathname = '/timeline';
     const { getByTestId } = await render(<BottomNav />);
     const homeVisual = getByTestId('bottom-nav-visual-home');
 
     expect(within(homeVisual).getByTestId('flamee-icon-home-inactive')).toBeTruthy();
-    expect(within(homeVisual).queryByTestId('flamee-icon-home')).toBeNull();
+    expect(within(homeVisual).queryByTestId('flamee-icon-home-active')).toBeNull();
   });
 
   it.each(primaryTabs)('visually activates only $label on $pathname', async ({ key, label, pathname }) => {
