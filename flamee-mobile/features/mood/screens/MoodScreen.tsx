@@ -16,6 +16,7 @@ import {
   Platform,
 } from 'react-native';
 
+import { handleSafeBack } from '@/shared/lib/navigation/safeBack';
 import { flameeFonts } from '@/shared/constants/flameeTheme';
 import { MascotArtwork } from '@/features/mascot/components/MascotArtwork';
 import { useMoodSummary } from '@/features/mood/hooks/useMoodSummary';
@@ -59,7 +60,7 @@ export function MoodScreen() {
       {/* Custom Header */}
       <SafeAreaView style={styles.headerSafeArea}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <TouchableOpacity onPress={() => handleSafeBack(router)} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={24} color="#FF7158" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Mood của chúng ta</Text>

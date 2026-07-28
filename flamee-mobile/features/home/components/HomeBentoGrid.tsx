@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { Href } from 'expo-router';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Pressable,
@@ -23,6 +23,7 @@ export type HomeBentoGridProps = {
 
 export function HomeBentoGrid({ onNavigate, shouldAnimate }: HomeBentoGridProps) {
   const { width } = useWindowDimensions();
+  const [pressedId, setPressedId] = useState<string | null>(null);
   const entryValues = useRef(
     Array.from(
       { length: HOME_BENTO_ITEMS.length + 1 },
@@ -61,7 +62,9 @@ export function HomeBentoGrid({ onNavigate, shouldAnimate }: HomeBentoGridProps)
           accessibilityLabel="Flamee gợi ý: Hỏi nhau một điều nhỏ nhé"
           accessibilityRole="button"
           onPress={() => onNavigate(ROUTES.ai, 'push')}
-          style={({ pressed }) => [styles.suggestionCard, pressed && styles.pressed]}>
+          onPressIn={() => setPressedId('suggestion')}
+          onPressOut={() => setPressedId(null)}
+          style={[styles.suggestionCard, pressedId === 'suggestion' && styles.pressed]}>
           <View style={styles.suggestionCopy}>
             <Text style={styles.suggestionTag}>FLAMEE GỢI Ý</Text>
             <Text numberOfLines={1} style={styles.suggestionTitle}>
@@ -83,6 +86,7 @@ export function HomeBentoGrid({ onNavigate, shouldAnimate }: HomeBentoGridProps)
       <View style={styles.grid}>
         {HOME_BENTO_ITEMS.map((item, index) => {
           const entryStyle = getEntryStyle(entryValues[index + 1]);
+          const isPressed = pressedId === item.id;
 
           return (
             <Animated.View
@@ -92,10 +96,9 @@ export function HomeBentoGrid({ onNavigate, shouldAnimate }: HomeBentoGridProps)
                 accessibilityLabel={item.label}
                 accessibilityRole="button"
                 onPress={() => onNavigate(item.route, item.mode)}
-                style={({ pressed }) => [
-                  styles.card,
-                  pressed && styles.pressed,
-                ]}>
+                onPressIn={() => setPressedId(item.id)}
+                onPressOut={() => setPressedId(null)}
+                style={[styles.card, isPressed && styles.pressed]}>
                 <View style={styles.iconCircle}>
                   <Ionicons color="#FFFFFF" name={item.icon} size={20} />
                 </View>
@@ -129,14 +132,14 @@ function getEntryStyle(entryValue: Animated.Value) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: 'rgba(35, 22, 24, 0.36)',
-    borderColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: 'rgba(35, 22, 24, 0.55)',
+    borderColor: 'rgba(255, 255, 255, 0.25)',
     borderRadius: 22,
     borderWidth: 1,
-    flex: 1,
     gap: 12,
     minHeight: 132,
     padding: 16,
+    width: '100%',
   },
   cardShell: {
     minHeight: 132,
@@ -154,7 +157,7 @@ const styles = StyleSheet.create({
   },
   iconCircle: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.16)',
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
     borderRadius: 18,
     height: 36,
     justifyContent: 'center',
@@ -170,7 +173,7 @@ const styles = StyleSheet.create({
     opacity: 0.82,
   },
   subtitle: {
-    color: 'rgba(255,255,255,0.78)',
+    color: 'rgba(255, 255, 255, 0.85)',
     fontFamily: flameeFonts.regular,
     fontSize: 12,
     lineHeight: 16,
@@ -188,15 +191,15 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
   suggestionCard: {
-    backgroundColor: 'rgba(255, 241, 228, 0.96)',
-    borderColor: 'rgba(255,255,255,0.62)',
+    backgroundColor: '#FFF1E4',
+    borderColor: 'rgba(255, 255, 255, 0.62)',
     borderRadius: 22,
     borderWidth: 1,
-    flex: 1,
     flexDirection: 'row',
     minHeight: 154,
     overflow: 'hidden',
     padding: 18,
+    width: '100%',
   },
   suggestionCopy: {
     flex: 1,
@@ -206,7 +209,7 @@ const styles = StyleSheet.create({
   suggestionMascot: {
     alignItems: 'center',
     alignSelf: 'flex-end',
-    backgroundColor: 'rgba(255,255,255,0.62)',
+    backgroundColor: 'rgba(255, 255, 255, 0.62)',
     borderRadius: 34,
     height: 68,
     justifyContent: 'center',
@@ -221,6 +224,7 @@ const styles = StyleSheet.create({
   },
   suggestionShell: {
     minHeight: 154,
+    width: '100%',
   },
   suggestionTag: {
     color: '#D8634D',

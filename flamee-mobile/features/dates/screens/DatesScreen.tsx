@@ -25,11 +25,10 @@ import {
 } from '@/features/dates/hooks/useDateSchedule';
 import type { DateFilterType, DateItem } from '@/features/dates/types';
 import { ROUTES } from '@/shared/lib/navigation/routes';
+import { handleSafeBack } from '@/shared/lib/navigation/safeBack';
 import { AddDateModal } from '@/features/dates/components/AddDateModal';
 import { DateDetailModal } from '@/features/dates/components/DateDetailModal';
 import { MascotSuggestBubble } from '@/features/dates/components/MascotSuggestBubble';
-
-
 
 const { width } = Dimensions.get('window');
 
@@ -94,7 +93,7 @@ export function DatesScreen() {
       {/* Custom Header */}
       <SafeAreaView style={styles.headerSafeArea}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <TouchableOpacity onPress={() => handleSafeBack(router)} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={24} color="#FF7158" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Lịch hẹn hò</Text>

@@ -17,6 +17,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 
+import { handleSafeBack } from '@/shared/lib/navigation/safeBack';
 import { flameeFonts, flameeTheme } from '@/shared/constants/flameeTheme';
 import { StateView } from '@/shared/components/ui';
 import { useAiChatSeed } from '@/features/ai/hooks/useAiChatSeed';
@@ -55,7 +56,7 @@ export function AiScreen() {
       {/* Custom Header */}
       <SafeAreaView style={styles.headerSafeArea}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <TouchableOpacity onPress={() => handleSafeBack(router)} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={24} color="#FF7158" />
           </TouchableOpacity>
 
