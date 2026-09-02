@@ -36,15 +36,10 @@ class CoupleStatus(str, Enum):
     DISSOLVED = "dissolved"
 
 
-class CoupleRole(str, Enum):
-    PARTNER1 = "partner1"
-    PARTNER2 = "partner2"
-
 
 # Collection / table names
 USERS = "users"
 COUPLES = "couples"
-COUPLE_MEMBERS = "couple_members"
 INVITE_CODES = "invite_codes"
 MEMORIES = "memories"
 MEMORY_IMAGES = "memory_images"

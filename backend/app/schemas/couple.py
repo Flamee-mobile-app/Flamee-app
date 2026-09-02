@@ -4,7 +4,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from app.models.couple import Couple, CoupleMember, InviteCode
+from app.models.couple import Couple, InviteCode
 
 
 class CreateInviteResponse(BaseModel):
@@ -76,20 +76,10 @@ class CoupleResponse(BaseModel):
     def build(
         cls,
         couple: Couple,
-        members: list[CoupleMember],
-        member_user_lookup: dict[str, Any],
+        partner1_info: MemberInfo | None,
+        partner2_info: MemberInfo | None,
         my_role: str,
     ) -> "CoupleResponse":
-        partner1_info: MemberInfo | None = None
-        partner2_info: MemberInfo | None = None
-        for member in members:
-            info = cls._build_member_info(
-                member_user_lookup.get(member.user_id)
-            )
-            if member.role == "partner1":
-                partner1_info = info
-            elif member.role == "partner2":
-                partner2_info = info
         return cls(
             id=couple.id,
             partner1=partner1_info,

@@ -1,16 +1,19 @@
 from __future__ import annotations
 
-from typing import Any
-
 from fastapi import Depends, Header
+from supabase import Client
 
 from app.ai.base import AIProvider
 from app.ai.factory import get_ai_provider
-from app.core.constants import COUPLE_MEMBERS, USERS
+from app.core.constants import USERS
 from app.core.exceptions import AuthError, NotFoundError
 from app.core.security import decode_token
-from app.storage.base import Storage
-from app.storage.factory import get_storage
+from app.database import get_supabase
+
+
+def get_db() -> Client:
+    """FastAPI dependency exposing the Supabase client."""
+    return get_supabase()
 
 
 def get_ai() -> AIProvider:
@@ -27,16 +30,16 @@ def _extract_bearer(authorization: str | None) -> str:
     return parts[1]
 
 
-def _load_user(storage: Storage, user_id: str) -> dict:
-    user = storage.get(USERS, user_id)
-    if not user:
+def _load_user(db: Client, user_id: str) -> dict:
+    resp = db.table(USERS).select("*").eq("id", user_id).maybe_single().execute()
+    if not resp.data:
         raise AuthError("User no longer exists")
-    return user
+    return resp.data
 
 
 def get_current_user(
     authorization: str | None = Header(default=None),
-    storage: Storage = Depends(get_storage),
+    db: Client = Depends(get_db),
 ) -> dict:
     """Resolve the current user from a Bearer token. Raises AuthError on failure."""
     token = _extract_bearer(authorization)
@@ -44,12 +47,12 @@ def get_current_user(
     user_id = payload.get("sub")
     if not user_id:
         raise AuthError("Token missing subject")
-    return _load_user(storage, user_id)
+    return _load_user(db, user_id)
 
 
 def get_optional_user(
     authorization: str | None = Header(default=None),
-    storage: Storage = Depends(get_storage),
+    db: Client = Depends(get_db),
 ) -> dict | None:
     """Same as `get_current_user` but returns None when no token is present."""
     if not authorization:
@@ -59,20 +62,6 @@ def get_optional_user(
     user_id = payload.get("sub")
     if not user_id:
         return None
-    return storage.get(USERS, user_id)
+    resp = db.table(USERS).select("*").eq("id", user_id).maybe_single().execute()
+    return resp.data
 
-
-def get_current_couple_member(
-    user: dict = Depends(get_current_user),
-    storage: Storage = Depends(get_storage),
-) -> tuple[dict, dict]:
-    """Resolve the active couple-member record for the current user.
-
-    Returns (user_record, couple_member_record). Raises NotFoundError
-    when the user is not part of any couple.
-    """
-    user_id = user["id"]
-    members = storage.find(COUPLE_MEMBERS, {"user_id": user_id})
-    if not members:
-        raise NotFoundError("User is not part of any couple")
-    return user, members[0]

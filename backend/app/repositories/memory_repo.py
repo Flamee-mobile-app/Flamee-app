@@ -16,15 +16,20 @@ class MemoryRepository(BaseRepository[Memory]):
         category: str | None = None,
         year: int | None = None,
     ) -> list[Memory]:
-        where: dict = {"couple_id": couple_id}
+        query = (
+            self.db.table(self.table)
+            .select("*")
+            .eq("couple_id", couple_id)
+            .order("memory_date", desc=True)
+        )
         if category:
-            where["category"] = category
+            query = query.eq("category", category)
         if year is not None:
-            where["memory_date__gte"] = f"{year}-01-01"
-            where["memory_date__lt"] = f"{year + 1}-01-01"
-        items = self.find(where)
-        items.sort(key=lambda m: m.memory_date, reverse=True)
-        return items
+            query = query.gte("memory_date", f"{year}-01-01").lt(
+                "memory_date", f"{year + 1}-01-01"
+            )
+        resp = query.execute()
+        return [self.model_cls.from_dict(r) for r in resp.data]
 
 
 class MemoryImageRepository(BaseRepository[MemoryImage]):
@@ -32,14 +37,20 @@ class MemoryImageRepository(BaseRepository[MemoryImage]):
     model_cls = MemoryImage
 
     def find_by_memory(self, memory_id: str) -> list[MemoryImage]:
-        items = self.find({"memory_id": memory_id})
-        items.sort(key=lambda img: img.created_at)
-        return items
+        resp = (
+            self.db.table(self.table)
+            .select("*")
+            .eq("memory_id", memory_id)
+            .order("created_at")
+            .execute()
+        )
+        return [self.model_cls.from_dict(r) for r in resp.data]
 
     def delete_by_memory(self, memory_id: str) -> int:
-        images = self.find_by_memory(memory_id)
-        count = 0
-        for img in images:
-            if self.delete(img.id):
-                count += 1
-        return count
+        resp = (
+            self.db.table(self.table)
+            .delete()
+            .eq("memory_id", memory_id)
+            .execute()
+        )
+        return len(resp.data) if resp.data else 0

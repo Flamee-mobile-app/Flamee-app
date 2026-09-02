@@ -29,17 +29,7 @@ def create_app() -> FastAPI:
 
     @application.get("/health")
     def health() -> dict[str, str]:
-        return {"status": "ok"}
-
-    @application.on_event("startup")
-    def _startup() -> None:
-        from app.storage.factory import get_storage, reset_storage
-        from mock.seed import seed_if_empty
-
-        reset_storage()
-        storage = get_storage()
-        if settings.seed:
-            seed_if_empty(storage)
+        return {"status": "ok", "version": "0.1.0"}
 
     return application
 

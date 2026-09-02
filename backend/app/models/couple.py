@@ -23,22 +23,6 @@ class Couple:
 
 
 @dataclass
-class CoupleMember:
-    id: str
-    couple_id: str
-    user_id: str
-    role: str
-    joined_at: str
-
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
-
-    @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> "CoupleMember":
-        return cls(**{k: v for k, v in d.items() if k in cls.__dataclass_fields__})
-
-
-@dataclass
 class InviteCode:
     id: str
     code: str

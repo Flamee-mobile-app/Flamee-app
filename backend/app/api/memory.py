@@ -1,43 +1,39 @@
 from __future__ import annotations
 
-from typing import Any
-
 from fastapi import APIRouter, Depends, File, Query, UploadFile, status
+from supabase import Client
 
-from app.api.deps import (
-    get_current_couple_member,
-    get_current_user,
-    get_storage,
-)
+from app.api.deps import get_current_user, get_db
 from app.api.response import ok
-from app.repositories.couple_repo import CoupleMemberRepository
+from app.core.exceptions import NotFoundError
+
 from app.repositories.memory_repo import MemoryImageRepository, MemoryRepository
 from app.schemas.memory import (
     CreateMemoryRequest,
+    MemoryImageResponse,
     MemoryListResponse,
     MemoryResponse,
     UpdateMemoryRequest,
 )
 from app.services.memory_service import MemoryService
-from app.storage.base import Storage
 
 router = APIRouter(prefix="/memories", tags=["memories"])
 
 
-def _service(storage: Storage) -> MemoryService:
+def _service(db: Client) -> MemoryService:
     return MemoryService(
-        storage=storage,
-        memory_repo=MemoryRepository(storage),
-        image_repo=MemoryImageRepository(storage),
+        db=db,
+        memory_repo=MemoryRepository(db),
+        image_repo=MemoryImageRepository(db),
     )
 
 
-def _ensure_couple_id(user: dict, storage: Storage) -> str:
-    """Return the user's couple_id, raising AuthError if they have none."""
-    member = CoupleMemberRepository(storage).find_by_user(user["id"])
-    if not member:
-        raise LookupError("not_in_couple")
-    return member.couple_id
+def _ensure_couple_id(user: dict) -> str:
+    """Return the user's couple_id, raising NotFoundError if they have none."""
+    couple_id = user.get("couple_id")
+    if not couple_id:
+        raise NotFoundError("Bạn chưa thuộc couple nào")
+    return couple_id
 
 
 @router.get("")
@@ -45,14 +41,10 @@ def list_memories(
     category: str | None = Query(default=None),
     year: int | None = Query(default=None, ge=1900, le=2999),
     current: dict = Depends(get_current_user),
-    storage: Storage = Depends(get_storage),
+    db: Client = Depends(get_db),
 ):
-    try:
-        couple_id = _ensure_couple_id(current, storage)
-    except LookupError:
-        from app.core.exceptions import NotFoundError
-        raise NotFoundError("Bạn chưa thuộc couple nào")
-    items, total = _service(storage).list_memories(
+    couple_id = _ensure_couple_id(current)
+    items, total = _service(db).list_memories(
         couple_id, category=category, year=year
     )
     return ok(
@@ -64,17 +56,13 @@ def list_memories(
 def create_memory(
     payload: CreateMemoryRequest,
     current: dict = Depends(get_current_user),
-    storage: Storage = Depends(get_storage),
+    db: Client = Depends(get_db),
 ):
-    try:
-        couple_id = _ensure_couple_id(current, storage)
-    except LookupError:
-        from app.core.exceptions import NotFoundError
-        raise NotFoundError("Bạn chưa thuộc couple nào")
-    memory = _service(storage).create_memory(
+    couple_id = _ensure_couple_id(current)
+    memory = _service(db).create_memory(
         current["id"], couple_id, payload
     )
-    images = MemoryImageRepository(storage).find_by_memory(memory.id)
+    images = MemoryImageRepository(db).find_by_memory(memory.id)
     return ok(MemoryResponse.build(memory, images).model_dump())
 
 
@@ -82,10 +70,10 @@ def create_memory(
 def get_memory(
     memory_id: str,
     current: dict = Depends(get_current_user),
-    storage: Storage = Depends(get_storage),
+    db: Client = Depends(get_db),
 ):
-    couple_id = _ensure_couple_id(current, storage)
-    memory, images = _service(storage).get_memory(couple_id, memory_id)
+    couple_id = _ensure_couple_id(current)
+    memory, images = _service(db).get_memory(couple_id, memory_id)
     return ok(MemoryResponse.build(memory, images).model_dump())
 
 
@@ -94,13 +82,13 @@ def update_memory(
     memory_id: str,
     payload: UpdateMemoryRequest,
     current: dict = Depends(get_current_user),
-    storage: Storage = Depends(get_storage),
+    db: Client = Depends(get_db),
 ):
-    couple_id = _ensure_couple_id(current, storage)
-    memory = _service(storage).update_memory(
+    couple_id = _ensure_couple_id(current)
+    memory = _service(db).update_memory(
         couple_id, memory_id, payload
     )
-    images = MemoryImageRepository(storage).find_by_memory(memory.id)
+    images = MemoryImageRepository(db).find_by_memory(memory.id)
     return ok(MemoryResponse.build(memory, images).model_dump())
 
 
@@ -108,10 +96,10 @@ def update_memory(
 def delete_memory(
     memory_id: str,
     current: dict = Depends(get_current_user),
-    storage: Storage = Depends(get_storage),
+    db: Client = Depends(get_db),
 ):
-    couple_id = _ensure_couple_id(current, storage)
-    _service(storage).delete_memory(couple_id, memory_id)
+    couple_id = _ensure_couple_id(current)
+    _service(db).delete_memory(couple_id, memory_id)
     return None
 
 
@@ -122,13 +110,12 @@ def upload_image(
     memory_id: str,
     file: UploadFile = File(...),
     current: dict = Depends(get_current_user),
-    storage: Storage = Depends(get_storage),
+    db: Client = Depends(get_db),
 ):
-    couple_id = _ensure_couple_id(current, storage)
-    image = _service(storage).upload_image(
+    couple_id = _ensure_couple_id(current)
+    image = _service(db).upload_image(
         current["id"], couple_id, memory_id, file
     )
-    from app.schemas.memory import MemoryImageResponse
     return ok(MemoryImageResponse.from_model(image).model_dump())
 
 
@@ -139,8 +126,8 @@ def delete_image(
     memory_id: str,
     image_id: str,
     current: dict = Depends(get_current_user),
-    storage: Storage = Depends(get_storage),
+    db: Client = Depends(get_db),
 ):
-    couple_id = _ensure_couple_id(current, storage)
-    _service(storage).delete_image(couple_id, memory_id, image_id)
+    couple_id = _ensure_couple_id(current)
+    _service(db).delete_image(couple_id, memory_id, image_id)
     return None
