@@ -25,7 +25,11 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     anthropic_api_key: str = ""
     ai_chat_model: str = "gpt-4o-mini"
+    ai_embed_model: str = "text-embedding-3-small"
     ai_timeout_seconds: int = 30
+    
+    # External APIs
+    google_maps_api_key: str = ""
 
     # Security
     secret_key: str = "change-in-production-min-32-chars"

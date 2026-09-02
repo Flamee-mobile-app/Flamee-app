@@ -131,3 +131,32 @@ AS $$
     ORDER BY embedding <=> query_embedding
     LIMIT match_count;
 $$;
+
+-- ==========================================
+-- PHẦN DÀNH CHO CẢM XÚC (MOOD & NATURAL INTERACTIONS)
+-- ==========================================
+
+-- Bảng Moods (Lưu trữ các lần check-in cảm xúc)
+CREATE TABLE moods (
+    id TEXT PRIMARY KEY,
+    couple_id TEXT NOT NULL REFERENCES couples(id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    mood TEXT NOT NULL,
+    intensity INTEGER NOT NULL,
+    note TEXT,
+    is_private BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TEXT NOT NULL
+);
+
+-- Bảng Mood Alerts (Lưu trữ các cảnh báo do AI sinh ra dựa trên Mood Streak)
+CREATE TABLE mood_alerts (
+    id TEXT PRIMARY KEY,
+    couple_id TEXT NOT NULL REFERENCES couples(id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- ID của người đang có cảm xúc mạnh
+    alert_type TEXT NOT NULL, -- 'positive' (Vui) hoặc 'negative' (Buồn/Giận)
+    title TEXT NOT NULL, -- Tiêu đề ngắn gọn báo động
+    message TEXT NOT NULL, -- Diễn giải nội dung 
+    advice TEXT NOT NULL, -- Lời khuyên cụ thể cho Partner
+    is_read BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TEXT NOT NULL
+);

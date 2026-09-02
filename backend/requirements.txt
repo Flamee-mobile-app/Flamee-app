@@ -15,8 +15,12 @@ email-validator
 # Supabase
 supabase
 
-# AI
+# AI & LangGraph
 httpx
+langgraph
+langchain-openai
+langchain-core
+googlemaps
 
 # Test
 pytest
