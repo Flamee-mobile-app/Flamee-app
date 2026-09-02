@@ -30,6 +30,10 @@ class MoodRepository:
             return Mood(**res.data[0])
         return None
 
+    def delete_mood(self, mood_id: str, user_id: str) -> bool:
+        res = self.db.table("moods").delete().eq("id", mood_id).eq("user_id", user_id).execute()
+        return bool(res.data)
+
 class MoodAlertRepository:
     def __init__(self, db: Client):
         self.db = db

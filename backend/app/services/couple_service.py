@@ -175,3 +175,22 @@ class CoupleService:
         return self.couple_repo.update(
             couple.id, anniversary=date_str, updated_at=now_iso
         )
+
+    def break_up(self, user_id: str) -> bool:
+        user = self.user_repo.get(user_id)
+        if not user or not user.couple_id:
+            raise NotFoundError("Bạn chưa thuộc couple nào")
+        couple = self.couple_repo.get(user.couple_id)
+        if not couple:
+            raise NotFoundError("Couple không tồn tại")
+            
+        # Reset couple_id của 2 người về None
+        now_iso = to_iso(now_utc())
+        if couple.partner1_id:
+            self.user_repo.update(couple.partner1_id, couple_id=None, updated_at=now_iso)
+        if couple.partner2_id:
+            self.user_repo.update(couple.partner2_id, couple_id=None, updated_at=now_iso)
+            
+        # Xóa Couple (ON DELETE CASCADE sẽ xóa luôn Kỷ niệm, Cảm xúc, Tin nhắn)
+        self.couple_repo.delete(couple.id)
+        return True

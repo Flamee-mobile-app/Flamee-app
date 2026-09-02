@@ -57,6 +57,7 @@ class CoupleResponse(BaseModel):
     created_at: str
     status: str
     my_role: str
+    days_together: int | None = None
 
     @classmethod
     def _build_member_info(
@@ -88,7 +89,20 @@ class CoupleResponse(BaseModel):
             created_at=couple.created_at,
             status=couple.status,
             my_role=my_role,
+            days_together=cls._calculate_days(couple.anniversary),
         )
+        
+    @staticmethod
+    def _calculate_days(anniversary: str | None) -> int | None:
+        if not anniversary:
+            return None
+        try:
+            from datetime import datetime
+            ann_date = datetime.strptime(anniversary[:10], "%Y-%m-%d")
+            delta = datetime.now() - ann_date
+            return max(0, delta.days)
+        except Exception:
+            return None
 
 
 class UpdateAnniversaryRequest(BaseModel):

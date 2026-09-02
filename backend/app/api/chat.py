@@ -87,3 +87,23 @@ def chat_with_assistant(
     }).execute()
     
     return ok({"response": ai_response})
+
+@router.get("/history")
+def get_chat_history(
+    limit: int = 50,
+    current: dict = Depends(get_current_user),
+    db: Client = Depends(get_db),
+):
+    couple_id = current.get("couple_id")
+    if not couple_id:
+        return ok([])
+        
+    res = db.table("chat_messages")\
+        .select("*")\
+        .eq("couple_id", couple_id)\
+        .order("created_at", desc=True)\
+        .limit(limit)\
+        .execute()
+        
+    history = res.data[::-1]
+    return ok(history)

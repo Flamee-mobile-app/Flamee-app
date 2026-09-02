@@ -56,6 +56,9 @@ class MoodService:
     def mark_alert_read(self, alert_id: str):
         self.alert_repo.mark_as_read(alert_id)
         
+    def delete_mood(self, mood_id: str, user_id: str) -> bool:
+        return self.mood_repo.delete_mood(mood_id, user_id)
+        
     def _check_and_trigger_ai_alert(self, user_id: str, couple_id: str):
         recent_moods = self.mood_repo.get_recent_moods(user_id, limit=3)
         if len(recent_moods) < 3:

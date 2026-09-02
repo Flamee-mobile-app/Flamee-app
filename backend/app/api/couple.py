@@ -91,3 +91,11 @@ def update_anniversary(
 ):
     _service(db).update_anniversary(current["id"], payload.anniversary)
     return _build_couple_response(current["id"], db)
+
+@router.delete("")
+def delete_couple(
+    current: dict = Depends(get_current_user),
+    db: Client = Depends(get_db),
+):
+    _service(db).break_up(current["id"])
+    return ok({"message": "Đã hủy ghép đôi thành công"})

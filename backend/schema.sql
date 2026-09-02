@@ -8,6 +8,7 @@ CREATE TABLE users (
     birth_date TEXT,
     gender TEXT,
     couple_id TEXT,
+    fcm_token TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );

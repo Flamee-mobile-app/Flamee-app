@@ -86,3 +86,14 @@ def mark_alert_read(
 ):
     mood_service.mark_alert_read(alert_id)
     return ok({"status": "success"})
+
+@router.delete("/{mood_id}")
+def delete_mood(
+    mood_id: str,
+    current: dict = Depends(get_current_user),
+    mood_service: MoodService = Depends(get_mood_service)
+):
+    success = mood_service.delete_mood(mood_id, current["id"])
+    if not success:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy cảm xúc hoặc không có quyền xóa")
+    return ok({"status": "success"})
