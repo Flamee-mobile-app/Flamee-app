@@ -34,7 +34,6 @@ def save_memory(fact: str, couple_id: str, user_id: str) -> str:
     data = {
         "id": fact_id,
         "couple_id": couple_id,
-        "user_id": user_id,
         "fact": fact,
         "embedding": vector,
         "created_at": now_iso

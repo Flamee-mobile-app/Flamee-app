@@ -18,6 +18,15 @@ class MoodRepository:
             .limit(limit)\
             .execute()
         return [Mood(**m) for m in res.data]
+
+    def get_moods_by_date(self, user_id: str, date_str: str) -> List[Mood]:
+        res = self.db.table("moods")\
+            .select("*")\
+            .eq("user_id", user_id)\
+            .ilike("created_at", f"{date_str}%")\
+            .order("created_at", desc=True)\
+            .execute()
+        return [Mood(**m) for m in res.data]
         
     def get_latest_mood(self, user_id: str) -> Optional[Mood]:
         res = self.db.table("moods")\
@@ -44,11 +53,37 @@ class MoodAlertRepository:
         
     def get_active_alert_for_partner(self, partner_id: str) -> Optional[MoodAlert]:
         # Tạm coi người nhận cảnh báo là người trong cùng couple nhưng khác user_id
-        # Lấy alert chưa đọc mới nhất
+        # Lấy alert chưa đọc mới nhất (chỉ lấy alert_type positive/negative)
         res = self.db.table("mood_alerts")\
             .select("*")\
-            .neq("user_id", partner_id)\
+            .eq("user_id", partner_id)\
             .eq("is_read", False)\
+            .neq("alert_type", "daily_digest")\
+            .order("created_at", desc=True)\
+            .limit(1)\
+            .execute()
+        if res.data:
+            return MoodAlert(**res.data[0])
+        return None
+
+    def get_daily_digest_for_date(self, user_id: str, date_str: str) -> Optional[MoodAlert]:
+        res = self.db.table("mood_alerts")\
+            .select("*")\
+            .eq("user_id", user_id)\
+            .eq("alert_type", "daily_digest")\
+            .ilike("created_at", f"{date_str}%")\
+            .order("created_at", desc=True)\
+            .limit(1)\
+            .execute()
+        if res.data:
+            return MoodAlert(**res.data[0])
+        return None
+        
+    def get_latest_alert_for_user(self, user_id: str) -> Optional[MoodAlert]:
+        res = self.db.table("mood_alerts")\
+            .select("*")\
+            .eq("user_id", user_id)\
+            .neq("alert_type", "daily_digest")\
             .order("created_at", desc=True)\
             .limit(1)\
             .execute()
@@ -58,3 +93,6 @@ class MoodAlertRepository:
         
     def mark_as_read(self, alert_id: str):
         self.db.table("mood_alerts").update({"is_read": True}).eq("id", alert_id).execute()
+
+    def update_alert(self, alert_id: str, data: dict):
+        self.db.table("mood_alerts").update(data).eq("id", alert_id).execute()

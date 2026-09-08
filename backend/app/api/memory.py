@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, File, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, Query, UploadFile, status, BackgroundTasks
 from supabase import Client
 
 from app.api.deps import get_current_user, get_db
@@ -55,12 +55,13 @@ def list_memories(
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_memory(
     payload: CreateMemoryRequest,
+    background_tasks: BackgroundTasks,
     current: dict = Depends(get_current_user),
     db: Client = Depends(get_db),
 ):
     couple_id = _ensure_couple_id(current)
     memory = _service(db).create_memory(
-        current["id"], couple_id, payload
+        current["id"], couple_id, payload, background_tasks
     )
     images = MemoryImageRepository(db).find_by_memory(memory.id)
     return ok(MemoryResponse.build(memory, images).model_dump())

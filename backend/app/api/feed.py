@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, BackgroundTasks
 from supabase import Client
 
 from app.api.deps import get_current_user, get_db
@@ -12,8 +12,9 @@ def get_feed_service(db: Client = Depends(get_db)) -> FeedService:
 
 @router.get("/home")
 def get_home_feed(
+    background_tasks: BackgroundTasks,
     current: dict = Depends(get_current_user),
     feed_service: FeedService = Depends(get_feed_service)
 ):
-    data = feed_service.get_home_feed(current["id"])
+    data = feed_service.get_home_feed(current["id"], background_tasks)
     return ok(data)

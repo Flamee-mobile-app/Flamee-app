@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import base64
 
-from fastapi import UploadFile
+from fastapi import UploadFile, BackgroundTasks
 from supabase import Client
 
 from app.config import settings
+from app.ai.background_tasks import extract_and_save_fact_background
 from app.core.constants import MemoryCategory
 from app.core.exceptions import NotFoundError, ValidationError
 from app.models.memory import Memory, MemoryImage
@@ -40,6 +41,7 @@ class MemoryService:
         user_id: str,
         couple_id: str,
         payload: CreateMemoryRequest,
+        background_tasks: BackgroundTasks = None,
     ) -> Memory:
         now_iso = to_iso(now_utc())
         return self.memory_repo.create(
@@ -56,6 +58,23 @@ class MemoryService:
             created_at=now_iso,
             updated_at=now_iso,
         )
+        
+        # 🆕 Tầng 1: Event Hook - Trích xuất facts từ memory mới
+        if background_tasks:
+            text = f"Tiêu đề: {payload.title}. "
+            if payload.description:
+                text += f"Mô tả: {payload.description}. "
+            if payload.location:
+                text += f"Địa điểm: {payload.location}."
+                
+            background_tasks.add_task(
+                extract_and_save_fact_background,
+                text=text,
+                couple_id=couple_id,
+                source="memory creation"
+            )
+            
+        return memory
 
     def list_memories(
         self,

@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from supabase import Client
 
 from app.api.deps import get_current_user, get_db
 from app.api.response import ok
-from app.schemas.mood import CreateMoodRequest, MoodResponse, PartnerMoodStatusResponse
+from app.schemas.mood import CreateMoodRequest, MoodAlertResponse, MoodResponse, PartnerMoodStatusResponse
 from app.services.mood_service import MoodService
 from app.services.couple_service import CoupleService
 from app.repositories.couple_repo import CoupleRepository, InviteCodeRepository
@@ -25,6 +25,7 @@ def get_couple_service(db: Client = Depends(get_db)) -> CoupleService:
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_mood(
     payload: CreateMoodRequest,
+    background_tasks: BackgroundTasks,
     current: dict = Depends(get_current_user),
     mood_service: MoodService = Depends(get_mood_service)
 ):
@@ -41,7 +42,8 @@ def create_mood(
         mood=payload.mood,
         intensity=payload.intensity,
         note=payload.note,
-        is_private=payload.is_private
+        is_private=payload.is_private,
+        background_tasks=background_tasks
     )
     return ok(MoodResponse.from_model(mood).model_dump())
 
@@ -75,7 +77,7 @@ def get_partner_latest_mood(
     return ok(PartnerMoodStatusResponse(
         partner_id=partner_id,
         latest_mood=MoodResponse.from_model(latest_mood) if latest_mood else None,
-        active_alert=active_alert # pydantic v2 tự cast dataclass nếu các field map đúng
+        active_alert=MoodAlertResponse.from_model(active_alert) if active_alert else None
     ).model_dump())
 
 @router.post("/alerts/{alert_id}/read")
