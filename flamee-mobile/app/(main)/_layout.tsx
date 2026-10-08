@@ -1,37 +1,20 @@
-import { Stack, usePathname } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
-
-import { BottomNav } from '@/shared/components/ui/BottomNav';
-import { BottomNavLayoutProvider } from '@/shared/layouts';
-import { isMainNavigationPath } from '@/shared/lib/navigation/routes';
+import { Tabs } from "expo-router";
+import { Heart, House, UserRound } from "@tamagui/lucide-icons-2";
+import { colors } from "../../src/shared/constants/tokens";
+import { getMessage } from "../../src/shared/localization/messages";
 
 export default function MainLayout() {
-  const pathname = usePathname();
-
   return (
-    <BottomNavLayoutProvider>
-      <View style={styles.container}>
-        <Stack screenOptions={{ headerShown: false }}>
-          {/* Disable animation for main tab screens to feel like native tabs */}
-          <Stack.Screen name="home" options={{ animation: 'none' }} />
-          <Stack.Screen name="timeline" options={{ animation: 'none' }} />
-          <Stack.Screen name="mood" options={{ animation: 'none' }} />
-          <Stack.Screen name="missions" options={{ animation: 'none' }} />
-          <Stack.Screen name="profile" options={{ animation: 'none' }} />
-
-          {/* Enable default slide animations for pushed sub-pages */}
-          <Stack.Screen name="ai" options={{ animation: 'slide_from_right' }} />
-          <Stack.Screen name="dates" options={{ animation: 'slide_from_right' }} />
-          <Stack.Screen name="memory-book" options={{ animation: 'slide_from_right' }} />
-        </Stack>
-        {isMainNavigationPath(pathname) && <BottomNav />}
-      </View>
-    </BottomNavLayoutProvider>
+    <Tabs screenOptions={{
+      headerShown: false,
+      tabBarActiveTintColor: colors.primary,
+      tabBarInactiveTintColor: colors.textSecondary,
+      tabBarStyle: { height: 72, paddingTop: 8, paddingBottom: 10, backgroundColor: colors.white, borderTopColor: colors.supportPeach },
+      tabBarLabelStyle: { fontSize: 12, fontWeight: "600" },
+    }}>
+      <Tabs.Screen name="index" options={{ title: getMessage("vi", "homeTitle"), tabBarIcon: ({ focused, size }) => <House color={focused ? "$primary" : "$textSecondary"} size={size} /> }} />
+      <Tabs.Screen name="moments" options={{ title: getMessage("vi", "momentsTitle"), tabBarIcon: ({ focused, size }) => <Heart color={focused ? "$primary" : "$textSecondary"} size={size} /> }} />
+      <Tabs.Screen name="profile" options={{ title: getMessage("vi", "profileTitle"), tabBarIcon: ({ focused, size }) => <UserRound color={focused ? "$primary" : "$textSecondary"} size={size} /> }} />
+    </Tabs>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});

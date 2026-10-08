@@ -1,50 +1,55 @@
-# Welcome to your Expo app 👋
+# Flamee Mobile
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Expo SDK 57 / React Native local-demo app for iOS and Android. Start it in Expo
+Go with `npm start`; the script intentionally uses `expo start --go`.
 
-## Get started
+## Structure
 
-1. Install dependencies
+- `app/` contains thin Expo Router route adapters and provider composition.
+- `app/providers/` contains the in-memory TanStack Query provider and transient Zustand session state.
+- `src/lib/api/` contains the shared API client and error mapping; `src/shared/` contains app-wide components, constants, localization, and native adapters.
+- `tamagui.config.ts` is the shared Tamagui theme, token, font, and animation configuration.
+- `src/features/` contains auth/onboarding, invites, check-ins, partner status,
+  Smart Nudge, Tiny Moments, profile/settings and account lifecycle UI.
+- `src/demo/` contains the in-memory mock service, reducer, seeds and scenario catalog.
 
-   ```bash
-   npm install
-   ```
+## Local demo walkthrough
 
-2. Start the app
+1. Run `npm start`, then open the QR code in Expo Go.
+2. Choose Apple/Google mock login, or phone login with OTP `240624`.
+3. Complete consent, profile, care preferences and relation type.
+4. Create an invite, optionally attach a gift, then simulate partner acceptance.
+5. Complete a check-in and enter Home. Use **Cá nhân → Kịch bản demo** to load a
+   partner check-in and every Nudge/Moment/error/permission/export preset.
+6. Walk the core loop: partner status → Smart Nudge → **Làm ngay** → send a
+   Tiny Moment → open detail → react or reply.
 
-   ```bash
-   npx expo start
-   ```
+Scenario switching replaces the complete in-memory runtime. **Đặt lại bản demo**
+returns to signed-out Welcome. Reloading the app also discards demo data.
 
-In the output, you'll find options to open the app in a
+## Native data boundaries
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+Refresh credentials are stored through Expo SecureStore when real authentication is
+wired. This demo does not persist mock mood, messages, media or queues. Offline work
+is an in-memory simulation and disappears on reload. The legacy SQLCipher-oriented
+adapter is not imported because Expo Go provides regular SQLite, not SQLCipher.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+Photo selection and camera capture use the native Expo picker when available. Voice
+notes use Expo Audio recording and playback in Expo Go, with a clearly labelled timed
+`demo://` fallback only when native recording is unavailable; the app does not claim
+that fallback is a durable recording. Notification delivery,
+media upload, JSON export and support submission are simulated locally.
 
-## Get a fresh project
+## Design assets
 
-When you're ready, run:
+The global Tamagui theme mirrors `.doc/QUY_CHUAN_GIAO_DIEN.md`.
+The referenced SF Pro Rounded and SF Pro font binaries are not present in the
+repository, so this foundation uses the platform system font fallback. No local
+font import is configured. Add the approved font assets before claiming the
+brand fonts are packaged.
 
-```bash
-npm run reset-project
-```
+## Configuration still owned by product/backend
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Set `EXPO_PUBLIC_API_URL` for a configured backend. Phone login policy, deferred
+deep-link provider, realtime transport, AI/privacy policy details, push
+credentials, and native app identifiers require product/backend decisions.
