@@ -6,6 +6,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.auth import router as auth_router
 from app.api.couple import router as couple_router
 from app.api.memory import router as memory_router
+from app.api.chat import router as chat_router
+from app.api.mood import router as mood_router
+from app.api.user import router as user_router
+from app.api.feed import router as feed_router
 from app.config import settings
 from app.core.handlers import register_exception_handlers
 
@@ -26,20 +30,14 @@ def create_app() -> FastAPI:
     application.include_router(auth_router, prefix=API_PREFIX)
     application.include_router(couple_router, prefix=API_PREFIX)
     application.include_router(memory_router, prefix=API_PREFIX)
+    application.include_router(chat_router, prefix=API_PREFIX)
+    application.include_router(mood_router, prefix=API_PREFIX)
+    application.include_router(user_router, prefix=API_PREFIX)
+    application.include_router(feed_router, prefix=API_PREFIX)
 
     @application.get("/health")
     def health() -> dict[str, str]:
-        return {"status": "ok"}
-
-    @application.on_event("startup")
-    def _startup() -> None:
-        from app.storage.factory import get_storage, reset_storage
-        from mock.seed import seed_if_empty
-
-        reset_storage()
-        storage = get_storage()
-        if settings.seed:
-            seed_if_empty(storage)
+        return {"status": "ok", "version": "0.1.0"}
 
     return application
 

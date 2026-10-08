@@ -1,13 +1,27 @@
+# Core
 fastapi
 uvicorn[standard]
 pydantic
 pydantic-settings
 python-multipart
+python-dotenv
+
+# Auth
 PyJWT
 passlib[bcrypt]
 bcrypt>=4.0,<5
-python-dotenv
+email-validator
+
+# Supabase
+supabase
+
+# AI & LangGraph
 httpx
+langgraph
+langchain-openai
+langchain-core
+googlemaps
+
+# Test
 pytest
 pytest-asyncio
-email-validator

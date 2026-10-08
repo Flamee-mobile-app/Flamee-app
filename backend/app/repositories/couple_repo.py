@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from app.core.constants import COUPLES, COUPLE_MEMBERS, INVITE_CODES
-from app.models.couple import Couple, CoupleMember, InviteCode
+from app.core.constants import COUPLES, INVITE_CODES
+from app.models.couple import Couple, InviteCode
 from app.repositories.base import BaseRepository
 
 
@@ -9,16 +9,6 @@ class CoupleRepository(BaseRepository[Couple]):
     table = COUPLES
     model_cls = Couple
 
-
-class CoupleMemberRepository(BaseRepository[CoupleMember]):
-    table = COUPLE_MEMBERS
-    model_cls = CoupleMember
-
-    def find_by_couple(self, couple_id: str) -> list[CoupleMember]:
-        return self.find({"couple_id": couple_id})
-
-    def find_by_user(self, user_id: str) -> CoupleMember | None:
-        return self.find_one({"user_id": user_id})
 
 
 class InviteCodeRepository(BaseRepository[InviteCode]):
@@ -30,18 +20,27 @@ class InviteCodeRepository(BaseRepository[InviteCode]):
 
     def find_active_by_user(self, user_id: str) -> InviteCode | None:
         """Return the most recent PENDING invite code for `user_id`, if any."""
-        candidates = [
-            ic for ic in self.find({"user_id": user_id, "status": "pending"})
-        ]
-        if not candidates:
-            return None
-        candidates.sort(key=lambda ic: ic.created_at, reverse=True)
-        return candidates[0]
+        resp = (
+            self.db.table(self.table)
+            .select("*")
+            .eq("user_id", user_id)
+            .eq("status", "pending")
+            .order("created_at", desc=True)
+            .limit(1)
+            .maybe_single()
+            .execute()
+        )
+        return self.model_cls.from_dict(resp.data) if resp.data else None
 
     def find_latest_by_user(self, user_id: str) -> InviteCode | None:
         """Return the most recently created invite code for `user_id`, if any."""
-        candidates = list(self.find({"user_id": user_id}))
-        if not candidates:
-            return None
-        candidates.sort(key=lambda ic: ic.created_at, reverse=True)
-        return candidates[0]
+        resp = (
+            self.db.table(self.table)
+            .select("*")
+            .eq("user_id", user_id)
+            .order("created_at", desc=True)
+            .limit(1)
+            .maybe_single()
+            .execute()
+        )
+        return self.model_cls.from_dict(resp.data) if resp.data else None

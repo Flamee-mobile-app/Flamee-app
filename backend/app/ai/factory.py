@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from app.ai.base import AIProvider
-from app.ai.mock_provider import MockAIProvider
 from app.config import settings
 
 _ai: AIProvider | None = None
@@ -11,11 +10,15 @@ def get_ai_provider() -> AIProvider:
     """Return the process-wide AIProvider, creating it on first call."""
     global _ai
     if _ai is None:
-        backend = settings.ai_backend
-        if backend == "mock":
-            _ai = MockAIProvider()
+        backend = settings.ai_provider
+        if backend == "openai":
+            from app.ai.openai_provider import OpenAIProvider
+
+            _ai = OpenAIProvider()
+        elif backend == "anthropic":
+            raise NotImplementedError("Anthropic provider not yet implemented")
         else:
-            raise ValueError(f"Unknown AI backend: {backend}")
+            raise ValueError(f"Unknown AI provider: {backend}")
     return _ai
 
 

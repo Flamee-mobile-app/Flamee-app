@@ -96,7 +96,7 @@ def test_image_upload_then_listed_in_detail(
         files={"file": ("test.png", io.BytesIO(_TINY_PNG), "image/png")},
     )
     assert upload.status_code == 201, upload.text
-    assert upload.json()["data"]["url"].startswith("data:image/png;base64,")
+    assert upload.json()["data"]["url"].startswith("https://fake-supabase.co/storage/v1/object/public/memories/")
 
     detail = client.get(
         f"/api/v1/memories/{memory_id}", headers=bob_headers

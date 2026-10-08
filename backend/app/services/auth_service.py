@@ -17,8 +17,8 @@ from app.utils.time import add_seconds, now_utc, to_iso
 class AuthService:
     """Authentication / user account operations."""
 
-    # Module-level in-memory OTP store, keyed by email.
-    # MVP mock: never persisted, never sent over the wire.
+    # In-memory OTP store, keyed by email.
+    # TODO: Move to Supabase table or Redis in production.
     _otp_store: dict[str, dict[str, str | int]] = {}
 
     def __init__(self, user_repo: UserRepository) -> None:
@@ -83,7 +83,7 @@ class AuthService:
         return self.user_repo.update(user_id, **patch)
 
     def forgot_password(self, email: str) -> tuple[str, int]:
-        """Mock flow: generate OTP, store it, return it directly (no real email)."""
+        """Generate OTP, store it, return it. TODO: send via email in production."""
         otp = generate_otp()
         expires_at = add_seconds(now_utc(), settings.otp_ttl_seconds)
         self._otp_store[email] = {

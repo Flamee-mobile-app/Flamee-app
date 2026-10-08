@@ -14,6 +14,7 @@ class User:
     birth_date: str | None = None
     gender: str | None = None
     couple_id: str | None = None
+    fcm_token: str | None = None
     created_at: str = ""
     updated_at: str = ""
 

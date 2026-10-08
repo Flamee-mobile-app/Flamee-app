@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import base64
 
-from fastapi import UploadFile
+from fastapi import UploadFile, BackgroundTasks
+from supabase import Client
 
 from app.config import settings
+from app.ai.background_tasks import extract_and_save_fact_background
 from app.core.constants import MemoryCategory
 from app.core.exceptions import NotFoundError, ValidationError
 from app.models.memory import Memory, MemoryImage
@@ -17,21 +19,20 @@ from app.schemas.memory import (
     MemoryListItem,
     UpdateMemoryRequest,
 )
-from app.storage.base import Storage
 from app.utils.ids import generate_uuid
 from app.utils.time import now_utc, to_iso
 
 
 class MemoryService:
-    """Memory CRUD + image upload over the Storage abstraction."""
+    """Memory CRUD + image upload via Supabase Storage."""
 
     def __init__(
         self,
-        storage: Storage,
+        db: Client,
         memory_repo: MemoryRepository,
         image_repo: MemoryImageRepository,
     ) -> None:
-        self.storage = storage
+        self.db = db
         self.memory_repo = memory_repo
         self.image_repo = image_repo
 
@@ -40,6 +41,7 @@ class MemoryService:
         user_id: str,
         couple_id: str,
         payload: CreateMemoryRequest,
+        background_tasks: BackgroundTasks = None,
     ) -> Memory:
         now_iso = to_iso(now_utc())
         return self.memory_repo.create(
@@ -56,6 +58,23 @@ class MemoryService:
             created_at=now_iso,
             updated_at=now_iso,
         )
+        
+        # 🆕 Tầng 1: Event Hook - Trích xuất facts từ memory mới
+        if background_tasks:
+            text = f"Tiêu đề: {payload.title}. "
+            if payload.description:
+                text += f"Mô tả: {payload.description}. "
+            if payload.location:
+                text += f"Địa điểm: {payload.location}."
+                
+            background_tasks.add_task(
+                extract_and_save_fact_background,
+                text=text,
+                couple_id=couple_id,
+                source="memory creation"
+            )
+            
+        return memory
 
     def list_memories(
         self,
@@ -119,12 +138,25 @@ class MemoryService:
         if not memory or memory.couple_id != couple_id:
             raise NotFoundError("Memory không tồn tại")
         content = self._read_within_limit(file)
-        url = self._to_data_url(file, content)
+
+        # Upload to Supabase Storage
+        file_id = generate_uuid()
+        ext = (file.filename or "img.png").rsplit(".", 1)[-1]
+        storage_path = f"memories/{couple_id}/{memory_id}/{file_id}.{ext}"
+        mime = file.content_type or "image/png"
+
+        self.db.storage.from_("memory-images").upload(
+            path=storage_path,
+            file=content,
+            file_options={"content-type": mime},
+        )
+        public_url = self.db.storage.from_("memory-images").get_public_url(storage_path)
+
         return self.image_repo.create(
-            id=generate_uuid(),
+            id=file_id,
             memory_id=memory_id,
-            url=url,
-            thumbnail_url=url,
+            url=public_url,
+            thumbnail_url=public_url,
             uploaded_by=user_id,
             width=None,
             height=None,
@@ -139,11 +171,6 @@ class MemoryService:
                 f"File vượt quá giới hạn {settings.max_upload_size_mb}MB"
             )
         return content
-
-    def _to_data_url(self, file: UploadFile, content: bytes) -> str:
-        mime = file.content_type or "image/png"
-        b64 = base64.b64encode(content).decode("ascii")
-        return f"data:{mime};base64,{b64}"
 
     def delete_image(
         self, couple_id: str, memory_id: str, image_id: str
