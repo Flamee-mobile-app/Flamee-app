@@ -1,4 +1,6 @@
-import { Clock3, Copy, Share2 } from "@tamagui/lucide-icons-2";
+import { Clock3 } from "@tamagui/lucide-icons-2/icons/Clock3";
+import { Copy } from "@tamagui/lucide-icons-2/icons/Copy";
+import { Share2 } from "@tamagui/lucide-icons-2/icons/Share2";
 import { Text, XStack, YStack } from "tamagui";
 import { AppButton, SectionCard } from "../../../shared/components";
 import { getMessage } from "../../../shared/localization/messages";

@@ -1,8 +1,15 @@
-import { Bell, ChevronRight, Database, HeartHandshake, HelpCircle, LockKeyhole, Settings, UserRound } from "@tamagui/lucide-icons-2";
+import { Bell } from "@tamagui/lucide-icons-2/icons/Bell";
+import { ChevronRight } from "@tamagui/lucide-icons-2/icons/ChevronRight";
+import { Database } from "@tamagui/lucide-icons-2/icons/Database";
+import { HeartHandshake } from "@tamagui/lucide-icons-2/icons/HeartHandshake";
+import { HelpCircle } from "@tamagui/lucide-icons-2/icons/HelpCircle";
+import { LockKeyhole } from "@tamagui/lucide-icons-2/icons/LockKeyhole";
+import { Settings } from "@tamagui/lucide-icons-2/icons/Settings";
+import { UserRound } from "@tamagui/lucide-icons-2/icons/UserRound";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Text, XStack, YStack } from "tamagui";
-import { useSessionStore } from "../../../../app/providers/sessionStore";
+import { useSessionStore } from "../../../shared/state/sessionStore";
 import { AppButton, AppHeader, AppScreen, SectionCard, StatusBanner } from "../../../shared/components";
 import { formatMessage, getMessage, type MessageKey } from "../../../shared/localization/messages";
 import { localCoupleService } from "../../couple";

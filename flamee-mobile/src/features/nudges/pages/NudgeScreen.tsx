@@ -1,8 +1,11 @@
-import { Clock3, Pencil, Send, X } from "@tamagui/lucide-icons-2";
+import { Clock3 } from "@tamagui/lucide-icons-2/icons/Clock3";
+import { Pencil } from "@tamagui/lucide-icons-2/icons/Pencil";
+import { Send } from "@tamagui/lucide-icons-2/icons/Send";
+import { X } from "@tamagui/lucide-icons-2/icons/X";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { XStack, YStack } from "tamagui";
-import { useSessionStore } from "../../../../app/providers/sessionStore";
+import { useSessionStore } from "../../../shared/state/sessionStore";
 import { AppButton, AppField, AppHeader, AppScreen, AsyncStateView, StatusBanner } from "../../../shared/components";
 import { getMessage } from "../../../shared/localization/messages";
 import { localNudgeService } from "../localNudgeService";

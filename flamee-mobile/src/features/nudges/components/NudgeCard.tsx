@@ -1,4 +1,6 @@
-import { Lightbulb, MessageCircleHeart, Sparkles } from "@tamagui/lucide-icons-2";
+import { Lightbulb } from "@tamagui/lucide-icons-2/icons/Lightbulb";
+import { MessageCircleHeart } from "@tamagui/lucide-icons-2/icons/MessageCircleHeart";
+import { Sparkles } from "@tamagui/lucide-icons-2/icons/Sparkles";
 import { Text, XStack, YStack } from "tamagui";
 import { SectionCard } from "../../../shared/components";
 import { getMessage } from "../../../shared/localization/messages";

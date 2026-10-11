@@ -1,4 +1,4 @@
-import { HeartHandshake } from "@tamagui/lucide-icons-2";
+import { HeartHandshake } from "@tamagui/lucide-icons-2/icons/HeartHandshake";
 import { useRouter } from "expo-router";
 import { Text, YStack } from "tamagui";
 import { AppButton, AppScreen, StatusBanner } from "../../../shared/components";

@@ -1,4 +1,8 @@
-import { Camera, MessageCircle, Mic, Radio, RotateCcw } from "@tamagui/lucide-icons-2";
+import { Camera } from "@tamagui/lucide-icons-2/icons/Camera";
+import { MessageCircle } from "@tamagui/lucide-icons-2/icons/MessageCircle";
+import { Mic } from "@tamagui/lucide-icons-2/icons/Mic";
+import { Radio } from "@tamagui/lucide-icons-2/icons/Radio";
+import { RotateCcw } from "@tamagui/lucide-icons-2/icons/RotateCcw";
 import { useAudioPlayer } from "expo-audio";
 import { Pressable } from "react-native";
 import { Image, Text, XStack, YStack } from "tamagui";

@@ -1,4 +1,4 @@
-import { ArrowLeft } from "@tamagui/lucide-icons-2";
+import { ArrowLeft } from "@tamagui/lucide-icons-2/icons/ArrowLeft";
 import { useRouter } from "expo-router";
 import { Button, Text, XStack, YStack } from "tamagui";
 import { getMessage } from "../localization/messages";
@@ -21,7 +21,7 @@ export function AppHeader({ title, subtitle, showBack = false, onBack, eyebrow }
             circular
             size="$control"
             chromeless
-            accessibilityLabel={getMessage("vi", "back")}
+            aria-label={getMessage("vi", "back")}
             icon={<ArrowLeft color="$textPrimary" />}
             onPress={onBack ?? router.back}
           />

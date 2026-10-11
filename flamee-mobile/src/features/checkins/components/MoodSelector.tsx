@@ -33,9 +33,9 @@ export function MoodSelector({ value, onChange }: MoodSelectorProps) {
             justifyContent="center"
             gap="$xs"
             pressStyle={{ opacity: 0.82, scale: 0.98 }}
-            accessibilityRole="radio"
-            accessibilityState={{ selected }}
-            accessibilityLabel={getMessage("vi", mood.label)}
+            role="radio"
+            aria-checked={selected}
+            aria-label={getMessage("vi", mood.label)}
             onPress={() => onChange(mood.value)}
           >
             <YStack width={46} height={46} borderRadius="$xl" backgroundColor={mood.color} alignItems="center" justifyContent="center">

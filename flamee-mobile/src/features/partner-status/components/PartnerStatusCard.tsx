@@ -1,4 +1,6 @@
-import { Clock3, Heart, MapPin } from "@tamagui/lucide-icons-2";
+import { Clock3 } from "@tamagui/lucide-icons-2/icons/Clock3";
+import { Heart } from "@tamagui/lucide-icons-2/icons/Heart";
+import { MapPin } from "@tamagui/lucide-icons-2/icons/MapPin";
 import { Text, XStack, YStack } from "tamagui";
 import { AppButton, SectionCard } from "../../../shared/components";
 import { formatMessage, getMessage, type MessageKey } from "../../../shared/localization/messages";

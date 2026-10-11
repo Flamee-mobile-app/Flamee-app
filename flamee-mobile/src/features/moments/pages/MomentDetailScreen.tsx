@@ -1,8 +1,9 @@
-import { MessageCircle, Trash2 } from "@tamagui/lucide-icons-2";
+import { MessageCircle } from "@tamagui/lucide-icons-2/icons/MessageCircle";
+import { Trash2 } from "@tamagui/lucide-icons-2/icons/Trash2";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Button, Text, XStack, YStack } from "tamagui";
-import { useSessionStore } from "../../../../app/providers/sessionStore";
+import { useSessionStore } from "../../../shared/state/sessionStore";
 import { AppButton, AppHeader, AppScreen, AsyncStateView, SectionCard, StatusBanner } from "../../../shared/components";
 import { getMessage } from "../../../shared/localization/messages";
 import { localCoupleService } from "../../couple";

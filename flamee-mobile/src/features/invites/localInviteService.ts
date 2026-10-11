@@ -1,14 +1,18 @@
 import { localCoupleService, type LocalCoupleService, type LocalPartnerSummary } from "../couple/index.ts";
-import { localMediaAdapter } from "../media/localMediaAdapter.ts";
-import { inviteCodeSchema, inviteGiftSchema } from "./schemas.ts";
-import type { InviteAcceptance, InviteGift, InviteValidation, LocalInvite } from "./types.ts";
+import { localMediaAdapter } from "../media/index.ts";
+import { inviteCodeSchema, inviteGiftSchema, inviteMessageSchema } from "./schemas.ts";
+import type { InviteAcceptance, InviteGift, InviteValidation, LocalInvite, PairingNotice } from "./types.ts";
 
 export type LocalInviteService = {
   createInvite: (inviterId: string, inviter: LocalPartnerSummary) => Promise<LocalInvite>;
   getOpenInvite: (inviterId: string) => Promise<LocalInvite | null>;
-  attachGift: (inviteId: string, gift: unknown) => Promise<LocalInvite>;
+  getLatestInvite: (inviterId: string) => Promise<LocalInvite | null>;
+  attachGift: (inviteId: string, gift: unknown, message?: string) => Promise<LocalInvite>;
   validateInvite: (inviteeId: string, code: string) => Promise<InviteValidation>;
-  acceptInvite: (inviteeId: string, code: string, invitee: LocalPartnerSummary) => Promise<InviteAcceptance>;
+  acceptInvite: (inviteeId: string, code: string, invitee: LocalPartnerSummary, greeting?: string) => Promise<InviteAcceptance>;
+  getPairingNotice: (accountId: string) => Promise<PairingNotice | null>;
+  acknowledgePairingNotice: (accountId: string, inviteId: string) => void;
+  subscribeChanges: (listener: () => void) => () => void;
   revokeOpenInvite: (inviterId: string) => Promise<boolean>;
   clearAccount: (accountId: string) => Promise<void>;
 };
@@ -40,6 +44,9 @@ export function createLocalInviteService({
   const inviteIdByCode = new Map<string, string>();
   const currentInviteByInviter = new Map<string, string>();
   const acceptingCodes = new Set<string>();
+  const notices = new Map<string, PairingNotice>();
+  const listeners = new Set<() => void>();
+  const publish = () => listeners.forEach((listener) => listener());
   let idSequence = 0;
   const makeId = createId ?? (() => `local-invite-${++idSequence}`);
 
@@ -107,10 +114,12 @@ export function createLocalInviteService({
         acceptedById: null,
         acceptedAt: null,
         gift: null,
+        message: "",
       };
       invitesById.set(id, invite);
       inviteIdByCode.set(code, id);
       currentInviteByInviter.set(inviterId, id);
+      publish();
       return clone(invite);
     },
 
@@ -122,20 +131,32 @@ export function createLocalInviteService({
       return invite.status === "open" ? clone(invite) : null;
     },
 
-    async attachGift(inviteId, gift) {
+    async getLatestInvite(inviterId) {
+      const id = currentInviteByInviter.get(inviterId);
+      const invite = id ? invitesById.get(id) : undefined;
+      if (!invite) return null;
+      if (invite.status === "open" && Date.parse(invite.expiresAt) <= now().getTime()) invite.status = "expired";
+      return clone(invite);
+    },
+
+    async attachGift(inviteId, gift, message) {
       const invite = invitesById.get(inviteId);
       if (!invite || invite.status !== "open" || Date.parse(invite.expiresAt) <= now().getTime()) {
         throw new Error("Only an open invite can have a gift.");
       }
-      const parsed = inviteGiftSchema.parse(gift) as InviteGift;
+      const parsed = gift === null ? null : inviteGiftSchema.parse(gift) as InviteGift;
+      const parsedMessage = message === undefined ? invite.message : inviteMessageSchema.parse(message);
       invite.gift = parsed;
+      invite.message = parsedMessage;
+      publish();
       return clone(invite);
     },
 
     validateInvite: validationFor,
 
-    async acceptInvite(inviteeId, code, invitee): Promise<InviteAcceptance> {
+    async acceptInvite(inviteeId, code, invitee, greeting = ""): Promise<InviteAcceptance> {
       const parsed = inviteCodeSchema.parse({ code });
+      const replyGreeting = inviteMessageSchema.parse(greeting);
       if (acceptingCodes.has(parsed.code)) return { kind: "used" };
       acceptingCodes.add(parsed.code);
       try {
@@ -154,13 +175,32 @@ export function createLocalInviteService({
         invite.status = "accepted";
         invite.acceptedById = inviteeId;
         invite.acceptedAt = now().toISOString();
+        notices.set(invite.inviterId, { inviteId: invite.id, coupleId: pair.coupleId, partnerName: invitee.displayName, greeting: replyGreeting, gift: null });
+        notices.set(inviteeId, { inviteId: invite.id, coupleId: pair.coupleId, partnerName: invite.inviter.displayName, greeting: invite.message || (invite.gift?.kind === "text" ? invite.gift.text : ""), gift: invite.gift ? { ...invite.gift } : null });
+        publish();
         return { kind: "accepted", invite: clone(invite), coupleId: pair.coupleId, connectedAt: pair.connectedAt, gift: invite.gift ? { ...invite.gift } : null };
       } catch (error) {
+        const latest = findByCode(parsed.code);
+        if (latest && Date.parse(latest.expiresAt) <= now().getTime()) return { kind: "expired" };
         if (error instanceof Error && /already paired|waiting for another invite/i.test(error.message)) return { kind: "already_paired" };
         throw error;
       } finally {
         acceptingCodes.delete(parsed.code);
       }
+    },
+
+    subscribeChanges(listener) { listeners.add(listener); return () => { listeners.delete(listener); }; },
+
+    async getPairingNotice(accountId) {
+      const membership = await coupleService.getMembership(accountId);
+      const notice = notices.get(accountId);
+      if (!notice) return null;
+      if (membership.status !== "paired" || membership.coupleId !== notice.coupleId) return null;
+      return { ...notice, gift: notice.gift ? { ...notice.gift } : null };
+    },
+
+    acknowledgePairingNotice(accountId, inviteId) {
+      if (notices.get(accountId)?.inviteId === inviteId) { notices.delete(accountId); publish(); }
     },
 
     async revokeOpenInvite(inviterId) {
@@ -170,6 +210,7 @@ export function createLocalInviteService({
       invite.status = "revoked";
       currentInviteByInviter.delete(inviterId);
       await coupleService.clearWaiting(inviterId, invite.id);
+      publish();
       return true;
     },
 
@@ -181,12 +222,14 @@ export function createLocalInviteService({
         const invite = invitesById.get(id);
         if (!invite) continue;
         if (invite.status === "open") await coupleService.clearWaiting(invite.inviterId, invite.id);
-        if (invite.gift && invite.gift.kind !== "text") await localMediaAdapter.cleanup(invite.gift.uri);
+        if (invite.gift && "uri" in invite.gift) await localMediaAdapter.cleanup(invite.gift.uri);
+        for (const [ownerId, notice] of notices) if (notice.inviteId === id) notices.delete(ownerId);
         invite.status = "revoked";
         inviteIdByCode.delete(invite.code);
         invitesById.delete(id);
         if (currentInviteByInviter.get(invite.inviterId) === id) currentInviteByInviter.delete(invite.inviterId);
       }
+      publish();
     },
   };
 }

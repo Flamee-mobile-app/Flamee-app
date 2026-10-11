@@ -56,7 +56,7 @@ Use native stack/tab patterns, safe areas, Android back behavior, and iOS swipe-
 
 - `src/shared/constants/tokens.ts` owns the approved raw brand values so Tamagui and native-only APIs read the same palette and typography scale.
 - `tamagui.config.ts` maps those values into typed Tamagui tokens, the `light` theme, `body` and `heading` fonts, control sizing, radii, and the `fast`, `medium`, and `slow` animation presets.
-- `app/providers/TamaguiProvider.tsx` is the only app-level integration point. Keep it in the root provider tree and also wrap any root error fallback that renders Tamagui components.
+- `src/providers/TamaguiProvider.tsx` is the only app-level integration point. Keep it in the root provider tree and also wrap any root error fallback that renders Tamagui components.
 - The current configuration sets `onlyAllowShorthands: false`. Use clear longhand style props consistently; do not copy shorthand-only assumptions from another Tamagui starter.
 - The approved SF Pro and SF Pro Rounded binaries are not in the repository. Keep the configured system-font fallback until licensed assets are supplied and loaded through Expo Font.
 

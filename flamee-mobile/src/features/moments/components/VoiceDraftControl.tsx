@@ -1,4 +1,7 @@
-import { Mic, Play, RotateCcw, Square } from "@tamagui/lucide-icons-2";
+import { Mic } from "@tamagui/lucide-icons-2/icons/Mic";
+import { Play } from "@tamagui/lucide-icons-2/icons/Play";
+import { RotateCcw } from "@tamagui/lucide-icons-2/icons/RotateCcw";
+import { Square } from "@tamagui/lucide-icons-2/icons/Square";
 import { RecordingPresets, setAudioModeAsync, useAudioPlayer, useAudioRecorder } from "expo-audio";
 import { useEffect, useRef, useState } from "react";
 import { Text, XStack, YStack } from "tamagui";

@@ -1,4 +1,5 @@
 import { normalizeVietnamesePhone } from "./schemas.ts";
+import { isMockLoginEnabled } from "./mockLoginMode.ts";
 
 export type LocalSession = {
   accountId: string;
@@ -8,6 +9,7 @@ export type LocalSession = {
 export type LocalAuthService = {
   getCurrentSession: () => Promise<LocalSession | null>;
   continueOnThisDevice: (phone: string) => Promise<LocalSession>;
+  continueWithMockSession: () => Promise<LocalSession>;
   signOut: () => Promise<void>;
   deleteAccount: (accountId: string) => Promise<void>;
 };
@@ -24,6 +26,7 @@ export function createLocalAuthService({
   const accountIdsByPhone = new Map<string, string>();
   const phonesByAccountId = new Map<string, Set<string>>();
   let activeSession: LocalSession | null = null;
+  let mockAccountId: string | null = null;
   let generatedAccountId = 0;
 
   const makeAccountId = createAccountId ?? (() => `local-account-${Date.now()}-${++generatedAccountId}`);
@@ -52,7 +55,17 @@ export function createLocalAuthService({
       activeSession = null;
     },
 
+    async continueWithMockSession() {
+      if (!isMockLoginEnabled()) throw new Error("Mock login is disabled.");
+      // No email, password, phone or verified identity is attached to this session.
+      // Reuse the same local account after sign-out during the current process.
+      mockAccountId ??= `mock-${makeAccountId()}`;
+      activeSession = { accountId: mockAccountId, createdAt: now().toISOString() };
+      return { ...activeSession };
+    },
+
     async deleteAccount(accountId) {
+      if (mockAccountId === accountId) mockAccountId = null;
       for (const phone of phonesByAccountId.get(accountId) ?? []) accountIdsByPhone.delete(phone);
       phonesByAccountId.delete(accountId);
       if (activeSession?.accountId === accountId) activeSession = null;

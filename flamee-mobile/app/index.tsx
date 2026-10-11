@@ -1,16 +1,18 @@
 import { useEffect, useState } from "react";
 import { Redirect } from "expo-router";
-import { useSessionStore } from "./providers/sessionStore";
+import { useSessionStore } from "../src/shared/state/sessionStore";
 import { FoundationScreen } from "../src/shared/components/FoundationScreen";
 import { AppScreen } from "../src/shared/components";
 import { localCoupleService } from "../src/features/couple";
 import { localOnboardingService } from "../src/features/onboarding";
-import { resolveEntryRoute, type EntryRouteHref } from "./entryRoute";
-import { useStartup } from "./providers/StartupProvider";
+import { inviteIntent, useInviteIntentRevision } from "../src/features/invites";
+import { resolveEntryRoute, type EntryRouteHref } from "../src/shared/navigation/entryRoute";
+import { useStartup } from "../src/providers/StartupProvider";
 
 export default function IndexRoute() {
   const bootstrapped = useSessionStore((session) => session.isBootstrapped);
   const accountId = useSessionStore((session) => session.activeAccountId);
+  const inviteRevision = useInviteIntentRevision();
   const [route, setRoute] = useState<EntryRouteHref | null>(null);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -26,7 +28,7 @@ export default function IndexRoute() {
     setFailed(false);
     if (!bootstrapped) return () => { active = false; };
     if (!accountId) {
-      setRoute(resolveEntryRoute({ bootstrapped: true, accountId: null, onboardingStep: null, inviteIntent: false, coupleStatus: null }));
+      setRoute(resolveEntryRoute({ bootstrapped: true, accountId: null, setupStatus: null, inviteIntent: Boolean(inviteIntent.getCode()), coupleStatus: null }));
       return () => { active = false; };
     }
     void Promise.all([
@@ -37,15 +39,15 @@ export default function IndexRoute() {
       setRoute(resolveEntryRoute({
         bootstrapped: true,
         accountId,
-        onboardingStep: account.onboardingStep,
-        inviteIntent: false,
+        setupStatus: account.setupStatus,
+        inviteIntent: Boolean(inviteIntent.getCode()),
         coupleStatus: membership.status,
       }));
     }).catch(() => {
       if (active) setFailed(true);
     });
     return () => { active = false; };
-  }, [bootstrapped, accountId, attempt]);
+  }, [bootstrapped, accountId, attempt, inviteRevision]);
 
   if (route && canNavigate) return <Redirect href={route} />;
   if (failed) {

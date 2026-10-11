@@ -1,8 +1,8 @@
-import { Image, StyleSheet } from "react-native";
-import { Heart } from "@tamagui/lucide-icons-2";
+import { Image, Platform, StyleSheet } from "react-native";
+import { Heart } from "@tamagui/lucide-icons-2/icons/Heart";
 import Animated, { interpolate, useAnimatedProps, useAnimatedStyle, type SharedValue } from "react-native-reanimated";
 import Svg, { Circle, Defs, Image as SvgImage, LinearGradient, Mask, Path, RadialGradient, Rect, Stop } from "react-native-svg";
-import { AmbientBackground } from "../../../shared/components/AmbientBackground";
+export { StartupBackground } from "./StartupBackground";
 import { startupTokens as tokens } from "../../../shared/constants/tokens";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
@@ -22,10 +22,6 @@ type MotionProps = {
   size: number;
 };
 
-export function StartupBackground() {
-  return <AmbientBackground />;
-}
-
 function LightPaths({ time, size }: Pick<MotionProps, "time" | "size">) {
   const connections = useAnimatedProps(() => ({
     strokeDashoffset: 180 * (1 - phase(time.value, tokens.connectionStart, tokens.connectionEnd)),
@@ -36,7 +32,7 @@ function LightPaths({ time, size }: Pick<MotionProps, "time" | "size">) {
     opacity: phase(time.value, 550, 700) * (1 - phase(time.value, 1100, 1550)),
   }));
   return (
-    <Svg width={size} height={size} viewBox="0 0 320 320" style={StyleSheet.absoluteFill} accessible={false}>
+    <Svg width={size} height={size} viewBox="0 0 320 320" style={StyleSheet.absoluteFill} aria-hidden={true}>
       <Defs>
         <LinearGradient id="startup-trail" x1="0" y1="1" x2="0" y2="0">
           <Stop offset="0" stopColor={tokens.coral} stopOpacity={0} />
@@ -147,13 +143,13 @@ export function StartupArtwork({ time, breath, reducedMotion, size, onImageError
         <Heart size={heartSize} color={tokens.amber} fill={tokens.amber} strokeWidth={0} />
       </Animated.View>}
       <Animated.View style={[styles.wordmark, { left: (size - wordmarkWidth) / 2, top: tokens.wordmarkY * scale, height: wordmarkWidth * 168 / 772 }, wordmarkStyle]}>
-        <Svg width={wordmarkWidth} height={wordmarkWidth * 168 / 772} viewBox="0 0 772 168" accessible={false}>
+        <Svg width={wordmarkWidth} height={wordmarkWidth * 168 / 772} viewBox="0 0 772 168" aria-hidden={true}>
           <Defs>
             <LinearGradient id="startup-wordmark-fill" x1="0" y1="0" x2="0" y2="1">
               <Stop offset="0" stopColor={tokens.wordmarkTop} />
               <Stop offset="1" stopColor={tokens.wordmarkBottom} />
             </LinearGradient>
-            <Mask id="startup-wordmark-mask" maskType="alpha">
+            <Mask id="startup-wordmark-mask" maskType={Platform.OS === "web" ? undefined : "alpha"}>
               <SvgImage href={wordmark} width={772} height={168} />
             </Mask>
           </Defs>

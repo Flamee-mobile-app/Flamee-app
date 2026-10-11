@@ -10,6 +10,8 @@ export type OnboardingStep = "consent" | "profile" | "care" | "relation" | "comp
 export type LocalAccountSnapshot = {
   accountId: string;
   onboardingStep: OnboardingStep;
+  setupStatus: "pending" | "completed" | "deferred";
+  setupStep: "profile" | "partner" | "relation";
   consentedAt: string | null;
   consentVersion: string | null;
   profile: ProfileValue & {
@@ -25,6 +27,8 @@ export type LocalOnboardingService = {
   saveProfile: (accountId: string, profile: unknown) => Promise<LocalAccountSnapshot>;
   saveCarePreferences: (accountId: string, preferences: string[], note: string) => Promise<LocalAccountSnapshot>;
   saveRelationType: (accountId: string, relationType: string) => Promise<LocalAccountSnapshot>;
+  advanceSetup: (accountId: string, step: "partner" | "relation") => Promise<LocalAccountSnapshot>;
+  finishSetup: (accountId: string, deferred?: boolean) => Promise<LocalAccountSnapshot>;
   clearAccount: (accountId: string) => Promise<void>;
 };
 
@@ -47,6 +51,8 @@ export function createLocalOnboardingService({
     const created: LocalAccountSnapshot = {
       accountId,
       onboardingStep: "consent",
+      setupStatus: "pending",
+      setupStep: "profile",
       consentedAt: null,
       consentVersion: null,
       profile: {
@@ -94,6 +100,7 @@ export function createLocalOnboardingService({
 
     async saveCarePreferences(accountId, preferences, note) {
       const current = ensure(accountId);
+      if (!current.consentedAt) throw new Error("Consent is required before saving care preferences.");
       const parsed = carePreferencesSchema.parse({ preferences, note });
       current.profile = { ...current.profile, carePreferences: [...parsed.preferences], careNote: parsed.note };
       if (current.onboardingStep === "care") current.onboardingStep = "relation";
@@ -105,6 +112,18 @@ export function createLocalOnboardingService({
       const parsed = relationSchema.parse({ relationType });
       current.profile = { ...current.profile, relationType: parsed.relationType };
       current.onboardingStep = "complete";
+      return copy(current);
+    },
+
+    async advanceSetup(accountId, step) {
+      const current = ensure(accountId);
+      current.setupStep = step;
+      return copy(current);
+    },
+
+    async finishSetup(accountId, deferred = false) {
+      const current = ensure(accountId);
+      current.setupStatus = deferred ? "deferred" : "completed";
       return copy(current);
     },
 

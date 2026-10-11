@@ -1,16 +1,18 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, CheckCircle2 } from "@tamagui/lucide-icons-2";
+import { ArrowLeft } from "@tamagui/lucide-icons-2/icons/ArrowLeft";
+import { CheckCircle2 } from "@tamagui/lucide-icons-2/icons/CheckCircle2";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Text, XStack, YStack } from "tamagui";
-import { useSessionStore } from "../../../../app/providers/sessionStore";
+import { useSessionStore } from "../../../shared/state/sessionStore";
 import { AppButton, AppField, AppHeader, AppScreen, AsyncStateView, ChoiceChip, StatusBanner } from "../../../shared/components";
 import { getMessage, type MessageKey } from "../../../shared/localization/messages";
 import { localCoupleService } from "../../couple";
 import { localNudgeService } from "../../nudges";
 import { localNotificationAdapter } from "../../notifications";
 import { localOnboardingService } from "../../onboarding";
+import { ConsentRequest } from "../../onboarding/screens";
 import { localCheckInService, type CheckInSubmissionResult } from "../localCheckInService";
 import { createCheckInSchema, type CheckInInput } from "../schemas";
 import { MoodSelector } from "./MoodSelector";
@@ -32,6 +34,7 @@ export function CheckInComposer({ onClose, onCompleted }: CheckInComposerProps) 
   const [reasons, setReasons] = useState(localCheckInReasons);
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
+  const [needsConsent, setNeedsConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [nudgeFailed, setNudgeFailed] = useState(false);
   const resolver = useMemo(() => zodResolver(createCheckInSchema(reasons.map((reason) => reason.id))), [reasons]);
@@ -58,7 +61,7 @@ export function CheckInComposer({ onClose, onCompleted }: CheckInComposerProps) 
         localOnboardingService.getAccountSnapshot(accountId),
       ]);
       setReasons(catalog);
-      if (account.onboardingStep !== "complete") setLoadFailed(true);
+      setNeedsConsent(!account.consentedAt);
     } catch {
       setLoadFailed(true);
     } finally {
@@ -108,6 +111,7 @@ export function CheckInComposer({ onClose, onCompleted }: CheckInComposerProps) 
   if (!accountId) return <AppScreen><AsyncStateView variant="error" title="localCheckInUnavailableTitle" description="localCheckInUnavailableBody" actionLabel="retry" onAction={onClose} /></AppScreen>;
   if (loading) return <AppScreen><AsyncStateView variant="loading" title="loadingTitle" description="loadingDescription" /></AppScreen>;
   if (loadFailed) return <AppScreen><AsyncStateView variant="error" title="localCheckInUnavailableTitle" description="localCheckInUnavailableBody" actionLabel="retry" onAction={() => void load()} /></AppScreen>;
+  if (needsConsent) return <ConsentRequest accountId={accountId} onAccepted={() => void load()} onCancel={() => onClose ? onClose() : router.replace("/(main)")} />;
 
   if (result) {
     const privateCheckIn = result.kind === "saved_local" && result.checkIn.shareScope === "private_only";

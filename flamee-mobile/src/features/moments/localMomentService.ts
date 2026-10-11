@@ -145,12 +145,16 @@ export function createLocalMomentService({
     },
 
     async deliverAcceptedInviteGift(acceptance) {
-      if (acceptance.kind !== "accepted" || !acceptance.gift) return null;
+      if (acceptance.kind !== "accepted" || (!acceptance.gift && !acceptance.invite.message)) return null;
       const inviteId = acceptance.invite.id;
       const alreadyDeliveredId = inviteGiftMomentIds.get(inviteId);
       if (alreadyDeliveredId) return moments.has(alreadyDeliveredId) ? clone(moments.get(alreadyDeliveredId)!) : null;
       const gift = acceptance.gift;
-      const draft: MomentDraft = gift.kind === "text"
+        // Mascot is an invitation attachment, not a fake photo/voice Moment.
+      if (gift?.kind === "mascot" && !acceptance.invite.message) return null;
+      const draft: MomentDraft = !gift || gift.kind === "mascot"
+        ? { kind: "text", text: acceptance.invite.message }
+        : gift.kind === "text"
         ? { kind: "text", text: gift.text }
         : gift.kind === "photo"
           ? { kind: "photo", mediaUri: gift.uri, caption: gift.caption, place: "" }

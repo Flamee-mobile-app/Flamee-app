@@ -1,3 +1,4 @@
+import { Platform } from "react-native";
 import { createAnimations } from "@tamagui/animations-react-native";
 import { defaultConfig } from "@tamagui/config/v4";
 import { createFont, createTamagui } from "tamagui";
@@ -15,6 +16,9 @@ const fontSize = {
   bodyM: typography.bodyM.fontSize,
   bodyL: typography.bodyL.fontSize,
   button: typography.button.fontSize,
+  // Button resolves its size token through the font scale, including its default.
+  true: typography.button.fontSize,
+  control: typography.button.fontSize,
   h5: typography.h5.fontSize,
   h4: typography.h4.fontSize,
   h3: typography.h3.fontSize,
@@ -28,6 +32,8 @@ const fontLineHeight = {
   bodyM: typography.bodyM.lineHeight,
   bodyL: typography.bodyL.lineHeight,
   button: typography.button.lineHeight,
+  true: typography.button.lineHeight,
+  control: typography.button.lineHeight,
   h5: typography.h5.lineHeight,
   h4: typography.h4.lineHeight,
   h3: typography.h3.lineHeight,
@@ -46,8 +52,13 @@ const fontLetterSpacing = Object.fromEntries(
   Object.keys(fontSize).map((key) => [key, 0]),
 ) as Record<keyof typeof fontSize, number>;
 
+// Browsers do not recognize React Native's "System" family.
+const systemFontFamily = Platform.OS === "web"
+  ? "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
+  : "System";
+
 const bodyFont = createFont({
-  family: "System",
+  family: systemFontFamily,
   size: fontSize,
   lineHeight: fontLineHeight,
   weight: fontWeight,
@@ -55,7 +66,7 @@ const bodyFont = createFont({
 });
 
 const headingFont = createFont({
-  family: "System",
+  family: systemFontFamily,
   size: fontSize,
   lineHeight: fontLineHeight,
   weight: fontWeight,

@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
+import { useRouter } from "expo-router";
 import { Text, XStack, YStack } from "tamagui";
-import { useSessionStore } from "../../../../app/providers/sessionStore";
+import { useSessionStore } from "../../../shared/state/sessionStore";
 import { AppButton, AppField, AppHeader, AppScreen, ChoiceChip, SectionCard, StatusBanner } from "../../../shared/components";
 import { getMessage } from "../../../shared/localization/messages";
 import { carePreferenceIds } from "../../onboarding";
+import { ConsentRequest } from "../../onboarding/screens";
 import { AccountLifecycleScreen } from "../../account-lifecycle";
 import { NotificationSettingsScreen } from "./NotificationSettingsScreen";
 import { PrivacyScreen } from "./PrivacyScreen";
@@ -13,6 +15,7 @@ export type SettingsSection = "menu" | "profile" | "care" | "notifications" | "p
 const settingsSections: readonly SettingsSection[] = ["menu", "profile", "care", "notifications", "privacy", "data", "support", "account"];
 
 export function SettingsScreen({ initialSection = "menu" }: { initialSection?: string }) {
+  const router = useRouter();
   const accountId = useSessionStore((session) => session.activeAccountId);
   const section: SettingsSection = settingsSections.includes(initialSection as SettingsSection) ? initialSection as SettingsSection : "menu";
   const [settings, setSettings] = useState<LocalSettingsSnapshot | null>(null);
@@ -64,6 +67,10 @@ export function SettingsScreen({ initialSection = "menu" }: { initialSection?: s
     if (result.kind === "updated") setSettings(result.settings);
   };
   const toggleCare = (id: string) => setCare((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+
+  if (!loading && !loadFailed && settings?.accountId === accountId && !settings.consent.acceptedAt && (section === "profile" || section === "care")) {
+    return <ConsentRequest accountId={settings.accountId} onAccepted={() => void loadSettings()} onCancel={() => router.replace("/(main)")} />;
+  }
 
   if ((section === "profile" || section === "care") && (loading || (!loadFailed && accountId !== null && settings?.accountId !== accountId))) {
     return <AppScreen><AppHeader showBack title={getMessage("vi", "settingsTitle")} /><StatusBanner tone="info" title={getMessage("vi", "loadingTitle")} description={getMessage("vi", "loadingDescription")} /></AppScreen>;

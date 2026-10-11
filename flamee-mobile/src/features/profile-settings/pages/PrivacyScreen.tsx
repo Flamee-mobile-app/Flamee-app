@@ -1,7 +1,11 @@
-import { Brain, Eye, EyeOff, HeartHandshake, ShieldCheck } from "@tamagui/lucide-icons-2";
+import { Brain } from "@tamagui/lucide-icons-2/icons/Brain";
+import { Eye } from "@tamagui/lucide-icons-2/icons/Eye";
+import { EyeOff } from "@tamagui/lucide-icons-2/icons/EyeOff";
+import { HeartHandshake } from "@tamagui/lucide-icons-2/icons/HeartHandshake";
+import { ShieldCheck } from "@tamagui/lucide-icons-2/icons/ShieldCheck";
 import { useEffect, useState } from "react";
 import { Text, XStack, YStack } from "tamagui";
-import { useSessionStore } from "../../../../app/providers/sessionStore";
+import { useSessionStore } from "../../../shared/state/sessionStore";
 import { AppButton, SectionCard, StatusBanner } from "../../../shared/components";
 import { formatMessage, getMessage } from "../../../shared/localization/messages";
 import { localOnboardingService, type LocalAccountSnapshot } from "../../onboarding";

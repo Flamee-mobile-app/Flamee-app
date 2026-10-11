@@ -30,11 +30,15 @@ export function AppField({
   multiline = false,
   characterCount,
   id,
+  accessibilityLabel,
+  editable,
   ...props
 }: AppFieldProps) {
   const fieldId = id ?? `field-${label.toLowerCase().replace(/\s+/g, "-")}`;
   const fieldProps = {
     id: fieldId,
+    "aria-label": accessibilityLabel ?? label,
+    disabled: editable === false,
     borderRadius: "$md" as const,
     borderWidth: 1,
     borderColor: error ? ("$error" as const) : ("$border" as const),

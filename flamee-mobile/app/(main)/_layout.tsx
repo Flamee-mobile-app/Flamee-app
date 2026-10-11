@@ -1,5 +1,7 @@
 import { Tabs } from "expo-router";
-import { Heart, House, UserRound } from "@tamagui/lucide-icons-2";
+import { Heart } from "@tamagui/lucide-icons-2/icons/Heart";
+import { House } from "@tamagui/lucide-icons-2/icons/House";
+import { UserRound } from "@tamagui/lucide-icons-2/icons/UserRound";
 import { colors } from "../../src/shared/constants/tokens";
 import { getMessage } from "../../src/shared/localization/messages";
 

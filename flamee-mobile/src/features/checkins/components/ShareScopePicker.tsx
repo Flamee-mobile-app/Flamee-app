@@ -1,4 +1,6 @@
-import { Eye, EyeOff, Lock } from "@tamagui/lucide-icons-2";
+import { Eye } from "@tamagui/lucide-icons-2/icons/Eye";
+import { EyeOff } from "@tamagui/lucide-icons-2/icons/EyeOff";
+import { Lock } from "@tamagui/lucide-icons-2/icons/Lock";
 import { Text, XStack, YStack } from "tamagui";
 import type { ShareScope } from "../types";
 import { getMessage, type MessageKey } from "../../../shared/localization/messages";
@@ -26,8 +28,8 @@ export function ShareScopePicker({ value, onChange }: { value: ShareScope; onCha
             padding="$md"
             alignItems="center"
             gap="$md"
-            accessibilityRole="radio"
-            accessibilityState={{ selected }}
+            role="radio"
+            aria-checked={selected}
             onPress={() => onChange(scope.value)}
           >
             <Icon size={22} color={selected ? "$primary" : "$textSecondary"} />

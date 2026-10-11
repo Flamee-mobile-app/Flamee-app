@@ -53,6 +53,14 @@ export function createLocalCoupleService({
   const memberships = new Map<string, CoupleMembership>();
   let idSequence = 0;
   const makeId = createId ?? (() => `local-couple-${++idSequence}`);
+  const currentMembership = (accountId: string): CoupleMembership => {
+    const current = memberships.get(accountId);
+    if (current?.status === "waiting" && current.inviteExpiresAt && Date.parse(current.inviteExpiresAt) <= now().getTime()) {
+      memberships.delete(accountId);
+      return emptyMembership();
+    }
+    return current ?? emptyMembership();
+  };
 
   const clone = (membership: CoupleMembership): CoupleMembership => ({
     ...membership,
@@ -61,7 +69,7 @@ export function createLocalCoupleService({
 
   return {
     async getMembership(accountId) {
-      return clone(memberships.get(accountId) ?? emptyMembership());
+      return clone(currentMembership(accountId));
     },
 
     async beginWaiting(accountId, inviteId, expiresAt, profile) {
@@ -87,10 +95,11 @@ export function createLocalCoupleService({
     async acceptInvite({ inviteId, inviterId, inviteeId, inviter, invitee }) {
       if (inviterId === inviteeId) throw new Error("An account cannot accept its own invite.");
       const inviterMembership = memberships.get(inviterId);
-      if (inviterMembership?.status !== "waiting" || inviterMembership.inviteId !== inviteId) {
+      if (inviterMembership?.status !== "waiting" || inviterMembership.inviteId !== inviteId || (inviterMembership.inviteExpiresAt && Date.parse(inviterMembership.inviteExpiresAt) <= now().getTime())) {
         throw new Error("Invite is no longer waiting for acceptance.");
       }
-      const inviteeMembership = memberships.get(inviteeId) ?? emptyMembership();
+      // Keep validation and both writes synchronous to avoid two accepts racing.
+      const inviteeMembership = currentMembership(inviteeId);
       if (inviteeMembership.status === "paired" || inviteeMembership.status === "waiting") {
         throw new Error("Account is already paired or waiting for another invite.");
       }

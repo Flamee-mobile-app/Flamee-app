@@ -44,19 +44,18 @@ export const typography = {
 export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as const;
 export const radii = { sm: 8, md: 12, lg: 20, xl: 28 } as const;
 
-// The launch treatment reuses the app background while preserving its brand motion.
+// A pale paper background lets the startup logo retain the strongest color.
 export const startupTokens = {
   background: appBackground,
-  backgroundWarm: appBackground,
   coral: "#FF7461",
   amber: "#FDB872",
   peach: "#FFE6CE",
   tagline: "#5A2A27",
-  eyebrow: "#B06A58",
   wordmarkTop: "#FF8A4C",
   wordmarkBottom: "#FF4E6B",
   duration: startupDuration,
-  exitDuration: 140,
+  playbackDuration: 1600,
+  exitDuration: 640,
   initializationTimeout: 15000,
   breatheDuration: 1600,
   canvasSize: 320,
@@ -80,6 +79,33 @@ export const startupTokens = {
   wordmarkEnd: 1850,
   taglineStart: 1700,
   taglineEnd: startupTaglineEnd,
-  continueStart: startupTaglineEnd,
-  continueEnd: startupDuration,
+} as const;
+
+export const loginTokens = {
+  screenMaxWidth: 520,
+  heroMinHeight: 260,
+  heroLogoWidth: 144,
+  heroLogoHeight: 48,
+  heroLogoTopGap: spacing.sm,
+  heroImageAspectRatio: 1638 / 890,
+  heroImageWidthRatio: 2,
+  heroImageHorizontalAnchor: 0.34,
+  heroOverlayOpacity: 0.12,
+  formOverlap: 28,
+  linkTouchHeight: 44,
+  checkboxSize: 20,
+  checkboxRadius: 6,
+  googleLogoSize: 20,
+  maxWidth: 380,
+  copyWidth: 284,
+  controlHeight: 48,
+  socialHeight: 48,
+  symbolWidth: 44,
+  wordmarkWidth: 136,
+  entranceDuration: 340,
+  entranceDelay: 0,
+  stagger: 40,
+  maxEntranceDelay: 240,
+  actionFadeDuration: 400,
+  socialFadeDuration: 380,
 } as const;

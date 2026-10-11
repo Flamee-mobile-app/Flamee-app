@@ -22,6 +22,7 @@ export type LocalCheckInServiceOptions = {
   createId?: () => string;
   now?: () => Date;
   timezoneForAccount?: (accountId: string) => string | Promise<string>;
+  hasConsentForAccount?: (accountId: string) => boolean | Promise<boolean>;
   reasonCatalog?: readonly CheckInReason[];
   persist?: (checkIn: LocalCheckIn) => Promise<"saved_local" | "pending">;
 };
@@ -31,6 +32,7 @@ export function createLocalCheckInService({
   createId,
   now = () => new Date(),
   timezoneForAccount = async (accountId) => (await localOnboardingService.getAccountSnapshot(accountId)).profile.timezone,
+  hasConsentForAccount = async (accountId) => Boolean((await localOnboardingService.getAccountSnapshot(accountId)).consentedAt),
   reasonCatalog = localCheckInReasons,
   persist = async () => "saved_local",
 }: LocalCheckInServiceOptions = {}): LocalCheckInService {
@@ -49,6 +51,7 @@ export function createLocalCheckInService({
     },
 
     async submit(accountId, input) {
+      if (!await hasConsentForAccount(accountId)) return { kind: "error", error: "validation", retryable: false };
       const parsed = createCheckInSchema(reasonCatalog.map((reason) => reason.id)).safeParse(input);
       if (!parsed.success) return { kind: "error", error: "validation", retryable: false };
 

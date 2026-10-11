@@ -1,4 +1,5 @@
-import { ThumbsDown, ThumbsUp } from "@tamagui/lucide-icons-2";
+import { ThumbsDown } from "@tamagui/lucide-icons-2/icons/ThumbsDown";
+import { ThumbsUp } from "@tamagui/lucide-icons-2/icons/ThumbsUp";
 import { Text, XStack, YStack } from "tamagui";
 import { AppButton, ChoiceChip, SectionCard } from "../../../shared/components";
 import { getMessage, type MessageKey } from "../../../shared/localization/messages";

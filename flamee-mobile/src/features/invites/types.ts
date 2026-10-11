@@ -4,6 +4,7 @@ export type InviteStatus = "open" | "accepted" | "expired" | "revoked";
 
 export type InviteGift =
   | { kind: "text"; text: string }
+  | { kind: "mascot"; mascot: "flamee"; gift: "heart" | "hug" | "flower" }
   | { kind: "photo"; uri: string; caption: string }
   | { kind: "voice"; uri: string; durationSeconds: number };
 
@@ -16,6 +17,15 @@ export type LocalInvite = {
   inviter: LocalPartnerSummary;
   acceptedById: string | null;
   acceptedAt: string | null;
+  gift: InviteGift | null;
+  message: string;
+};
+
+export type PairingNotice = {
+  inviteId: string;
+  coupleId: string;
+  partnerName: string;
+  greeting: string;
   gift: InviteGift | null;
 };
 

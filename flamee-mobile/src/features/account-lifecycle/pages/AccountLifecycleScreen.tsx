@@ -1,8 +1,10 @@
-import { Download, LifeBuoy, LogOut } from "@tamagui/lucide-icons-2";
+import { Download } from "@tamagui/lucide-icons-2/icons/Download";
+import { LifeBuoy } from "@tamagui/lucide-icons-2/icons/LifeBuoy";
+import { LogOut } from "@tamagui/lucide-icons-2/icons/LogOut";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Text, XStack, YStack } from "tamagui";
-import { useSessionStore } from "../../../../app/providers/sessionStore";
+import { useSessionStore } from "../../../shared/state/sessionStore";
 import { AppButton, AppField, ChoiceChip, SectionCard, StatusBanner } from "../../../shared/components";
 import { formatMessage, getMessage } from "../../../shared/localization/messages";
 import { localCoupleService } from "../../couple";
@@ -66,7 +68,7 @@ export function AccountLifecycleScreen({ mode }: { mode: Mode }) {
     setBusy(true);
     try {
       const result = await service.unpair(accountId);
-      if (result.kind === "unpaired") router.replace("/(invite)");
+      if (result.kind === "unpaired") router.replace("/(main)");
       else setAccountLoadFailed(true);
     } catch { setAccountLoadFailed(true); }
     finally { setBusy(false); }

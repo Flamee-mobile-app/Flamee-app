@@ -7,15 +7,11 @@ import { scheduleOnRN } from "react-native-worklets";
 import { Text, XStack, YStack } from "tamagui";
 import { spacing, startupTokens as tokens } from "../../../shared/constants/tokens";
 import { getMessage } from "../../../shared/localization/messages";
-import { AppButton } from "../../../shared/components";
 import { phase, StartupArtwork, StartupBackground } from "./StartupArtwork";
 
 type StartupSplashProps = {
   animationAlreadyComplete: boolean;
   dismiss: boolean;
-  showContinue: boolean;
-  canContinue: boolean;
-  onContinue: () => void;
   onPrepared: () => void;
   onAnimationComplete: () => void;
   onDismissed: () => void;
@@ -28,7 +24,7 @@ function LoadingDot({ index, breath, reducedMotion }: { index: number; breath: S
   return <Animated.View style={[styles.dot, style]} />;
 }
 
-export function StartupSplash({ animationAlreadyComplete, dismiss, showContinue, canContinue, onContinue, onPrepared, onAnimationComplete, onDismissed }: StartupSplashProps) {
+export function StartupSplash({ animationAlreadyComplete, dismiss, onPrepared, onAnimationComplete, onDismissed }: StartupSplashProps) {
   const dimensions = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const systemReducedMotion = useReducedMotion();
@@ -73,7 +69,7 @@ export function StartupSplash({ animationAlreadyComplete, dismiss, showContinue,
     }
     const elapsed = time.value;
     if (!animationFinished.current) {
-      time.value = withTiming(tokens.duration, { duration: Math.max(0, tokens.duration - elapsed), easing: Easing.linear, reduceMotion: ReduceMotion.Never }, (finished) => {
+      time.value = withTiming(tokens.duration, { duration: Math.max(0, tokens.duration - elapsed) * tokens.playbackDuration / tokens.duration, easing: Easing.linear, reduceMotion: ReduceMotion.Never }, (finished) => {
         if (finished) scheduleOnRN(finishAnimation);
       });
     }
@@ -91,7 +87,7 @@ export function StartupSplash({ animationAlreadyComplete, dismiss, showContinue,
 
   useEffect(() => {
     if (!dismiss || !ready) return;
-    opacity.value = withTiming(0, { duration: reducedMotion ? 0 : tokens.exitDuration, reduceMotion: ReduceMotion.Never }, (finished) => {
+    opacity.value = withTiming(0, { duration: reducedMotion ? 0 : tokens.exitDuration, easing: Easing.inOut(Easing.quad), reduceMotion: ReduceMotion.Never }, (finished) => {
       if (finished) scheduleOnRN(onDismissed);
     });
   }, [dismiss, ready, reducedMotion, opacity, onDismissed]);
@@ -102,53 +98,36 @@ export function StartupSplash({ animationAlreadyComplete, dismiss, showContinue,
     cancelAnimation(opacity);
   }, [time, breath, opacity]);
 
-  const screenStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  const screenStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: reducedMotion ? 0 : -spacing.md * (1 - opacity.value) }],
+  }));
   const taglineStyle = useAnimatedStyle(() => ({
     opacity: reducedMotion ? 1 : phase(time.value, tokens.taglineStart, tokens.taglineEnd),
     transform: [{ translateY: reducedMotion ? 0 : spacing.sm * (1 - phase(time.value, tokens.taglineStart, tokens.taglineEnd)) }],
   }));
-  const continueStyle = useAnimatedStyle(() => {
-    const progress = reducedMotion ? 1 : phase(time.value, tokens.continueStart, tokens.continueEnd);
-    return {
-      opacity: progress,
-      transform: [{ scale: 0.94 + 0.06 * progress }],
-    };
-  });
 
   if (assetError) throw new Error("Startup brand asset could not be loaded.");
 
   return (
     <Animated.View style={[styles.screen, screenStyle]} onLayout={() => setLaidOut(true)} accessibilityViewIsModal>
-      <StatusBar hidden style="light" animated={false} />
+      <StatusBar hidden={!dismiss} style="dark" animated={false} />
       <StartupBackground />
       <YStack flex={1} alignItems="center" justifyContent="center" paddingTop={insets.top} paddingBottom={insets.bottom} paddingHorizontal="$xl">
-        <YStack alignItems="center" accessible accessibilityRole="image" accessibilityLabel={getMessage("vi", "startupLogoLabel")}>
+        <YStack alignItems="center" accessible role="img" aria-label={getMessage("vi", "startupLogoLabel")}>
           <StartupArtwork time={time} breath={breath} size={size} reducedMotion={reducedMotion} onImageError={onImageError} />
         </YStack>
         <Animated.View style={[styles.caption, taglineStyle]}>
           <Text fontFamily="$body" fontSize="$bodyL" lineHeight="$bodyL" color={tokens.tagline} textAlign="center" maxFontSizeMultiplier={1.5}>
             {getMessage("vi", "startupTagline")}
           </Text>
-          <YStack alignItems="center" gap="$md" marginTop="$xxl" accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-            <XStack gap="$sm" opacity={canContinue ? 0 : 1}>
+          <YStack alignItems="center" gap="$md" marginTop="$xxl" aria-hidden={true}>
+            <XStack gap="$sm" opacity={dismiss ? 0 : 1}>
               {[0, 1, 2].map((index) => <LoadingDot key={index} index={index} breath={breath} reducedMotion={reducedMotion} />)}
             </XStack>
-            <Text fontFamily="$body" fontSize="$caption" lineHeight="$caption" color={tokens.eyebrow} letterSpacing={tokens.letterSpacing} textAlign="center" maxFontSizeMultiplier={1.5}>
-              {getMessage("vi", "startupEyebrow")}
-            </Text>
           </YStack>
         </Animated.View>
       </YStack>
-      {showContinue ? (
-        <Animated.View
-          pointerEvents={canContinue ? "auto" : "none"}
-          accessibilityElementsHidden={!canContinue}
-          importantForAccessibility={canContinue ? "auto" : "no-hide-descendants"}
-          style={[styles.continueButton, { bottom: Math.max(insets.bottom, spacing.lg) + spacing.md }, continueStyle]}
-        >
-          <AppButton onPress={onContinue}>{getMessage("vi", "continueExploring")}</AppButton>
-        </Animated.View>
-      ) : null}
     </Animated.View>
   );
 }
@@ -156,6 +135,5 @@ export function StartupSplash({ animationAlreadyComplete, dismiss, showContinue,
 const styles = StyleSheet.create({
   screen: { ...StyleSheet.absoluteFill, backgroundColor: tokens.background, zIndex: 100, overflow: "hidden" },
   caption: { alignItems: "center", maxWidth: "100%" },
-  continueButton: { position: "absolute", left: spacing.xl, right: spacing.xl },
   dot: { width: tokens.dotSize, height: tokens.dotSize, borderRadius: tokens.dotSize, backgroundColor: tokens.amber },
 });

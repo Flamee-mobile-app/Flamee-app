@@ -7,6 +7,8 @@ import { localNotificationAdapter, type LocalNotificationAdapter } from "../noti
 import { localNudgeService, type LocalNudgeService } from "../nudges/localNudgeService.ts";
 import { localOnboardingService, type LocalOnboardingService } from "../onboarding/localOnboardingService.ts";
 import { supportRequestSchema } from "./schemas.ts";
+import { inviteIntent } from "../invites/index.ts";
+import { localPairingReminderService } from "../couple/index.ts";
 
 export type LocalExportPreview = {
   accountId: string;
@@ -229,6 +231,7 @@ export function createLocalAccountLifecycleService({
     async signOut(accountId) {
       if (!isCurrentAccount(accountId)) return { kind: "stale_account" };
       await auth.signOut();
+      inviteIntent.clear();
       session?.reset();
       return { kind: "signed_out" };
     },
@@ -249,6 +252,8 @@ export function createLocalAccountLifecycleService({
         onboarding.clearAccount(accountId),
       ]);
       await auth.deleteAccount(accountId);
+      inviteIntent.clear();
+      localPairingReminderService.clearAccount(accountId);
       session?.reset();
       return { kind: "deleted_local" };
     },

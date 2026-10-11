@@ -1,4 +1,4 @@
-import { Check } from "@tamagui/lucide-icons-2";
+import { Check } from "@tamagui/lucide-icons-2/icons/Check";
 import { Button } from "tamagui";
 
 type ChoiceChipProps = {
@@ -20,8 +20,9 @@ export function ChoiceChip({ label, selected, onPress, disabled }: ChoiceChipPro
       fontFamily="$body"
       fontSize="$bodyM"
       icon={selected ? <Check size={18} color="$primary" /> : undefined}
-      accessibilityRole="checkbox"
-      accessibilityState={{ checked: selected, disabled }}
+      role="checkbox"
+      aria-checked={selected}
+      aria-disabled={disabled}
       disabled={disabled}
       onPress={onPress}
     >

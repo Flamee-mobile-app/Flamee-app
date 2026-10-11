@@ -9,7 +9,8 @@
     "userInterfaceStyle": "light",
     "platforms": [
       "ios",
-      "android"
+      "android",
+      "web"
     ],
     "ios": {
       "supportsTablet": true,
@@ -51,11 +52,11 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#130C12",
+          "backgroundColor": "#FFF4EC",
           "image": "./src/public/Flamee.png",
           "imageWidth": 280,
           "dark": {
-            "backgroundColor": "#130C12",
+            "backgroundColor": "#FFF4EC",
             "image": "./src/public/Flamee.png"
           }
         }

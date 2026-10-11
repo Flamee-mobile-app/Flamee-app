@@ -1,4 +1,7 @@
-import { AlertCircle, CircleCheck, Clock, WifiOff } from "@tamagui/lucide-icons-2";
+import { AlertCircle } from "@tamagui/lucide-icons-2/icons/AlertCircle";
+import { CircleCheck } from "@tamagui/lucide-icons-2/icons/CircleCheck";
+import { Clock } from "@tamagui/lucide-icons-2/icons/Clock";
+import { WifiOff } from "@tamagui/lucide-icons-2/icons/WifiOff";
 import { Text, XStack, YStack } from "tamagui";
 
 type StatusBannerProps = {
@@ -18,7 +21,7 @@ export function StatusBanner({ tone, title, description }: StatusBannerProps) {
   const Icon = iconByTone[tone];
   const backgroundColor = tone === "success" ? "$success" : tone === "warning" ? "$supportPeach" : "$supportPeachLight";
   return (
-    <XStack accessibilityLiveRegion="polite" accessibilityRole="alert" borderRadius="$md" backgroundColor={backgroundColor} padding="$md" gap="$sm" alignItems="flex-start">
+    <XStack aria-live="polite" role="alert" borderRadius="$md" backgroundColor={backgroundColor} padding="$md" gap="$sm" alignItems="flex-start">
       <Icon size={20} color="$textPrimary" />
       <YStack flex={1} gap="$xs">
         <Text fontFamily="$body" fontSize="$bodyM" fontWeight="$semibold" color="$textPrimary">

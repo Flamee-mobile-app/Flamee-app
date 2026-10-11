@@ -11,6 +11,7 @@ export const inviteCodeSchema = z.object({
 const localMediaUri = z.string().regex(/^(file|content):\/\//i, "A real local media URI is required.");
 
 export const inviteGiftSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("mascot"), mascot: z.literal("flamee"), gift: z.enum(["heart", "hug", "flower"]) }),
   z.object({ kind: z.literal("text"), text: z.string().trim().min(1).max(200) }),
   z.object({
     kind: z.literal("photo"),
@@ -23,6 +24,8 @@ export const inviteGiftSchema = z.discriminatedUnion("kind", [
     durationSeconds: z.number().min(1).max(30),
   }),
 ]);
+
+export const inviteMessageSchema = z.string().trim().max(200);
 
 export type InviteCodeInput = z.input<typeof inviteCodeSchema>;
 export type InviteCodeValue = z.output<typeof inviteCodeSchema>;

@@ -1,4 +1,8 @@
-import { Camera, MessageCircle, Mic, Radio, Send } from "@tamagui/lucide-icons-2";
+import { Camera } from "@tamagui/lucide-icons-2/icons/Camera";
+import { MessageCircle } from "@tamagui/lucide-icons-2/icons/MessageCircle";
+import { Mic } from "@tamagui/lucide-icons-2/icons/Mic";
+import { Radio } from "@tamagui/lucide-icons-2/icons/Radio";
+import { Send } from "@tamagui/lucide-icons-2/icons/Send";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Image, Text, XStack, YStack } from "tamagui";
 import type { MomentDraft } from "../types";

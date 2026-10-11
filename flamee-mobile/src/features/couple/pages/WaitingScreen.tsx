@@ -1,17 +1,18 @@
-import { Clock3, Gift, Send } from "@tamagui/lucide-icons-2";
-import { useRouter } from "expo-router";
-import { Share } from "react-native";
+import { Clock3 } from "@tamagui/lucide-icons-2/icons/Clock3";
+import { Gift } from "@tamagui/lucide-icons-2/icons/Gift";
+import { Send } from "@tamagui/lucide-icons-2/icons/Send";
+import { Redirect, useRouter } from "expo-router";
+import { AppState, Share } from "react-native";
 import { useEffect, useState } from "react";
 import { Text, XStack, YStack } from "tamagui";
-import { useSessionStore } from "../../../../app/providers/sessionStore";
+import { useSessionStore } from "../../../shared/state/sessionStore";
 import { AppButton, AppHeader, AppScreen, AsyncStateView, SectionCard, StatusBanner } from "../../../shared/components";
 import { formatMessage, getMessage } from "../../../shared/localization/messages";
 import { CheckInComposer } from "../../checkins";
-import { localInviteService, type LocalInvite } from "../../invites";
+import { localInviteService, invitationURL, type LocalInvite } from "../../invites";
 import { localOnboardingService } from "../../onboarding";
 import { localNotificationAdapter } from "../../notifications";
 import { localCoupleService, type CoupleMembership, type LocalPartnerSummary } from "../localCoupleService";
-import { PairedSuccess } from "../components/PairedSuccess";
 
 export function WaitingScreen() {
   const router = useRouter();
@@ -38,10 +39,11 @@ export function WaitingScreen() {
     setLoadFailed(false);
     try {
       const [currentInvite, currentMembership, account] = await Promise.all([
-        localInviteService.getOpenInvite(accountId),
+        localInviteService.getLatestInvite(accountId),
         localCoupleService.getMembership(accountId),
         localOnboardingService.getAccountSnapshot(accountId),
       ]);
+      if (useSessionStore.getState().activeAccountId !== accountId) return;
       setInvite(currentInvite);
       setMembership(currentMembership);
       setProfile({
@@ -59,7 +61,12 @@ export function WaitingScreen() {
     }
   };
 
-  useEffect(() => { void load(); }, [accountId]);
+  useEffect(() => {
+    void load();
+    const unsubscribe = localInviteService.subscribeChanges(() => { void load(); });
+    const subscription = AppState.addEventListener("change", (state) => { if (state === "active") void load(); });
+    return () => { unsubscribe(); subscription.remove(); };
+  }, [accountId]);
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 60_000);
     return () => clearInterval(timer);
@@ -68,12 +75,14 @@ export function WaitingScreen() {
   const shareInvite = async () => {
     try {
       if (!invite) return;
-      await Share.share({ message: `${getMessage("vi", "inviteShareMessage")} ${invite.code}` });
+      await Share.share({ message: `${getMessage("vi", "inviteShareMessage")} ${invite.code}\n${invitationURL(invite.code)}` });
       setShareFailed(false);
     } catch {
       setShareFailed(true);
     }
   };
+
+  const homeButton = <AppButton variant="ghost" onPress={() => router.replace("/(main)")}>{getMessage("vi", "continueHome")}</AppButton>;
 
   if (showCheckIn) return <CheckInComposer onClose={() => setShowCheckIn(false)} onCompleted={(result) => {
     if (result === "error" || !accountId) return;
@@ -107,11 +116,11 @@ export function WaitingScreen() {
   }
 
   if (!accountId) return <AppScreen><AsyncStateView variant="error" title="localInviteUnavailableTitle" description="localInviteUnavailableBody" actionLabel="retry" onAction={() => router.replace("/(auth)")} /></AppScreen>;
-  if (loading) return <AppScreen><AsyncStateView variant="loading" title="loadingTitle" description="loadingDescription" /></AppScreen>;
-  if (loadFailed) return <AppScreen><AsyncStateView variant="error" title="localInviteUnavailableTitle" description="localInviteUnavailableBody" actionLabel="retry" onAction={() => void load()} /></AppScreen>;
-  if (membership?.status === "paired") return <PairedSuccess />;
+  if (loading || (!loadFailed && profile?.id !== accountId)) return <AppScreen><AsyncStateView variant="loading" title="loadingTitle" description="loadingDescription" /></AppScreen>;
+  if (loadFailed) return <AppScreen><AsyncStateView variant="error" title="localInviteUnavailableTitle" description="localInviteUnavailableBody" actionLabel="retry" onAction={() => void load()} />{homeButton}</AppScreen>;
+  if (membership?.status === "paired") return <Redirect href="/(main)" />;
 
-  const expired = Boolean(membership?.inviteExpiresAt && Date.parse(membership.inviteExpiresAt) <= now);
+  const expired = Boolean(invite && Date.parse(invite.expiresAt) <= now);
   if (expired) {
     return (
       <AppScreen>
@@ -132,12 +141,13 @@ export function WaitingScreen() {
             }
           }}
         />
+        {homeButton}
       </AppScreen>
     );
   }
 
   if (!invite || membership?.status !== "waiting") {
-    return <AppScreen><AppHeader title={getMessage("vi", "waitingTitle")} /><AsyncStateView variant="empty" title="inviteNotFoundTitle" description="inviteNotFoundBody" actionLabel="createInvite" onAction={() => router.replace("/(invite)")} /></AppScreen>;
+    return <AppScreen><AppHeader title={getMessage("vi", "waitingTitle")} /><AsyncStateView variant="empty" title="inviteNotFoundTitle" description="inviteNotFoundBody" actionLabel="createInvite" onAction={() => router.replace("/(invite)")} />{homeButton}</AppScreen>;
   }
 
   const hoursRemaining = Math.max(1, Math.ceil((Date.parse(invite.expiresAt) - now) / (60 * 60 * 1000)));
@@ -178,6 +188,7 @@ export function WaitingScreen() {
       </AppButton>
       <SectionCard tone="lavender" description={getMessage("vi", "reminderTimeline")} />
       <StatusBanner tone="info" title={getMessage("vi", "inviteLocalOnlyTitle")} description={getMessage("vi", "inviteLocalOnlyBody")} />
+      {homeButton}
     </AppScreen>
   );
 }

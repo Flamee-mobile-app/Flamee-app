@@ -1,268 +1,119 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Check, MapPin, Sparkles } from "@tamagui/lucide-icons-2";
-import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { HeartHandshake } from "@tamagui/lucide-icons-2/icons/HeartHandshake";
+import { Check } from "@tamagui/lucide-icons-2/icons/Check";
+import { Square } from "@tamagui/lucide-icons-2/icons/Square";
+import { MapPin } from "@tamagui/lucide-icons-2/icons/MapPin";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { Text, XStack, YStack } from "tamagui";
-import { useSessionStore } from "../../../../app/providers/sessionStore";
-import { AppButton, AppField, AppHeader, AppScreen, AsyncStateView, ChoiceChip, SectionCard, StatusBanner } from "../../../shared/components";
-import { formatMessage, getMessage, type MessageKey } from "../../../shared/localization/messages";
+import { Text, YStack } from "tamagui";
+import { useSessionStore } from "../../../shared/state/sessionStore";
+import { AppButton, AppField, AppHeader, AppScreen, AsyncStateView, SectionCard, StatusBanner } from "../../../shared/components";
+import { getMessage } from "../../../shared/localization/messages";
+import { inviteIntent } from "../../invites";
 import { localOnboardingService, type LocalAccountSnapshot } from "../localOnboardingService";
-import {
-  carePreferenceIds,
-  carePreferencesSchema,
-  profileSchema,
-  relationSchema,
-  type CarePreferencesInput,
-  type ProfileInput,
-  type RelationInput,
-} from "../schemas";
+import { profileSchema, type ProfileInput } from "../schemas";
 
-const careLabels: Record<(typeof carePreferenceIds)[number], MessageKey> = {
-  encouragement: "careEncouragement",
-  voice: "careVoice",
-  photo: "carePhoto",
-  call: "careCall",
-  space: "careSpace",
-  gift: "careGift",
-};
-
-function ProgressDots({ step }: { step: number }) {
-  return (
-    <XStack gap="$sm" accessibilityLabel={formatMessage("vi", "stepProgress", { step, total: 4 })}>
-      {[1, 2, 3, 4].map((item) => (
-        <YStack
-          key={item}
-          flex={1}
-          height={4}
-          borderRadius="$xl"
-          backgroundColor={item <= step ? "$primary" : "$supportPeachLight"}
-        />
-      ))}
-    </XStack>
-  );
-}
-
-function ConsentStep({ onContinue, busy, saveFailed }: { onContinue: () => void; busy: boolean; saveFailed: boolean }) {
-  const [accepted, setAccepted] = useState(false);
-  const [error, setError] = useState(false);
-  return (
-    <AppScreen>
-      <ProgressDots step={1} />
-      <AppHeader eyebrow={getMessage("vi", "onboardingEyebrow")} title={getMessage("vi", "consentTitle")} subtitle={getMessage("vi", "consentBody")} />
-      <SectionCard tone="lavender">
-        <AppButton
-          variant="ghost"
-          justifyContent="flex-start"
-          icon={accepted ? <Check size={20} color="$primary" /> : undefined}
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked: accepted }}
-          onPress={() => { setAccepted((value) => !value); setError(false); }}
-        >
-          {getMessage("vi", "consentCheckbox")}
-        </AppButton>
-        {error ? <Text color="$error">{getMessage("vi", "consentRequired")}</Text> : null}
-        {saveFailed ? <StatusBanner tone="warning" title={getMessage("vi", "localSaveErrorTitle")} description={getMessage("vi", "localSaveErrorBody")} /> : null}
-      </SectionCard>
-      <AppButton disabled={busy} onPress={() => accepted ? onContinue() : setError(true)}>
-        {getMessage("vi", "agreeContinue")}
-      </AppButton>
-    </AppScreen>
-  );
-}
-
-function ProfileStep({ snapshot, onSave, busy, saveFailed }: { snapshot: LocalAccountSnapshot; onSave: (value: ProfileInput) => void; busy: boolean; saveFailed: boolean }) {
+function QuickProfile({ account, busy, failed, onSave, onSkip, onReceive }: {
+  account: LocalAccountSnapshot; busy: boolean; failed: boolean;
+  onSave: (value: ProfileInput, consent: boolean) => void;
+  onSkip: () => void; onReceive?: () => void;
+}) {
+  const [accepted, setAccepted] = useState(Boolean(account.consentedAt));
+  const [consentError, setConsentError] = useState(false);
   const form = useForm<ProfileInput>({
     resolver: zodResolver(profileSchema),
-    defaultValues: {
-      displayName: snapshot.profile.displayName,
-      partnerNickname: snapshot.profile.partnerNickname,
-      avatarUri: snapshot.profile.avatarUri,
-      timezone: snapshot.profile.timezone,
-    },
+    defaultValues: { displayName: account.profile.displayName, partnerNickname: account.profile.partnerNickname, avatarUri: account.profile.avatarUri, timezone: account.profile.timezone },
   });
-  return (
-    <AppScreen>
-      <ProgressDots step={2} />
-      <AppHeader title={getMessage("vi", "profileSetupTitle")} subtitle={getMessage("vi", "profileSetupBody")} />
-      <YStack alignItems="center" gap="$sm">
-        <YStack width={88} height={88} borderRadius="$xl" backgroundColor="$supportPeachLight" alignItems="center" justifyContent="center">
-          <Sparkles size={32} color="$primary" />
-        </YStack>
-        <Text fontFamily="$body" fontSize="$bodyS" color="$textSecondary">{getMessage("vi", "avatarLater")}</Text>
-      </YStack>
-      <Controller
-        control={form.control}
-        name="displayName"
-        render={({ field, fieldState }) => (
-          <AppField label={getMessage("vi", "displayNameLabel")} placeholder={getMessage("vi", "displayNamePlaceholder")} value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} error={fieldState.error?.message} />
-        )}
-      />
-      <Controller
-        control={form.control}
-        name="partnerNickname"
-        render={({ field, fieldState }) => (
-          <AppField label={getMessage("vi", "nicknameLabel")} placeholder={getMessage("vi", "nicknamePlaceholder")} value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} error={fieldState.error?.message} />
-        )}
-      />
-      <Controller
-        control={form.control}
-        name="timezone"
-        render={({ field, fieldState }) => (
-          <AppField label={getMessage("vi", "timezoneLabel")} value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} error={fieldState.error?.message} />
-        )}
-      />
-      {saveFailed ? <StatusBanner tone="warning" title={getMessage("vi", "localSaveErrorTitle")} description={getMessage("vi", "localSaveErrorBody")} /> : null}
-      <AppButton disabled={busy} onPress={form.handleSubmit(onSave)}>
-        {getMessage("vi", "continue")}
-      </AppButton>
-    </AppScreen>
-  );
-}
-
-function CareStep({ snapshot, onSave, busy, saveFailed }: { snapshot: LocalAccountSnapshot; onSave: (preferences: CarePreferencesInput["preferences"], note: string) => void; busy: boolean; saveFailed: boolean }) {
-  const form = useForm<CarePreferencesInput>({
-    resolver: zodResolver(carePreferencesSchema),
-    defaultValues: { preferences: snapshot.profile.carePreferences as CarePreferencesInput["preferences"], note: snapshot.profile.careNote },
-  });
-  const preferences = form.watch("preferences");
-  return (
-    <AppScreen>
-      <ProgressDots step={3} />
-      <AppHeader title={getMessage("vi", "careTitle")} subtitle={getMessage("vi", "careBody")} />
-      <XStack flexWrap="wrap" gap="$sm">
-        {carePreferenceIds.map((id) => {
-          const selected = preferences.includes(id);
-          return (
-            <ChoiceChip
-              key={id}
-              label={getMessage("vi", careLabels[id])}
-              selected={selected}
-              onPress={() => form.setValue("preferences", selected ? preferences.filter((item) => item !== id) : [...preferences, id], { shouldValidate: true })}
-            />
-          );
-        })}
-      </XStack>
-      <Controller
-        control={form.control}
-        name="note"
-        render={({ field, fieldState }) => (
-          <AppField
-            multiline
-            label={getMessage("vi", "careNoteLabel")}
-            placeholder={getMessage("vi", "careNotePlaceholder")}
-            maxLength={140}
-            value={field.value}
-            onChangeText={field.onChange}
-            onBlur={field.onBlur}
-            error={fieldState.error?.message}
-            characterCount={`${field.value.length}/140`}
-          />
-        )}
-      />
-      {saveFailed ? <StatusBanner tone="warning" title={getMessage("vi", "localSaveErrorTitle")} description={getMessage("vi", "localSaveErrorBody")} /> : null}
-      <AppButton disabled={busy} onPress={form.handleSubmit(({ preferences: selected, note }) => onSave(selected, note))}>
-        {getMessage("vi", "continue")}
-      </AppButton>
-      <AppButton variant="ghost" disabled={busy} onPress={() => onSave([], "")}>
-        {getMessage("vi", "skipForNow")}
-      </AppButton>
-    </AppScreen>
-  );
-}
-
-function RelationStep({ onSave, busy, saveFailed }: { onSave: (relationType: RelationInput["relationType"]) => void; busy: boolean; saveFailed: boolean }) {
-  const form = useForm<RelationInput>({ resolver: zodResolver(relationSchema) });
-  const selected = form.watch("relationType");
-  return (
-    <AppScreen>
-      <ProgressDots step={4} />
-      <AppHeader title={getMessage("vi", "relationTitle")} subtitle={getMessage("vi", "relationBody")} />
-      <SectionCard tone={selected === "long_distance" ? "peach" : "default"}>
-        <AppButton variant="ghost" justifyContent="flex-start" icon={<MapPin size={20} color="$primary" />} onPress={() => form.setValue("relationType", "long_distance", { shouldValidate: true })}>
-          {getMessage("vi", "relationLongDistance")}
-        </AppButton>
-        <Text color="$textSecondary">{getMessage("vi", "relationLongDistanceBody")}</Text>
-      </SectionCard>
-      <SectionCard tone={selected === "same_city" ? "lavender" : "default"}>
-        <AppButton variant="ghost" justifyContent="flex-start" icon={<MapPin size={20} color="$secondary" />} onPress={() => form.setValue("relationType", "same_city", { shouldValidate: true })}>
-          {getMessage("vi", "relationSameCity")}
-        </AppButton>
-        <Text color="$textSecondary">{getMessage("vi", "relationSameCityBody")}</Text>
-      </SectionCard>
-      <AppButton
-        disabled={!selected || busy}
-        onPress={form.handleSubmit(({ relationType }) => onSave(relationType))}
-      >
-        {getMessage("vi", "createInviteNext")}
-      </AppButton>
-      {saveFailed ? <StatusBanner tone="warning" title={getMessage("vi", "localSaveErrorTitle")} description={getMessage("vi", "localSaveErrorBody")} /> : null}
-    </AppScreen>
-  );
+  return <AppScreen>
+    <AppHeader eyebrow={getMessage("vi", "onboardingEyebrow")} title={getMessage("vi", "quickProfileTitle")} subtitle={getMessage("vi", "quickProfileBody")} />
+    <Controller control={form.control} name="displayName" render={({ field, fieldState }) => <AppField label={getMessage("vi", "displayNameLabel")} placeholder={getMessage("vi", "displayNamePlaceholder")} value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} maxLength={40} error={fieldState.error?.message} />} />
+    <Controller control={form.control} name="timezone" render={({ field, fieldState }) => <AppField label={getMessage("vi", "timezoneLabel")} value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} error={fieldState.error?.message} />} />
+    {!account.consentedAt ? <SectionCard description={getMessage("vi", "consentBody")}>
+      <AppButton variant="ghost" icon={accepted ? <Check size={20} color="$primary" aria-hidden={true} /> : <Square size={20} aria-hidden={true} />} role="checkbox" aria-checked={accepted} disabled={busy} onPress={() => { setAccepted((value) => !value); setConsentError(false); }}>{getMessage("vi", "consentCheckbox")}</AppButton>
+      {consentError ? <Text color="$error">{getMessage("vi", "consentRequired")}</Text> : null}
+    </SectionCard> : null}
+    {failed ? <StatusBanner tone="warning" title={getMessage("vi", "localSaveErrorTitle")} description={getMessage("vi", "localSaveErrorBody")} /> : null}
+    <AppButton disabled={busy} onPress={form.handleSubmit((value) => { if (!accepted) { setConsentError(true); return; } onSave(value, accepted); })}>{getMessage("vi", "continue")}</AppButton>
+    {onReceive ? <AppButton variant="secondary" disabled={busy} onPress={onReceive}>{getMessage("vi", "continueToInvitation")}</AppButton> : null}
+    <AppButton variant="ghost" disabled={busy} onPress={onSkip}>{getMessage("vi", "skipToHome")}</AppButton>
+  </AppScreen>;
 }
 
 export function OnboardingScreen() {
   const router = useRouter();
+  const { start } = useLocalSearchParams<{ start?: string }>();
   const accountId = useSessionStore((state) => state.activeAccountId);
-  const [snapshot, setSnapshot] = useState<LocalAccountSnapshot | null>(null);
+  const [account, setAccount] = useState<LocalAccountSnapshot | null>(null);
+  const [step, setStep] = useState<"profile" | "partner" | "relation">("profile");
+  const [relation, setRelation] = useState<"long_distance" | "same_city" | null>(null);
+  const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [loadFailed, setLoadFailed] = useState(false);
-
+  const pending = useRef(false);
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let active = true;
-    if (!accountId) return () => { active = false; };
-    void localOnboardingService.getAccountSnapshot(accountId).then((next) => {
-      if (active) {
-        setSnapshot(next);
-        setLoadFailed(false);
-      }
-    }).catch(() => {
-      if (active) setLoadFailed(true);
-    });
+    setAccount(null);
+    setFailed(false);
+    if (!accountId) return;
+    void localOnboardingService.getAccountSnapshot(accountId).then((value) => {
+      if (!active) return;
+      setAccount(value);
+      setRelation(value.profile.relationType);
+      setStep(inviteIntent.getCode() ? "profile" : start === "partner" ? "partner" : start === "profile" ? "profile" : value.setupStatus === "pending" ? value.setupStep : "partner");
+    }).catch(() => { if (active) setFailed(true); });
     return () => { active = false; };
-  }, [accountId]);
+  }, [accountId, start, attempt]);
 
-  useEffect(() => {
-    if (snapshot?.onboardingStep === "complete") router.replace("/(invite)");
-  }, [router, snapshot?.onboardingStep]);
-
-  const update = async (operation: () => Promise<LocalAccountSnapshot>): Promise<boolean> => {
-    if (!accountId || busy) return false;
-    setBusy(true);
-    setLoadFailed(false);
-    try {
-      setSnapshot(await operation());
-      return true;
-    } catch {
-      setLoadFailed(true);
-      return false;
-    } finally {
-      setBusy(false);
-    }
+  const run = async (action: () => Promise<void>) => {
+    if (!accountId || pending.current) return;
+    pending.current = true; setBusy(true); setFailed(false);
+    try { await action(); } catch { setFailed(true); }
+    finally { pending.current = false; setBusy(false); }
   };
+  const finish = async (deferred: boolean, receive = false) => {
+    if (!accountId) return;
+    await localOnboardingService.finishSetup(accountId, deferred);
+    if (!receive) inviteIntent.clear();
+    router.replace(receive ? "/(invite)" : "/(main)");
+  };
+  const skip = () => { void run(() => finish(true)); };
+  if (!accountId) return <AppScreen><AsyncStateView variant="error" title="localOnboardingUnavailableTitle" description="localOnboardingUnavailableBody" actionLabel="retry" onAction={() => router.replace("/(auth)")} /></AppScreen>;
+  if (!account || account.accountId !== accountId) return <AppScreen><AsyncStateView variant={failed ? "error" : "loading"} title={failed ? "localOnboardingUnavailableTitle" : "loadingTitle"} description={failed ? "localOnboardingUnavailableBody" : "loadingDescription"} actionLabel={failed ? "retry" : undefined} onAction={() => setAttempt((value) => value + 1)} /><AppButton variant="ghost" disabled={busy} onPress={skip}>{getMessage("vi", "skipToHome")}</AppButton></AppScreen>;
 
-  if (!accountId) {
-    return <AppScreen><AsyncStateView variant="error" title="localOnboardingUnavailableTitle" description="localOnboardingUnavailableBody" actionLabel="retry" onAction={() => router.replace("/(auth)")} /></AppScreen>;
-  }
+  if (step === "profile") return <QuickProfile key={accountId} account={account} busy={busy} failed={failed} onSkip={skip}
+    onReceive={inviteIntent.getCode() ? () => { void run(() => finish(false, true)); } : undefined}
+    onSave={(value, consent) => { void run(async () => {
+      if (!account.consentedAt && consent) await localOnboardingService.acceptConsent(accountId);
+      await localOnboardingService.saveProfile(accountId, value);
+      if (inviteIntent.getCode()) { await finish(false, true); return; }
+      setAccount(await localOnboardingService.advanceSetup(accountId, "partner"));
+      setStep("partner");
+    }); }} />;
 
-  if (loadFailed && !snapshot) {
-    return <AppScreen><AsyncStateView variant="error" title="localOnboardingUnavailableTitle" description="localOnboardingUnavailableBody" actionLabel="retry" onAction={() => { setLoadFailed(false); void localOnboardingService.getAccountSnapshot(accountId).then(setSnapshot).catch(() => setLoadFailed(true)); }} /></AppScreen>;
-  }
-
-  if (!snapshot) return <AppScreen><AsyncStateView variant="loading" title="loadingTitle" description="loadingDescription" /></AppScreen>;
-
-  switch (snapshot.onboardingStep) {
-    case "consent":
-      return <ConsentStep busy={busy} saveFailed={loadFailed} onContinue={() => void update(() => localOnboardingService.acceptConsent(accountId))} />;
-    case "profile":
-      return <ProfileStep snapshot={snapshot} busy={busy} saveFailed={loadFailed} onSave={(value) => void update(() => localOnboardingService.saveProfile(accountId, value))} />;
-    case "care":
-      return <CareStep snapshot={snapshot} busy={busy} saveFailed={loadFailed} onSave={(preferences, note) => void update(() => localOnboardingService.saveCarePreferences(accountId, preferences, note))} />;
-    case "relation":
-      return <RelationStep busy={busy} saveFailed={loadFailed} onSave={(relationType) => void update(() => localOnboardingService.saveRelationType(accountId, relationType))} />;
-    case "complete":
-      return null;
-    default:
-      return <AppScreen><AsyncStateView variant="error" title="localOnboardingUnavailableTitle" description="localOnboardingUnavailableBody" actionLabel="retry" onAction={() => router.replace("/(auth)")} /></AppScreen>;
-  }
+  return <AppScreen>
+    <AppHeader eyebrow={getMessage("vi", "onboardingEyebrow")} title={getMessage("vi", step === "partner" ? "partnerQuestionTitle" : "relationTitle")} subtitle={getMessage("vi", step === "partner" ? "partnerQuestionBody" : "relationBody")} />
+    {step === "partner" ? <>
+      <YStack alignItems="center" paddingVertical="$xl"><HeartHandshake size={72} color="$primary" aria-hidden={true} /></YStack>
+      <AppButton disabled={busy} onPress={() => { void run(async () => { setAccount(await localOnboardingService.advanceSetup(accountId, "relation")); setStep("relation"); }); }}>{getMessage("vi", "pairNow")}</AppButton>
+      <AppButton variant="secondary" disabled={busy} onPress={skip}>{getMessage("vi", "noPartnerYet")}</AppButton>
+    </> : <>
+      <SectionCard tone={relation === "long_distance" ? "peach" : "default"}>
+        <AppButton variant="ghost" icon={<MapPin size={20} />} aria-pressed={relation === "long_distance"} disabled={busy} onPress={() => setRelation("long_distance")}>{getMessage("vi", "relationLongDistance")}</AppButton>
+        <Text color="$textSecondary">{getMessage("vi", "relationLongDistanceBody")}</Text>
+      </SectionCard>
+      <SectionCard tone={relation === "same_city" ? "peach" : "default"}>
+        <AppButton variant="ghost" icon={<MapPin size={20} />} aria-pressed={relation === "same_city"} disabled={busy} onPress={() => setRelation("same_city")}>{getMessage("vi", "relationNearby")}</AppButton>
+        <Text color="$textSecondary">{getMessage("vi", "relationSameCityBody")}</Text>
+      </SectionCard>
+      <AppButton disabled={!relation || busy} onPress={() => { void run(async () => {
+        if (!relation) return;
+        await localOnboardingService.saveRelationType(accountId, relation);
+        await localOnboardingService.finishSetup(accountId);
+        router.replace("/(invite)");
+      }); }}>{getMessage("vi", "continue")}</AppButton>
+    </>}
+    {failed ? <StatusBanner tone="warning" title={getMessage("vi", "localSaveErrorTitle")} description={getMessage("vi", "localSaveErrorBody")} /> : null}
+    <AppButton variant="ghost" disabled={busy} onPress={skip}>{getMessage("vi", "skipToHome")}</AppButton>
+  </AppScreen>;
 }

@@ -4,11 +4,11 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AppScreen } from "../src/shared/components";
 import { FoundationScreen } from "../src/shared/components/FoundationScreen";
-import { SessionInitializer } from "./providers/SessionInitializer";
-import { TamaguiProvider } from "./providers/TamaguiProvider";
-import { QueryProvider } from "./providers/QueryProvider";
+import { SessionInitializer } from "../src/providers/SessionInitializer";
+import { TamaguiProvider } from "../src/providers/TamaguiProvider";
+import { QueryProvider } from "../src/providers/QueryProvider";
 import { colors } from "../src/shared/constants/tokens";
-import { revealStartupError, StartupProvider } from "./providers/StartupProvider";
+import { revealStartupError, StartupProvider } from "../src/providers/StartupProvider";
 import { View } from "react-native";
 
 type RootErrorBoundaryProps = { error: Error; retry: () => void };
