@@ -35,7 +35,8 @@ def update_my_profile(
         full_name=payload.full_name,
         avatar_url=payload.avatar_url,
         birth_date=payload.birth_date,
-        gender=payload.gender
+        gender=payload.gender,
+        username=payload.username,
     )
     return ok(UserProfileResponse.from_model(user).model_dump())
 

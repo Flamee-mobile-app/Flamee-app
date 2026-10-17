@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.models.couple import Couple, InviteCode
 
@@ -40,13 +40,24 @@ class GetInviteResponse(BaseModel):
 
 
 class AcceptInviteRequest(BaseModel):
-    code: str = Field(min_length=4, max_length=64)
+    code: str = Field(min_length=6, max_length=6, pattern=r"^[A-Z0-9]{6}$")
+
+    @field_validator("code", mode="before")
+    @classmethod
+    def normalize_code(cls, value: object) -> object:
+        return value.strip().upper() if isinstance(value, str) else value
 
 
 class MemberInfo(BaseModel):
     id: str
     full_name: str
     avatar_url: str | None = None
+
+
+class InvitePreviewResponse(BaseModel):
+    code: str
+    expires_at: str
+    inviter: MemberInfo
 
 
 class CoupleResponse(BaseModel):

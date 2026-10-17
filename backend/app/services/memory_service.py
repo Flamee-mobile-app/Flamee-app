@@ -156,7 +156,7 @@ class MemoryService:
             id=file_id,
             memory_id=memory_id,
             url=public_url,
-            thumbnail_url=public_url,
+            thumbnail_url=None,
             uploaded_by=user_id,
             width=None,
             height=None,

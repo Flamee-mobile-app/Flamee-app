@@ -1,3 +1,5 @@
+> **Tài liệu lịch sử — không dùng làm contract hiện tại.** Bản này mô tả kiến trúc mock/seed cũ không còn trong source. Theo quyết định 2026-10-17, OTP thử nghiệm đã bị gỡ, hai endpoint recovery trả 501; ảnh mới chưa có thumbnail trả `thumbnail_url: null`. Dùng source/OpenAPI và [kế hoạch backend](../../.doc/BACKEND-FIRST-CLEANUP.md), không chạy hướng dẫn seed/reset dưới đây.
+
 # Flamee — API Reference
 
 Tài liệu tham chiếu chi tiết cho REST API của Flask clone "Flamee" (ứng dụng nhật ký đôi — MVP Phase 1).

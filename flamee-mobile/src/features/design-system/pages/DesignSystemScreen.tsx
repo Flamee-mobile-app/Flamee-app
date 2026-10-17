@@ -295,7 +295,7 @@ function ToastPreview() {
       <AppButton fill variant="secondary" onPress={() => appToast.warning(getMessage(locale, "permissionTitle"), { description: getMessage(locale, "permissionDescription") })}>
         Warning toast
       </AppButton>
-      <AppButton fill variant="secondary" onPress={() => appToast.info(getMessage(locale, "localSessionLabel"), { description: getMessage(locale, "localSessionDescription") })}>
+      <AppButton fill variant="secondary" onPress={() => appToast.info(getMessage(locale, "serviceUnavailableTitle"), { description: getMessage(locale, "serviceUnavailableBody") })}>
         Info toast
       </AppButton>
       <AppButton fill variant="secondary" onPress={() => appToast.loading(getMessage(locale, "loadingTitle"), { description: getMessage(locale, "loadingDescription") })}>

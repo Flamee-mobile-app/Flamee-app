@@ -12,7 +12,6 @@ import { useSessionStore } from "../../../shared/state/sessionStore";
 import { AppButton, AppField, AppHeader, AppScreen, appToast, AsyncStateView, ContentSurface, SectionCard } from "../../../shared/components";
 import { formatMessage, getMessage, type MessageKey } from "../../../shared/localization/messages";
 import { authService } from "../../auth/authRuntime";
-import { localOnboardingService } from "../../onboarding";
 import { InviteCodeCard } from "../components/InviteCodeCard";
 import { inviteIntent, invitationURL } from "../inviteIntent";
 import { InviteApiError, inviteService, type InviteApiErrorCode, type InvitePreview, type ServerInvite } from "../index";
@@ -202,7 +201,6 @@ export function InviteScreen({ initialMode = "choose" }: { initialMode?: "choose
       const result = await inviteService.accept(code);
       if (useSessionStore.getState().activeAccountId !== accountId) return;
       setActiveCouple(result.id);
-      await localOnboardingService.finishSetup(accountId);
       inviteIntent.clear();
       router.replace("/(main)");
     } catch (error) {
@@ -219,7 +217,6 @@ export function InviteScreen({ initialMode = "choose" }: { initialMode?: "choose
     if (!accountId || pending.current) return;
     pending.current = true; setBusy(true);
     try {
-      await localOnboardingService.finishSetup(accountId, true);
       inviteIntent.clear();
       router.replace("/(main)");
     } catch { setLoadFailed(true); }

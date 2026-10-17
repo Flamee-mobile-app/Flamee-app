@@ -1,4 +1,3 @@
-export * from "./localNudgeService.ts";
 export * from "./components/NudgeFeedbackSheet";
 export * from "./pages/NudgeScreen";
 export * from "./pages/TasksScreen";

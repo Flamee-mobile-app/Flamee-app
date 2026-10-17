@@ -50,6 +50,7 @@ CREATE TABLE users (
     email TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     full_name TEXT NOT NULL,
+    username TEXT, -- Biệt danh tùy chọn, không unique, tối đa 40 ký tự sau trim
     avatar_url TEXT,
     birth_date TEXT,
     gender TEXT,
@@ -58,6 +59,23 @@ CREATE TABLE users (
     updated_at TEXT NOT NULL
 );
 ```
+
+### Contract `username` — 2026-10-17
+
+- `username` là biệt danh hiển thị của chính user, tách với `full_name`, email
+  đăng nhập và biệt danh người yêu trên mobile. Cho phép tiếng Việt, khoảng
+  trắng bên trong và các tài khoản trùng biệt danh; không dùng để đăng nhập.
+- Tùy chọn khi `POST /api/v1/auth/register`; mặc định `null`. Server trim hai
+  đầu rồi giới hạn 40 ký tự. Biệt danh rỗng được lưu thành `null`.
+- `GET/PUT /api/v1/users/me` và `GET/PUT /api/v1/auth/me` cùng đọc/sửa trường
+  này. Login/register cũng trả `username` trong `data.user`. Token quyết định
+  tài khoản được sửa; không nhận user ID để đổi chủ thể cập nhật.
+- Với PUT, bỏ trường hoặc gửi `null` giữ nguyên giá trị, giống các trường profile
+  hiện có. Gửi `{"username":""}` để bỏ biệt danh. Quá 40 ký tự sau trim trả 422.
+- Cần review và áp dụng `../migrations/20261017_profile_username.sql` trước
+  khi sử dụng các thao tác ghi với backend mới. Migration chỉ thêm cột nullable
+  và CHECK, không backfill tên giả hoặc đặt biệt danh cho tài khoản cũ.
+- Mobile form hồ sơ đã nối GET/PUT `/auth/me` cho `full_name` và `username`. Chỉ báo lưu sau response server hợp lệ; không còn lưu hồ sơ vào service local. Migration ở trên vẫn chưa được agent áp dụng; chưa kiểm tra ghi hồ sơ trên dịch vụ thật.
 
 ### 3.2. `couples`
 

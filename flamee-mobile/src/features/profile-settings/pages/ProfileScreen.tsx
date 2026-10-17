@@ -12,7 +12,6 @@ import { AppHeader, AppMenuRow, AppScreen, SectionCard } from "../../../shared/c
 import { featureTokens, menuTokens } from "../../../shared/constants/tokens";
 import { getMessage, type MessageKey } from "../../../shared/localization/messages";
 import { useFabActions } from "../../main-navigation";
-import { PremiumPreview } from "../components/PremiumPreview";
 import { profileSettingsSections } from "../settingsSections";
 
 const rowDetails: Record<(typeof profileSettingsSections)[number], { key: MessageKey; icon: typeof UserRound }> = {
@@ -83,9 +82,6 @@ export function ProfileScreen() {
               ) : null}
           </MenuGroup>
         ))}
-        <MenuGroup title={getMessage("vi", "profileSubscriptionGroup")} tone="peach">
-          <PremiumPreview />
-        </MenuGroup>
         <MenuGroup title={getMessage("vi", "profileAlsoFlameeGroup")}>
             {quickActions.map((action) => (
               <AppMenuRow key={action.key} testID={`profile-quick-${action.key}`} label={action.label} icon={action.icon} onPress={action.onPress} />

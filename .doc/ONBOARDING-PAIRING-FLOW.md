@@ -1,8 +1,25 @@
+> **Quyết định triển khai ngày 2026-10-17:** đã gỡ toàn bộ service mô phỏng nghiệp vụ local khỏi mobile. Auth/invite/profile dùng API thật; các feature chưa tích hợp hiển thị chưa khả dụng. Setup local, gift local, popup ghép đôi local, outbox và cross-device chưa được coi là triển khai. Xem [bản trạng thái và kế hoạch backend](BACKEND-FIRST-CLEANUP.md); ghi chú này thay thế các mô tả local runtime cũ bên dưới.
+
 # Flamee — luồng sau đăng nhập và ghép đôi tùy chọn
 
-Ngày: 2026-10-11. Trạng thái: người dùng đã đồng ý flow và tạm ẩn 24 giờ; **đã triển khai phần local, chưa xác nhận runtime thiết bị**. Phạm vi: điều hướng sau đăng nhập, hồ sơ nhanh, lời mời, Home chưa ghép đôi và lời nhắc ghép đôi. Auth/backend/cross-device vẫn chưa tích hợp.
+Ngày: 2026-10-11; cập nhật auth, entry route và invite backend 2026-10-14. Trạng thái: create/preview/revoke/accept invite trên mobile đã gọi backend; creator polling mỗi 5 giây khi app foreground. Migration giao dịch atomic nằm tại `backend/migrations/20261014_invite_flow.sql` và phải được review rồi áp dụng lên Supabase trước khi kiểm tra cross-device. Chưa xác nhận device E2E.
+
+### Contract invite backend ngày 2026-10-14
+
+- Mã gồm đúng 6 ký tự chữ hoa hoặc số, hiệu lực 72 giờ; tạo lại hủy mã pending cũ.
+- `POST /couple/invite-code`, `GET /couple/invite-code`, `DELETE /couple/invite-code` lần lượt tạo, đọc và thu hồi mã của user hiện tại.
+- `POST /couple/validate-invite` trả preview người mời nhưng không ghép đôi. `POST /couple/accept-invite` ghép đôi bằng PostgreSQL RPC có khóa hàng và transaction.
+- Client xử lý riêng các trạng thái `invite_not_found`, `invite_expired`, `invite_cancelled`, `invite_used`, `self_invite`, `already_paired` và `inviter_already_paired`.
+- Dữ liệu server và `user.couple_id` là bằng chứng ghép đôi. Gift/lời chúc local không thuộc contract backend này và đã được bỏ khỏi bước xác nhận server-backed.
 
 Tài liệu này thay thế yêu cầu bắt buộc hoàn tất onboarding/ghép đôi trước khi vào Home trong mục 2 và 8 của [spec local](FLAMEE-LOCAL-MAINFLOW-SPEC.md). Kiến trúc feature-owned, ranh giới local/production và privacy vẫn áp dụng.
+
+### Quyết định entry sau đăng nhập ngày 2026-10-14
+
+- Kết quả login/register từ backend là nguồn quyết định entry ban đầu. `user.couple_id` có giá trị đi thẳng tới Home; `user.couple_id` rỗng đi tới màn tạo/nhập mã mời.
+- Tiến độ setup local không còn chặn entry sau đăng nhập. Hồ sơ nhanh và các tùy chọn chăm sóc vẫn có thể cập nhật sau, nhưng không được đưa session hợp lệ quay lại Login hoặc ép qua onboarding trước màn lời mời.
+- Khôi phục session khi app mở không được ghi kết quả cũ đè lên một session vừa được tạo bởi login/register trong lúc bootstrap còn chạy.
+- Quyết định này thay thế các đoạn dưới đây nếu chúng còn mô tả “login lần đầu → hồ sơ nhanh” như một entry bắt buộc.
 
 ## 1. Luồng chính
 
@@ -43,7 +60,7 @@ Popup hiển thị trên Home sau khi membership đã cập nhật. Người g�
 | Nhận | Kiểm tra mã/link, xem người mời, lời nhắn và quà | Xác nhận kết nối | Để sau → Home, chưa ghép đôi |
 | Thành công | Popup thông báo ghép đôi và lời chúc của đối phương | Đóng popup / xem quà | Đóng để tiếp tục dùng Home |
 
-Mọi bước thiết lập đều có đường vào Home. Bỏ qua không tự điền hồ sơ, chọn khoảng cách, tạo lời mời, chấp nhận lời mời hoặc ghi nhận consent. Care preferences hiện có chuyển thành phần cập nhật tùy chọn sau đó; không chặn luồng mới.
+Mọi bước thiết lập đều có đường vào Home. Bỏ qua không tự điền hồ sơ, chọn khoảng cách, tạo lời mời hoặc chấp nhận lời mời. Theo quyết định trực tiếp ngày 2026-10-14, flow hiện tại không hiển thị trang Điều khoản/Chính sách quyền riêng tư và không tự ghi consent. Care preferences hiện có chuyển thành phần cập nhật tùy chọn sau đó; không chặn luồng mới.
 
 ## 3. Người gửi
 
@@ -117,19 +134,19 @@ Lời nhắc đề xuất là banner/thẻ nhỏ trong Home, không modal chặn
 ### Quy tắc entry đích
 
 1. Chưa có phiên → Auth, giữ ý định lời mời hợp lệ đang xử lý.
-2. Có ý định nhận lời mời chủ động → nhánh nhận/xác nhận; hồ sơ nhanh tùy chọn nếu chưa xử lý.
-3. Lần đầu sau login chưa được giới thiệu setup → hồ sơ nhanh và câu hỏi kết nối, có thể bỏ qua.
-4. Setup đã hoàn tất **hoặc đã chọn để sau**, không có ý định nhận mới → Home, kể cả none/waiting/paired/ended.
+2. Session backend có `couple_id` → Home.
+3. Session backend chưa có `couple_id` → màn lời mời; nếu có invite intent thì tiếp tục nhánh nhận/xác nhận, nếu không thì hiển thị lựa chọn tạo hoặc nhập mã.
+4. Tiến độ setup local không quyết định entry root và không được ghi đè session vừa đăng nhập.
 5. Waiting chỉ mở khi người dùng tạo/xem lời mời; không là đích entry bắt buộc.
 
-Ghi riêng tiến độ đã xem/bỏ qua setup, hồ sơ đã lưu, consent và membership. Không dùng onboardingStep=complete làm bằng chứng đã điền hồ sơ/đồng ý consent/ghép đôi. Consent hiện được service yêu cầu trước khi lưu hồ sơ: giữ xác nhận chủ động tại thao tác cần nó; không tự ghi khi skip. Nội dung điều khoản không thuộc quyết định thay flow này.
+Ghi riêng tiến độ đã xem/bỏ qua setup, hồ sơ đã lưu và membership. Không dùng onboardingStep=complete làm bằng chứng đã điền hồ sơ hoặc ghép đôi. Metadata consent cũ chỉ được giữ để tương thích dữ liệu; UI và service mới không yêu cầu, không tự ghi và không dùng nó làm gate.
 
 ### Phạm vi source liên quan
 
 | Module hiện có | Thay đổi cần thực hiện |
 |---|---|
-| auth/pages/AuthScreen.tsx, app/index.tsx, shared/navigation/entryRoute.ts | Đã dùng route đích rõ group, setupStatus riêng và nhánh bỏ qua; chưa xác nhận tương tác mock login trên thiết bị |
-| onboarding/localOnboardingService.ts và OnboardingScreen | Metadata giới thiệu/để sau tách khỏi consent; hồ sơ nhanh, câu hỏi nửa kia, khoảng cách tùy chọn |
+| auth/pages/AuthScreen.tsx, SessionInitializer.tsx, sessionStore.ts, app/index.tsx, shared/navigation/entryRoute.ts | Email/password auth gọi backend; lưu account/couple server atomically; bỏ kết quả bootstrap cũ; chưa ghép đôi vào lời mời, đã ghép đôi vào Home; chưa xác nhận E2E trên thiết bị |
+| onboarding/localOnboardingService.ts và OnboardingScreen | Hồ sơ nhanh đi thẳng vào setup; không có trang consent; câu hỏi nửa kia và khoảng cách vẫn tùy chọn |
 | invites service/types/schemas và InviteScreen | Ý định nhận qua auth, lời nhắn + attachment mascot/ảnh, lời chúc trả lại, xác nhận rõ ràng |
 | couple/WaitingScreen và paired success | Rời waiting không thu hồi; kết quả ghép đôi chuyển Home và popup một lần |
 | home/HomeScreen | Home không cần partner để render; none/waiting/paired và lời nhắc không chặn |
@@ -142,7 +159,7 @@ Không đưa lời nhắn, lời chúc, media URI hoặc invite credential vào 
 
 ### Contract local đã cập nhật
 
-- Onboarding snapshot có setupStatus (pending/completed/deferred) và setupStep (profile/partner/relation), tách khỏi consent và legacy onboardingStep. advanceSetup/finishSetup không tạo consent hoặc profile giả.
+- Onboarding snapshot có setupStatus (pending/completed/deferred) và setupStep (profile/partner/relation). `advanceSetup`/`finishSetup` không tạo consent hoặc profile giả; tài khoản mới bắt đầu ở bước profile.
 - LocalInvite có message tối đa 200 ký tự độc lập gift nullable. attachGift(inviteId, gift, message) nhận null để chỉ lưu lời nhắn. InviteGift thêm mascot/flamee với heart/hug/flower; photo/voice/text cũ vẫn hợp lệ.
 - acceptInvite(..., greeting?) tạo membership và notice cho từng account; getPairingNotice kiểm tra couple hiện tại, acknowledgePairingNotice đánh dấu đã xem. Quà media/text và lời nhắn độc lập được chuyển sang Moment khi có loại phù hợp; mascot không bị đổi thành media giả.
 - couple/getMembership giải phóng trạng thái waiting hết hạn; thao tác kiểm tra/ghi hai membership trong accept không có await xen giữa. Waiting dùng getLatestInvite để vẫn trình bày được trạng thái hết hạn.
@@ -151,13 +168,13 @@ Không đưa lời nhắn, lời chúc, media URI hoặc invite credential vào 
 
 ## 8. Ranh giới triển khai và tiêu chí nghiệm thu sau này
 
-Giai đoạn local có thể triển khai UI, skip, Home, popup và accept giữa các account trong cùng process. Đăng ký/login thật, link qua cài đặt, ghép hai thiết bị, cập nhật người gửi khi người nhận accept, upload ảnh và push cần tích hợp auth/backend; không báo chúng đã hoạt động bằng mock session.
+Email/password register/login đã nối backend; phiên được mở từ identity server và có SecureStore tùy chọn. UI, skip, Home, popup và accept vẫn thuộc luồng local giữa các account trong cùng process. Link qua cài đặt, ghép hai thiết bị, cập nhật người gửi khi người nhận accept, upload ảnh và push cần tích hợp backend riêng; không suy ra chúng đã hoạt động từ việc auth kết nối thành công.
 
 Các tiêu chí cần kiểm tra khi được yêu cầu triển khai/kiểm tra:
 
-1. Login lần đầu đi vào hồ sơ nhanh; account đã xử lý setup không bị ép chạy lại.
+1. Login thành công giữ session; account chưa có `couple_id` đi vào màn tạo/nhập mã, account đã có `couple_id` đi vào Home.
 2. Skip từ từng bước vào Home, không vòng lặp quay về onboarding/invite.
-3. Home none/waiting hiển thị được, không seed profile/partner/couple/consent.
+3. Home none/waiting hiển thị được, không seed profile/partner/couple hoặc consent.
 4. Sender vào Home trước nhưng mã vẫn dùng được; recipient xác nhận thì mới paired.
 5. Nhận lời mời qua Login/Register không mất ý định và không tự accept.
 6. Lời nhắn đi kèm quà/ảnh; thiếu lời chúc trả lại không tạo lời chúc giả của đối phương.

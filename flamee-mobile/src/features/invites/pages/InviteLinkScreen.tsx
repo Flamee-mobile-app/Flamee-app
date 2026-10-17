@@ -3,7 +3,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { AppScreen, AsyncStateView, AppButton } from "../../../shared/components";
 import { getMessage } from "../../../shared/localization/messages";
 import { useSessionStore } from "../../../shared/state/sessionStore";
-import { localOnboardingService } from "../../onboarding";
 import { inviteIntent } from "../inviteIntent";
 
 // External URL ingress only: remove the code from navigation once captured.
@@ -15,15 +14,11 @@ export function InviteLinkScreen() {
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
-    let active = true;
     if (!bootstrapped) return;
     setFailed(false);
     if (typeof code !== "string" || !inviteIntent.setCode(code)) { setFailed(true); return; }
     if (!accountId) { router.replace("/(auth)"); return; }
-    void localOnboardingService.getAccountSnapshot(accountId).then((account) => {
-      if (active) router.replace(account.setupStatus === "pending" ? "/(onboarding)" : "/(invite)");
-    }).catch(() => { if (active) setFailed(true); });
-    return () => { active = false; };
+    router.replace("/(invite)");
   }, [bootstrapped, accountId, code, router, attempt]);
   return <AppScreen>
     <AsyncStateView variant={failed ? "error" : "loading"} title={failed ? "inviteNotFoundTitle" : "loadingTitle"} description={failed ? "inviteNotFoundBody" : "loadingDescription"} actionLabel={failed ? "retry" : undefined} onAction={failed ? () => setAttempt((value) => value + 1) : undefined} />

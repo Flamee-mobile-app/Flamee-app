@@ -1,10 +1,12 @@
 from pydantic import BaseModel, Field
 from typing import Optional
+from app.schemas.common import Username
 
 class UserProfileResponse(BaseModel):
     id: str
     email: str
     full_name: str
+    username: Optional[str] = None
     avatar_url: Optional[str] = None
     birth_date: Optional[str] = None
     gender: Optional[str] = None
@@ -18,6 +20,7 @@ class UserProfileResponse(BaseModel):
             id=model.id,
             email=model.email,
             full_name=model.full_name,
+            username=model.username,
             avatar_url=model.avatar_url,
             birth_date=model.birth_date,
             gender=model.gender,
@@ -27,6 +30,7 @@ class UserProfileResponse(BaseModel):
         )
 
 class UpdateProfileRequest(BaseModel):
+    username: Optional[Username] = None
     full_name: Optional[str] = Field(None, min_length=2)
     avatar_url: Optional[str] = None
     birth_date: Optional[str] = None

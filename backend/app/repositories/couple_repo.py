@@ -9,6 +9,28 @@ class CoupleRepository(BaseRepository[Couple]):
     table = COUPLES
     model_cls = Couple
 
+    def accept_invite_atomic(
+        self,
+        *,
+        invitee_id: str,
+        code: str,
+        couple_id: str,
+        now_iso: str,
+    ) -> dict:
+        response = self.db.rpc(
+            "accept_couple_invite",
+            {
+                "p_invitee_id": invitee_id,
+                "p_code": code,
+                "p_couple_id": couple_id,
+                "p_now": now_iso,
+            },
+        ).execute()
+        data = response.data
+        if isinstance(data, list):
+            return data[0] if data else {"outcome": "invite_not_found"}
+        return data or {"outcome": "invite_not_found"}
+
 
 
 class InviteCodeRepository(BaseRepository[InviteCode]):

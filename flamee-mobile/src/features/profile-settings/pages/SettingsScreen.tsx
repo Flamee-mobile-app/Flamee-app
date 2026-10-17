@@ -1,84 +1,68 @@
-import { useEffect, useState } from "react";
-import { Text, XStack, YStack } from "tamagui";
+import { useCallback, useRef, useState } from "react";
+import { useFocusEffect } from "expo-router";
+import { YStack } from "tamagui";
 import { useSessionStore } from "../../../shared/state/sessionStore";
-import { AppButton, AppField, AppFilterChip, AppHeader, AppScreen, SectionCard, StatusBanner, appToast } from "../../../shared/components";
+import { AppButton, AppField, AsyncStateView, FeatureScreen, StatusBanner, appToast } from "../../../shared/components";
 import { getMessage } from "../../../shared/localization/messages";
-import { carePreferenceIds } from "../../onboarding";
+import { authService, type AuthSession } from "../../auth";
 import { AccountLifecycleScreen } from "../../account-lifecycle";
 import { NotificationSettingsScreen } from "./NotificationSettingsScreen";
-import { localSettingsService, type LocalSettingsSnapshot } from "../localSettingsService";
 import { resolveSettingsSection } from "../settingsSections";
 
 export function SettingsScreen({ initialSection = "menu" }: { initialSection?: string }) {
   const accountId = useSessionStore((session) => session.activeAccountId);
   const section = resolveSettingsSection(initialSection);
-  const [settings, setSettings] = useState<LocalSettingsSnapshot | null>(null);
+  const [profile, setProfile] = useState<AuthSession | null>(null);
   const [loading, setLoading] = useState(true);
-  const [loadFailed, setLoadFailed] = useState(false);
+  const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [displayName, setDisplayName] = useState("");
-  const [partnerNickname, setPartnerNickname] = useState("");
-  const [timezone, setTimezone] = useState("Asia/Ho_Chi_Minh");
-  const [care, setCare] = useState<string[]>([]);
-  const [careNote, setCareNote] = useState("");
-  const [error, setError] = useState(false);
-  const loadSettings = async () => {
-    if (!accountId) { setLoading(false); setLoadFailed(true); return; }
-    setLoading(true);
-    setLoadFailed(false);
+  const [username, setUsername] = useState("");
+  const [saveFailed, setSaveFailed] = useState(false);
+  const revision = useRef(0);
+  const pending = useRef(false);
+  const load = useCallback(async () => {
+    const request = ++revision.current;
+    setLoading(true); setFailed(false); setProfile(null); setSaveFailed(false);
     try {
-      const result = await localSettingsService.getSettings(accountId);
-      setSettings(result);
-      setDisplayName(result.profile.displayName);
-      setPartnerNickname(result.profile.partnerNickname);
-      setTimezone(result.profile.timezone);
-      setCare(result.profile.carePreferences);
-      setCareNote(result.profile.careNote);
-    } catch {
-      setLoadFailed(true);
-    } finally {
-      setLoading(false);
-    }
-  };
-  useEffect(() => {
-    if (section === "profile" || section === "care") void loadSettings();
-    else setLoading(false);
-  }, [accountId, section]);
+      const session = await authService.refreshCurrentSession();
+      if (request !== revision.current || useSessionStore.getState().activeAccountId !== accountId) return;
+      if (!session || session.accountId !== accountId) throw new Error("Session unavailable");
+      setProfile(session);
+      setDisplayName(session.user.full_name);
+      setUsername(session.user.username ?? "");
+    } catch { if (request === revision.current) setFailed(true); }
+    finally { if (request === revision.current) setLoading(false); }
+  }, [accountId]);
+  useFocusEffect(useCallback(() => {
+    if (section === "profile") void load();
+    return () => { revision.current += 1; };
+  }, [section, load]));
 
-  const saveProfile = async () => {
-    if (!accountId) { setError(true); return; }
-    setBusy(true); 
-    const result = await localSettingsService.updateProfile(accountId, { displayName, partnerNickname, timezone });
-    setBusy(false); setError(result.kind !== "updated"); if (result.kind === "updated") appToast.success(getMessage("vi", "settingsSaved"));
-    if (result.kind === "updated") setSettings(result.settings);
+  const invalid = !displayName.trim() || displayName.trim().length > 120 || Array.from(username.trim()).length > 40;
+  const save = async () => {
+    if (pending.current || invalid || profile?.accountId !== accountId) return;
+    pending.current = true; setBusy(true); setSaveFailed(false);
+    const request = revision.current;
+    try {
+      const session = await authService.updateProfile({ full_name: displayName.trim(), username: username.trim() });
+      if (request !== revision.current || useSessionStore.getState().activeAccountId !== accountId) return;
+      setProfile(session); setDisplayName(session.user.full_name); setUsername(session.user.username ?? "");
+      appToast.success(getMessage("vi", "settingsSaved"));
+    } catch { if (request === revision.current) setSaveFailed(true); }
+    finally { pending.current = false; setBusy(false); }
   };
-  const saveCare = async () => {
-    if (!accountId) { setError(true); return; }
-    setBusy(true); 
-    const result = await localSettingsService.updateCarePreferences(accountId, care, careNote);
-    setBusy(false); setError(result.kind !== "updated"); if (result.kind === "updated") appToast.success(getMessage("vi", "settingsSaved"));
-    if (result.kind === "updated") setSettings(result.settings);
-  };
-  const toggleCare = (id: string) => setCare((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
-
-  if ((section === "profile" || section === "care") && (loading || (!loadFailed && accountId !== null && settings?.accountId !== accountId))) {
-    return <AppScreen><AppHeader showBack title={getMessage("vi", "settingsTitle")} /><StatusBanner tone="info" title={getMessage("vi", "loadingTitle")} description={getMessage("vi", "loadingDescription")} /></AppScreen>;
-  }
-  if ((section === "profile" || section === "care") && (loadFailed || !settings)) {
-    return <AppScreen><AppHeader showBack title={getMessage("vi", "settingsTitle")} /><StatusBanner tone="warning" title={getMessage("vi", "settingsLoadError")} /><AppButton variant="secondary" onPress={() => void loadSettings()}>{getMessage("vi", "retry")}</AppButton></AppScreen>;
-  }
-
-  return (
-    <AppScreen>
-      <AppHeader showBack title={getMessage("vi", section === "profile" ? "profileEditTitle" : section === "care" ? "careSettingsTitle" : section === "notifications" ? "notificationSettingsTitle" : "settingsTitle")} />
-      {section === "profile" ? <YStack gap="$lg"><AppField label={getMessage("vi", "displayNameLabel")} value={displayName} onChangeText={setDisplayName} maxLength={40} /><AppField label={getMessage("vi", "nicknameLabel")} value={partnerNickname} onChangeText={setPartnerNickname} maxLength={40} /><AppButton disabled={busy} onPress={() => void saveProfile()}>{getMessage("vi", "save")}</AppButton></YStack> : null}
-      {section === "care" ? <YStack gap="$lg"><SectionCard description={getMessage("vi", "careSettingsBody")}><XStack flexWrap="wrap" gap="$sm">{carePreferenceIds.map((id) => <AppFilterChip key={id} selectionMode="multiple" label={getMessage("vi", id === "encouragement" ? "careEncouragement" : id === "voice" ? "careVoice" : id === "photo" ? "carePhoto" : id === "call" ? "careCall" : id === "space" ? "careSpace" : "careGift")} selected={care.includes(id)} onPress={() => toggleCare(id)} />)}</XStack><AppField multiline label={getMessage("vi", "careNoteLabel")} value={careNote} onChangeText={setCareNote} maxLength={140} characterCount={`${careNote.length}/140`} /><Text fontSize="$bodyS" color="$textSecondary">{getMessage("vi", "carePartnerVisibility")}</Text></SectionCard><AppButton disabled={busy} onPress={() => void saveCare()}>{getMessage("vi", "save")}</AppButton></YStack> : null}
-      {section === "notifications" ? <NotificationSettingsScreen /> : null}
-      {section === "data" ? <AccountLifecycleScreen mode="data" /> : null}
-      {section === "support" ? <AccountLifecycleScreen mode="support" /> : null}
-      {section === "account" ? <AccountLifecycleScreen mode="account" /> : null}
-      {section === "menu" ? <SectionCard title={getMessage("vi", "settingsChooseTitle")} description={getMessage("vi", "settingsChooseBody")} /> : null}
-      {error ? <StatusBanner tone="warning" title={getMessage("vi", "settingsValidationError")} /> : null}
-    </AppScreen>
-  );
+  const title = section === "profile" ? "profileEditTitle" : section === "care" ? "careSettingsTitle" : section === "notifications" ? "notificationSettingsTitle" : section === "data" ? "dataSettingsTitle" : section === "support" ? "supportSettingsTitle" : section === "account" ? "accountSettingsTitle" : "settingsTitle";
+  return <FeatureScreen title={getMessage("vi", title)} showBack withBottomNavigation={false}>
+    {section === "profile" ? loading ? <AsyncStateView variant="loading" /> : failed || profile?.accountId !== accountId ? <AsyncStateView variant="error" title="settingsLoadError" actionLabel="retry" onAction={() => void load()} /> : <YStack gap="$lg">
+      <AppField label={getMessage("vi", "displayNameLabel")} value={displayName} onChangeText={setDisplayName} maxLength={120} editable={!busy} />
+      <AppField label={getMessage("vi", "profileUsernameLabel")} value={username} onChangeText={setUsername} maxLength={80} editable={!busy} />
+      {invalid ? <StatusBanner tone="warning" title={getMessage("vi", "settingsValidationError")} /> : null}
+      {saveFailed ? <StatusBanner tone="warning" title={getMessage("vi", "profileSaveFailed")} /> : null}
+      <AppButton disabled={invalid || busy} loading={busy} onPress={() => void save()}>{getMessage("vi", "save")}</AppButton>
+    </YStack> : null}
+    {section === "care" || section === "menu" ? <AsyncStateView variant="pending" title="featureNotConnectedTitle" description="featureNotConnectedBody" /> : null}
+    {section === "notifications" ? <NotificationSettingsScreen /> : null}
+    {section === "data" || section === "support" || section === "account" ? <AccountLifecycleScreen mode={section} /> : null}
+  </FeatureScreen>;
 }

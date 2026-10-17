@@ -17,6 +17,7 @@ class User:
     fcm_token: str | None = None
     created_at: str = ""
     updated_at: str = ""
+    username: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

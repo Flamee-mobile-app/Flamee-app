@@ -1,12 +1,12 @@
 # Flamee Mobile
 
-Expo SDK 57 / React Native local app for iOS and Android, with web enabled as a
+Expo SDK 57 / React Native app for iOS and Android, with web enabled as a
 browser test target. Run `npx expo start` (or `npm start`), then press `w` in
 the terminal to open the web app. Use `npx expo start --web` or `npm run web`
 to start directly in the browser. Use the QR code to open the native app in Expo
 Go.
 
-The web target helps review screen layout and local flows. Device-specific
+The web target helps review screen layout. Device-specific
 features such as media capture and notifications may be unavailable or behave
 differently in a browser; verify those on iOS or Android. The startup splash
 uses a browser-compatible artwork renderer while native keeps the SVG animation.
@@ -22,56 +22,21 @@ uses a browser-compatible artwork renderer while native keeps the SVG animation.
 - `tamagui.config.ts` is the shared Tamagui theme, token, font, and animation configuration.
 - `src/features/` contains auth/onboarding, invites, check-ins, partner status,
   Smart Nudge, Tiny Moments, profile/settings and account lifecycle UI.
-- Each feature owns its local service and in-memory records; there is no global demo runtime.
+- Features use server APIs where integrated. Runtime in-memory business simulators have been removed; unsupported capabilities are explicitly unavailable.
 - Feature domain/service exports live in `index.ts`. Route-only screen composition may use a feature's `screens.ts` barrel when exporting screens from the service barrel would create a cross-feature import cycle.
 
-## Screens and local domain flow
+## Implemented runtime (2026-10-17)
 
-1. Run `npx expo start`; press `w` for the browser or open the QR code in Expo Go.
-2. Splash opens the login screen automatically. The screen uses `login-bg.png`
-   behind a compact rounded form with email/password, sign-up, Remember me, password
-   recovery and Google. Email/password login and registration call the configured
-   backend. Mock login and the phone local-session service have been removed.
-   Recovery and Google are still unavailable.
-3. First login opens quick profile directly, then asks about a partner and
-   long-distance/nearby. There is no Terms/Privacy consent page in the current flow.
-   Every setup step can be deferred to Home.
-   Care preferences remain available in settings. Later sessions go Home even unpaired.
-4. Create or enter a six-character invite. Optional messages can accompany mascot,
-   photo or voice gifts. Invites expire after 72 hours and work only between accounts
-   in the same running app process. The sender can enter Home while waiting. Incoming
-   invitation intent survives Login/Register navigation; acceptance remains explicit.
-   `flamee://connect/CODE` is native URL ingress; manual codes remain the fallback.
-5. Name the current emotion, write a short note and optionally attach one Flamee
-   mascot. When the local couple is connected, the partner sees the note preview
-   and Flamee can offer a tone-based Smart Nudge without analyzing the note text.
-6. Open Moment details to react/reply; use Profile for settings and account actions.
+- Email/password login and registration call the configured backend. Remembered native credentials use SecureStore and are validated by `/auth/me` on restart. Web/unremembered sessions stay in memory. Google and password recovery are unavailable; backend recovery now returns 501 without issuing an OTP.
+- After authentication, server `couple_id` decides Home versus the invite screen. Users can skip invites without manufacturing setup completion. Old onboarding links forward to the real invite flow.
+- Invite create/current/preview/revoke/accept use the server. Codes can be copied or shared through the actual OS APIs; no local gift, local membership or simulated acceptance remains.
+- Profile editing reads `/auth/me` and writes `PUT /auth/me` with `full_name` and the user's own `username`. Save feedback requires a validated response belonging to the same account. The pending username migration must be applied separately before using the new backend write contract; it has NOT been run by the agent.
+- Home and Connection refresh server identity/couple status. A failed read shows an error; it never falls back to an unpaired local membership or an empty server feed.
+- Timeline, Moment compose/detail/reply/reaction/delete, check-ins, Nudges/Tasks, care/notification settings, export, support submission, unpairing and account deletion are unavailable in the app until their API integrations are ready. No local success or generated domain records are supplied. Backend unpair exists but has not been connected here.
+- Logout clears actual credentials, session metadata, invite intent and the query cache. It does not claim to delete a backend account.
+- Native image/audio/notification adapters and pure presentation/validation components remain as real device utilities, outside active unsupported flows. `/design-system` remains an isolated component review catalog; its interactive examples are not account data.
 
-Home remains available without a partner. Pairing reminders can be hidden for 24 hours
-or until sign-out. Successful local pairing shows each account a one-time popup with
-the other person's message (the recipient can optionally reply with a wish).
-Registration/login use server identities. Cross-device pairing, media upload and
-deferred installation links still require their own backend integration.
-No partner or couple membership is seeded from auth responses.
-
-Domain records live in feature-owned memory and disappear on a cold restart.
-Signing out ends the session while retaining records in the running process,
-so another local account can accept an existing invite. There is no scenario
-switcher or cross-device synchronization.
-
-## Native data boundaries
-
-Remembered native login stores its access token through Expo SecureStore and
-validates it through `/auth/me` on restart. The backend has no refresh endpoint.
-Unremembered login/registration and web keep sessions in memory. Local services keep emotion notes, stable mascot IDs, messages, media references and pending work in
-process memory. There is no durable offline queue or server synchronization. The legacy SQLCipher-oriented
-adapter is not imported because Expo Go provides regular SQLite, not SQLCipher.
-
-Photo selection and camera capture use the native Expo picker when available. Voice
-notes use Expo Audio recording and playback, with a 30-second limit. If native
-media is unavailable, the UI offers text or signals; it does not create fake media
-URIs. Notifications currently provide an on-device daily check-in reminder. Media
-is not uploaded, export is a sanitized JSON preview, and support requests are not sent.
+See [cleanup and backend-first plan](../.doc/BACKEND-FIRST-CLEANUP.md) for removed modules, known backend blockers and acceptance criteria. Unit-test doubles are retained; they do not demonstrate a live Storage upload or cross-device behavior.
 
 ## Design assets
 
@@ -84,8 +49,9 @@ Ordinary actions use the shared semantic button system: `AppButton`,
 `AppFilterChip`, `AppIconButton`, or `AppTextButton`. Their 48 px touch targets,
 warm depth, focus/disabled/loading states and 80/140 ms press/release feedback are owned by
 shared tokens; feature callers cannot override color, radius, border, shadow or
-motion. Reaction buttons reuse `AppIconButton`; Bottom Navigation, FAB and Radial
-Menu keep their specialized motion contract. Auth and all other forms use `AppField`;
+motion. Reaction buttons reuse `AppIconButton`; Bottom Navigation keeps its
+specialized selection motion, and FAB uses ordinary press/release feedback.
+Auth and all other forms use `AppField`;
 cards, dialogs and sheets use `SectionCard`, `AppDialog` and `AppSheet`. Image choices
 use `AppChoiceTile`, with the same borderless material and selection feedback as filters.
 Tamagui keeps its platform-aware default animation driver so web uses CSS
@@ -117,11 +83,7 @@ On the phone, `http://<current-computer-LAN-IP>:8000/health` should return
 This health check verifies backend reachability; it does not verify database
 access or successful authentication.
 
-Auth owns API requests, session validation and secure credential storage; the root
-provider hydrates local onboarding with the actual server user name/avatar.
-Feature records and setup progress remain process-local, independently of the
-remembered server session. Sign-out removes the native credential. Local data
-deletion does not delete the backend account.
+Auth owns API requests, session validation, profile acknowledgement and secure credentials. Bootstrap no longer creates a local onboarding account or separate profile. There is no durable offline business queue or fallback persistence.
 
 Set `EXPO_PUBLIC_API_URL` for a configured backend. Phone login policy, deferred
 deep-link provider, realtime transport, AI/privacy policy details, push
@@ -132,7 +94,7 @@ credentials, and native app identifiers require product/backend decisions.
 Read [AGENTS.md](../AGENTS.md), the [documentation index](../.doc/README.md),
 [coding standards](../.doc/CODING-STANDARDS.md) and
 [current baseline](../.doc/CODEBASE-BASELINE.md) before changing the app.
-The local main-flow spec defines the current feature-owned service architecture.
+The latest cleanup decision is recorded in `.doc/BACKEND-FIRST-CLEANUP.md`. The three mandatory index/standards/baseline files referenced above are currently absent; they have not been fabricated.
 
 ## Splash and login motion
 
@@ -160,58 +122,27 @@ See [login and transition details](../.doc/LOGIN-SPLASH-TRANSITION.md).
 
 ## Home screen
 
-Home uses one stateful signature hero for the full emotion-to-care loop. The new
-composer uses a configurable emotion catalog or a custom label, a required trimmed
-note of 1–100 characters, and one optional mascot selected by stable ID. There is no
-fixed 1–5 mood picker or sharing-scope step in the new flow. Unpaired notes remain
-personal and are never retroactively shared after pairing. Legacy records retain
-their existing `full`/`mood_only`/`private_only` read filtering.
+Home retains the approved warm header and emotion hero. Name/avatar and couple status come from authenticated server responses. The hero explains that check-in is unavailable; no local note, template Nudge, invented partner or recent Moment is inserted. FAB intents to unavailable features show the corresponding unavailable screen.
 
-An actionable Smart Nudge replaces the hero content in place instead of creating a
-second card. Its local template receives only structured emotion tone, never the
-free-text note. Paired Home shows a note-only partner preview; pressing it resolves
-the full record by check-in ID and displays the optional mascot locally. Home keeps
-at most one recent Moment. The FAB radial menu opens Emotions, Suggestions,
-Moments and Connection; text/photo/voice/signal are selected inside the Moment composer.
-None/waiting Home keeps a compact connection reminder without fabricating couple content.
-
-None/waiting/paired states, pairing reminder preferences and partner privacy
-remain feature-owned. No partner, avatar, Moment, streak or Nudge is seeded.
-Loading uses a layout skeleton; errors retain retry. A persistent session-only
-status line expands to explain that data has not synced. Profile and settings
-remain reachable. The content width is capped at 560 px and follows device text size.
-
-Validation evidence for this revision is reported with the implementation result;
-native paired/none/waiting interaction must not be inferred from typecheck or export.
-
-## Main bottom navigation
-
-The main route group uses a responsive floating pill navigation with four tabs:
-Home, Activity, Tasks and Profile. Its SVG background uses the Flamee brand
-gradient, a light glass overlay and a center notch sized from the current
-viewport. A normal center-FAB press selects the dedicated Timeline & memories tab
-without opening a composer. This tab is not repeated among the four outer tabs.
-Holding for 350 ms opens Emotions (Home composer), Suggestions (Tasks), Moments
-(Activity composer with all four formats), and Connection (none/waiting/paired status).
-Unpaired Moment/Timeline views provide a clear Connection action. The layout uses a
-compact 14–18 px bottom gap derived from the device safe area, a 60 px baseline
-FAB and a 64 px baseline bar, and caps its width on tablets. Selected tabs stay fixed in
-place and use icon stroke weight and opacity for emphasis. The FAB uses a thin
-soft outline and the original semicircular center notch, with large rounded
-pill ends. Touching the FAB lifts it by at most 3 scaled pixels over 80 ms and
-settles it over 180 ms, with a subtle white highlight and no action delay.
-Reduced Motion uses only the highlight. The radial menu uses a 190 ms ease-out position/fade transition
-and a 160 ms closing transition, with opacity-only press feedback. Its 104 px
-baseline radius keeps the actions anchored to the FAB; the four-action fan uses
-a wider arc so full labels retain separation without increasing that distance. Its badges
-use cream-peach backgrounds, dark coral text and light peach borders. The
-component supports Reduced Motion and exposes selected/expanded states to
-accessibility services. The Tasks tab lists only actionable local Smart Nudges;
-it does not create placeholder tasks or fake data.
-
-The custom bar is absolutely overlaid on tab scenes. Its transparent upper area
-does not reserve layout space or intercept touches, so tab content is no longer
-clipped behind a full-width blank band above the visible pill.
+The pill navigation shows centered icons without visible text labels. Official
+Ionicons outline/filled pairs scale from a 30 px baseline; inactive icons are white
+outlines and selected icons use the original filled glyph in warm white. SVGs are
+bundled locally in shared with their source revision and MIT license; no runtime
+font loading or icon download is required. Localized labels remain available to
+screen readers. Tabs and FAB use unstyled `Tamagui.Button` controls with targets
+of at least 48 px.
+Active SVG shapes receive explicit warm-white fills rather than relying on
+inherited paint. Inactive strokes also receive explicit white values.
+An inset, rounded peach-orange background marks the selected tab and
+slides for 240 ms; icon emphasis fades for 160 ms.
+The indicator follows the actual selected route and is clipped to the pill around
+the center notch. Timeline selection fades the tab indicator out and retains the
+FAB's static active ring. Reduced Motion switches selection immediately.
+The FAB depresses 3 px on contact (80 ms) and returns on release (140 ms), with
+a shallower shadow while pressed. Its radial menu and hold-progress ring are
+temporarily removed; a hold has no separate action. Profile quick actions remain.
+These changes require device/browser visual verification; layout unit tests and
+typechecking alone do not verify animation rendering.
 
 ## Feature content surface
 
@@ -219,8 +150,7 @@ New feature screens use the shared `FeatureScreen` and `ContentSurface` componen
 Only the page title sits outside a warm-white, rounded, elevated content surface;
 there is no page subtitle or eyebrow. Controls, forms, loading/error/empty states
 and content live within the surface. `featureTokens` owns its width, navigation
-clearance and warm shadow. The revised emotion/Moment composers, Tasks, Connection
-and Timeline use this convention.
+clearance and warm shadow. Connection and unavailable feature screens use this convention.
 
 The Profile tab is a grouped Menu with a title-only header. Each group has its
 title outside a separate shared `SectionCard`, with no page-wide content card.
@@ -228,18 +158,13 @@ Menu cards use balanced 16 px horizontal/8 px vertical padding and centered
 52 px rows with 16 px labels, with inset dividers between items.
 Account, Connection, and Support & data retain all six settings destinations
 through `AppMenuRow`; account lifecycle actions remain under Connection & account.
-Inline Premium sample plans switch between illustrative monthly/yearly prices;
-there is no checkout or premium entitlement. Also in Flamee offers four compact
+Mock Premium plans and their prices/benefits have been removed. Also in Flamee offers four compact
 quick actions as the same divided menu rows through the existing navigation hook.
 Account includes a Dark mode placeholder row with no action or state; the app
 continues to use the approved light theme. The menu does not wait
 for profile or membership data to render its static navigation.
 
-Timeline groups original Moments by the viewer's local date, newest first.
-Memories shows the real connection date and successfully saved photo/voice Moments.
-Replies remain in Moment detail. Data comes from the existing feature-owned local
-services and disappears after a cold restart. Custom anniversary events, favorites,
-relationship day counts and anniversary reminders are not implemented by this revision.
+Timeline and Moment routes currently show an unavailable state instead of loading session-only records. They must not be enabled by mapping the legacy memory API to a different Moment contract without backend work.
 
 ## Startup diagnostics
 

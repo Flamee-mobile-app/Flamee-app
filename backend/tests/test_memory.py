@@ -97,6 +97,7 @@ def test_image_upload_then_listed_in_detail(
     )
     assert upload.status_code == 201, upload.text
     assert upload.json()["data"]["url"].startswith("https://fake-supabase.co/storage/v1/object/public/memories/")
+    assert upload.json()["data"]["thumbnail_url"] is None
 
     detail = client.get(
         f"/api/v1/memories/{memory_id}", headers=bob_headers

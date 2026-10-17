@@ -1,6 +1,5 @@
 import { useEffect, type PropsWithChildren } from "react";
 import { authService } from "../features/auth";
-import { localOnboardingService } from "../features/onboarding";
 import { useSessionStore } from "../shared/state/sessionStore";
 
 export function SessionInitializer({ children }: PropsWithChildren) {
@@ -9,13 +8,7 @@ export function SessionInitializer({ children }: PropsWithChildren) {
     const bootstrapSessionId = useSessionStore.getState().sessionId;
     void authService
       .getCurrentSession()
-      .then(async (session) => {
-        if (active && session) {
-          await localOnboardingService.initializeAuthenticatedAccount(session.accountId, {
-            displayName: session.user.full_name,
-            avatarUri: session.user.avatar_url ?? null,
-          });
-        }
+      .then((session) => {
         if (active) {
           useSessionStore.getState().setBootstrap(
             session?.accountId ?? null,

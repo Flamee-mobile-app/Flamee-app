@@ -15,7 +15,7 @@ const userSchema = z.object({
   id: z.string().min(1),
   email: z.string().email(),
   full_name: z.string(),
-  username: z.string().max(40).nullable().optional(),
+  username: z.string().nullable().optional(),
   avatar_url: z.string().nullable().optional(),
   couple_id: z.string().nullable().optional(),
   created_at: z.string(),
@@ -33,14 +33,14 @@ export function createAuthApi({
   fetcher?: typeof fetch;
   timeoutMs?: number;
 }) {
-  const request = async (path: string, options: { body?: unknown; token?: string }) => {
+  const request = async (path: string, options: { body?: unknown; token?: string; method?: "PUT" }) => {
     const root = baseUrl.trim().replace(/\/+$/, "");
     if (!/^https?:\/\//.test(root)) throw new AuthError("configuration");
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const response = await fetcher(`${root}${path}`, {
-        method: options.body === undefined ? "GET" : "POST",
+        method: options.method ?? (options.body === undefined ? "GET" : "POST"),
         headers: {
           "Accept": "application/json",
           ...(options.body === undefined ? {} : { "Content-Type": "application/json" }),
@@ -79,6 +79,11 @@ export function createAuthApi({
     register: (email: string, password: string, fullName: string) => authenticate("/auth/register", { email, password, full_name: fullName }),
     async me(token: string): Promise<AuthUser> {
       const parsed = userSchema.safeParse(await request("/auth/me", { token }));
+      if (!parsed.success) throw new AuthError("response");
+      return parsed.data;
+    },
+    async updateProfile(token: string, profile: { full_name: string; username: string }): Promise<AuthUser> {
+      const parsed = userSchema.safeParse(await request("/auth/me", { token, body: profile, method: "PUT" }));
       if (!parsed.success) throw new AuthError("response");
       return parsed.data;
     },

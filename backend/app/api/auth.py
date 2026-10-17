@@ -5,13 +5,13 @@ from supabase import Client
 
 from app.api.deps import get_current_user, get_db
 from app.api.response import ok
+from app.core.exceptions import FeatureUnavailableError
 from app.models.user import User
 from app.repositories.user_repo import UserRepository
 from app.schemas.auth import (
     AuthResponse,
     ChangePasswordRequest,
     ForgotPasswordRequest,
-    ForgotPasswordResponse,
     LoginRequest,
     RegisterRequest,
     ResetPasswordRequest,
@@ -33,7 +33,7 @@ def register(
     db: Client = Depends(get_db),
 ):
     user, token = _auth_service(db).register(
-        payload.email, payload.password, payload.full_name
+        payload.email, payload.password, payload.full_name, username=payload.username
     )
     return ok(
         AuthResponse(
@@ -61,6 +61,7 @@ def me(current: dict = Depends(get_current_user)):
             id=current["id"],
             email=current["email"],
             full_name=current.get("full_name", ""),
+            username=current.get("username"),
             avatar_url=current.get("avatar_url"),
             couple_id=current.get("couple_id"),
             created_at=current.get("created_at", ""),
@@ -83,23 +84,15 @@ def change_password(
 @router.post("/forgot-password")
 def forgot_password(
     payload: ForgotPasswordRequest,
-    db: Client = Depends(get_db),
 ):
-    otp, expires_in = _auth_service(db).forgot_password(payload.email)
-    return ok(
-        ForgotPasswordResponse(otp=otp, expires_in=expires_in).model_dump()
-    )
+    raise FeatureUnavailableError("Khôi phục mật khẩu chưa khả dụng; chưa có kênh gửi mã xác minh.")
 
 
 @router.post("/reset-password")
 def reset_password(
     payload: ResetPasswordRequest,
-    db: Client = Depends(get_db),
 ):
-    _auth_service(db).reset_password(
-        payload.email, payload.otp, payload.new_password
-    )
-    return ok({"updated": True})
+    raise FeatureUnavailableError("Khôi phục mật khẩu chưa khả dụng; mật khẩu chưa được thay đổi.")
 
 
 @router.put("/me")
@@ -114,5 +107,6 @@ def update_profile(
         avatar_url=payload.avatar_url,
         birth_date=payload.birth_date,
         gender=payload.gender,
+        username=payload.username,
     )
     return ok(UserResponse.from_model(user).model_dump())

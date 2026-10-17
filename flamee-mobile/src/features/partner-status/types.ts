@@ -1,8 +1,8 @@
-import type { LocalPartnerSummary } from "../couple/index.ts";
+import type { PartnerSummary } from "../couple/index.ts";
 import type { Mood } from "../checkins/types.ts";
 
 type PartnerStatusBase = {
-  partner: LocalPartnerSummary;
+  partner: PartnerSummary;
   partnerLocalTime: string;
   timezoneDifferenceHours: number;
 };
@@ -34,7 +34,7 @@ export type PartnerStatusView =
 export type PartnerStatusViewer = {
   userId: string;
   timezone: string;
-  partner: LocalPartnerSummary;
+  partner: PartnerSummary;
   now: Date;
 };
 

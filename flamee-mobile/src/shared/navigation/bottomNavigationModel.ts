@@ -1,3 +1,5 @@
+import { navigationTokens } from "../constants/tokens.ts";
+
 const MAX_BAR_WIDTH = 520;
 const MIN_HORIZONTAL_INSET = 8;
 const BASELINE_WIDTH = 390;
@@ -17,6 +19,14 @@ export type BottomNavigationLayout = {
 };
 
 export type RadialMenuPosition = { x: number; y: number };
+
+export type BottomNavigationSelection = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  radius: number;
+};
 
 export function getBottomNavigationLayout(viewportWidth: number, safeAreaBottom: number): BottomNavigationLayout {
   const availableWidth = Math.max(0, viewportWidth - MIN_HORIZONTAL_INSET * 2);
@@ -85,6 +95,22 @@ export function getNavigationIconEmphasis(focused: boolean) {
   return focused
     ? { opacity: 1, strokeWidth: 2.8 }
     : { opacity: 0.68, strokeWidth: 1.8 };
+}
+
+export function getBottomNavigationSelection(layout: BottomNavigationLayout, tabIndex: number): BottomNavigationSelection | null {
+  if (!Number.isInteger(tabIndex) || tabIndex < 0 || tabIndex > 3) return null;
+  const inset = navigationTokens.selectionInset * layout.scale;
+  const groupWidth = layout.width / 2 - layout.notchRadius;
+  const tabWidth = groupWidth / 2;
+  const groupLeft = tabIndex < 2 ? 0 : layout.width / 2 + layout.notchRadius;
+  const height = layout.barHeight - inset * 2;
+  return {
+    x: groupLeft + (tabIndex % 2) * tabWidth + inset,
+    y: layout.barTop + inset,
+    width: tabWidth - inset * 2,
+    height,
+    radius: height / 2,
+  };
 }
 
 export function buildBottomBarPath({

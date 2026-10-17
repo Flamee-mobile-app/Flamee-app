@@ -4,7 +4,6 @@ import type { AddressInfo } from "node:net";
 import test from "node:test";
 import { createAuthApi, AuthError } from "./authApi.ts";
 import { createAuthService } from "./authService.ts";
-import { createLocalOnboardingService } from "../onboarding/localOnboardingService.ts";
 
 const user = { id: "server-account-a", email: "an@example.com", full_name: "An", avatar_url: null, couple_id: null, created_at: "2026-10-14T00:00:00Z" };
 
@@ -152,23 +151,50 @@ test("a storage failure does not open a session", async () => {
   });
 });
 
-test("authenticated profile comes from the server without completing optional setup", async () => {
-  const onboarding = createLocalOnboardingService({ timezone: () => "UTC" });
-  const account = await onboarding.initializeAuthenticatedAccount(user.id, { displayName: user.full_name, avatarUri: null });
-  assert.equal(account.accountId, "server-account-a");
-  assert.equal(account.profile.displayName, "An");
-  assert.equal(account.setupStatus, "pending");
-  assert.equal(account.consentedAt, null);
-});
-
 test("preserves a server nickname separately from the full name in the auth session", async () => {
+  const nickname = "🌤".repeat(40);
   await withServer((_req, res) => res.end(JSON.stringify({
-    success: true, data: { user: { ...user, username: "Bé Mây" }, access_token: "test-token" },
+    success: true, data: { user: { ...user, username: nickname }, access_token: "test-token" },
   })), async (baseUrl) => {
     const auth = createAuthService({ api: createAuthApi({ baseUrl }), credentials: credentials() });
     const session = await auth.login("an@example.com", "Secret123");
-    assert.equal(session.user.username, "Bé Mây");
+    assert.equal(session.user.username, nickname);
     assert.equal(session.user.full_name, "An");
-    assert.equal((await auth.getCurrentSession())?.user.username, "Bé Mây");
+    assert.equal((await auth.getCurrentSession())?.user.username, nickname);
+  });
+});
+
+test("profile session changes only after a matching server acknowledgement", async () => {
+  let wrongOwner = false;
+  await withServer((req, res) => {
+    const data = req.method === "PUT" ? { ...user, id: wrongOwner ? "other-account" : user.id, username: "Mây" } : { user, access_token: "token" };
+    res.end(JSON.stringify({ success: true, data }));
+  }, async (baseUrl) => {
+    const auth = createAuthService({ api: createAuthApi({ baseUrl }), credentials: credentials() });
+    await auth.login(user.email, "Secret123");
+    assert.equal((await auth.updateProfile({ full_name: "An", username: "Mây" })).user.username, "Mây");
+    wrongOwner = true;
+    await assert.rejects(auth.updateProfile({ full_name: "An", username: "Other" }), (error) => error instanceof AuthError && error.code === "response");
+    assert.equal((await auth.getCurrentSession())?.user.username, "Mây");
+  });
+});
+
+test("profile update arriving after logout cannot restore an account", async () => {
+  let release: () => void = () => undefined;
+  let arrived: () => void = () => undefined;
+  const ready = new Promise<void>((resolve) => { arrived = resolve; });
+  const held = new Promise<void>((resolve) => { release = resolve; });
+  await withServer(async (req, res) => {
+    if (req.method === "PUT") {
+      arrived(); await held;
+      res.end(JSON.stringify({ success: true, data: { ...user, username: "Late" } }));
+    } else res.end(JSON.stringify({ success: true, data: { user, access_token: "token" } }));
+  }, async (baseUrl) => {
+    const auth = createAuthService({ api: createAuthApi({ baseUrl }), credentials: credentials() });
+    await auth.login(user.email, "Secret123");
+    const update = auth.updateProfile({ full_name: "An", username: "Late" });
+    const rejection = assert.rejects(update, (error) => error instanceof AuthError && error.code === "cancelled");
+    await ready; await auth.signOut(); release(); await rejection;
+    assert.equal(await auth.getCurrentSession(), null);
   });
 });

@@ -1,30 +1,24 @@
 from __future__ import annotations
 
-from app.config import settings
 from app.core.exceptions import AuthError, ConflictError
 from app.core.security import (
     create_access_token,
-    generate_otp,
     hash_password,
     verify_password,
 )
 from app.models.user import User
 from app.repositories.user_repo import UserRepository
 from app.utils.ids import generate_uuid
-from app.utils.time import add_seconds, now_utc, to_iso
+from app.utils.time import now_utc, to_iso
 
 
 class AuthService:
     """Authentication / user account operations."""
 
-    # In-memory OTP store, keyed by email.
-    # TODO: Move to Supabase table or Redis in production.
-    _otp_store: dict[str, dict[str, str | int]] = {}
-
     def __init__(self, user_repo: UserRepository) -> None:
         self.user_repo = user_repo
 
-    def register(self, email: str, password: str, full_name: str) -> tuple[User, str]:
+    def register(self, email: str, password: str, full_name: str, username: str | None = None) -> tuple[User, str]:
         if self.user_repo.get_by_email(email):
             raise ConflictError("Email đã tồn tại")
         now_iso = to_iso(now_utc())
@@ -33,6 +27,7 @@ class AuthService:
             email=email,
             password_hash=hash_password(password),
             full_name=full_name,
+            username=(username.strip() or None) if username is not None else None,
             created_at=now_iso,
             updated_at=now_iso,
         )
@@ -70,6 +65,7 @@ class AuthService:
         avatar_url: str | None,
         birth_date: str | None,
         gender: str | None,
+        username: str | None = None,
     ) -> User:
         patch: dict = {"updated_at": to_iso(now_utc())}
         if full_name is not None:
@@ -80,30 +76,7 @@ class AuthService:
             patch["birth_date"] = birth_date or None
         if gender is not None:
             patch["gender"] = gender or None
+        if username is not None:
+            patch["username"] = username.strip() or None
         return self.user_repo.update(user_id, **patch)
 
-    def forgot_password(self, email: str) -> tuple[str, int]:
-        """Generate OTP, store it, return it. TODO: send via email in production."""
-        otp = generate_otp()
-        expires_at = add_seconds(now_utc(), settings.otp_ttl_seconds)
-        self._otp_store[email] = {
-            "otp": otp,
-            "expires_at": int(expires_at.timestamp()),
-        }
-        return otp, settings.otp_ttl_seconds
-
-    def reset_password(self, email: str, otp: str, new_password: str) -> None:
-        entry = self._otp_store.get(email)
-        if not entry or entry["otp"] != otp:
-            raise AuthError("OTP không hợp lệ")
-        if int(entry["expires_at"]) < int(now_utc().timestamp()):
-            raise AuthError("OTP đã hết hạn")
-        user = self.user_repo.get_by_email(email)
-        if not user:
-            raise AuthError("User không tồn tại")
-        self.user_repo.update(
-            user.id,
-            password_hash=hash_password(new_password),
-            updated_at=to_iso(now_utc()),
-        )
-        self._otp_store.pop(email, None)

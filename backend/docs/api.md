@@ -94,22 +94,9 @@ Lấy thông tin user hiện tại (cần Bearer token).
 { "current_password": "OldPass123", "new_password": "NewPass456" }
 ```
 
-### `POST /auth/forgot-password`
-Gửi OTP reset (MVP: in-memory, không gửi email thật).
-```json
-// Request
-{ "email": "user@example.com" }
+### `POST /auth/forgot-password` và `POST /auth/reset-password`
 
-// Response 200
-{ "success": true, "data": { "otp": "123456", "expires_in": 600 } }
-```
-
-### `POST /auth/reset-password`
-Reset mật khẩu bằng OTP.
-```json
-// Request
-{ "email": "user@example.com", "otp": "123456", "new_password": "NewPass456" }
-```
+Tạm thời trả **501**, `error.code = "feature_unavailable"` cho payload hợp lệ. Không cấp hoặc trả OTP, không lưu OTP trong bộ nhớ và không đổi mật khẩu qua luồng này. Cần triển khai kênh gửi xác minh thật, giới hạn lần thử và token dùng một lần trước khi mở lại. Đổi mật khẩu khi đã đăng nhập vẫn giữ hành vi thật hiện có.
 
 ---
 
@@ -150,23 +137,33 @@ curl -X POST /profile/avatar \
 
 ---
 
-## 4. Module: Couple & Invite (5 endpoints)
+## 4. Module: Couple & Invite
 
 ### `POST /couple/invite-code`
 Tạo invite code (1 user chỉ có 1 code active).
 ```json
 // Response 201
-{ "success": true, "data": { "code": "FLM-A1B2C3", "expires_at": "..." } }
+{ "success": true, "data": { "code": "A1B2C3", "expires_at": "...", "status": "pending", "is_pending": true } }
 ```
 
 ### `GET /couple/invite-code`
 Lấy invite code hiện tại của tôi.
 
+### `DELETE /couple/invite-code`
+Thu hồi invite code pending hiện tại của tôi.
+
+### `POST /couple/validate-invite`
+Kiểm tra mã và lấy preview người mời, không tạo couple.
+```json
+// Request
+{ "code": "A1B2C3" }
+```
+
 ### `POST /couple/accept-invite`
 Accept invite code (gửi từ partner).
 ```json
 // Request
-{ "code": "FLM-A1B2C3" }
+{ "code": "A1B2C3" }
 
 // Response 200
 { "success": true, "data": { "couple": { "id": "...", "members": [...] } } }
@@ -474,12 +471,12 @@ User A                                    User B
   ├─ POST /auth/register                     ├─ POST /auth/register
   │                                          │
   ├─ POST /couple/invite-code                │
-  │  → code: FLM-A1B2C3                      │
+  │  → code: A1B2C3                          │
   │                                          │
   │ ─── (gửi code qua email/SMS) ────>       │
   │                                          │
   │                                          ├─ POST /couple/accept-invite
-  │                                          │  { code: "FLM-A1B2C3" }
+  │                                          │  { code: "A1B2C3" }
   │                                          │  → couple created
   │                                          │
   │ ←── (couple matched) ──                   │

@@ -11,12 +11,13 @@ import type { HomeHeroPresentation } from "../homePresentationModel";
 type HomeEmotionHeroProps = {
   presentation: HomeHeroPresentation;
   nudge: Nudge | null;
-  onOpenComposer: () => void;
-  onDoNudge: () => void;
-  onViewNudge: () => void;
+  onOpenComposer?: () => void;
+  onDoNudge?: () => void;
+  onViewNudge?: () => void;
+  unavailable?: boolean;
 };
 
-export function HomeEmotionHero({ presentation, nudge, onOpenComposer, onDoNudge, onViewNudge }: HomeEmotionHeroProps) {
+export function HomeEmotionHero({ presentation, nudge, onOpenComposer, onDoNudge, onViewNudge, unavailable = false }: HomeEmotionHeroProps) {
   const showingNudge = presentation.kind === "nudge" && nudge;
   return (
     <YStack
@@ -51,12 +52,12 @@ export function HomeEmotionHero({ presentation, nudge, onOpenComposer, onDoNudge
             </SectionCard>
           ) : null}
           <XStack alignItems="center" gap="$sm" flexWrap="wrap">
-            <AppButton iconAfter={<ArrowUpRight size={18} />} onPress={onDoNudge}>
+            {onDoNudge ? <AppButton iconAfter={<ArrowUpRight size={18} />} onPress={onDoNudge}>
               {getMessage("vi", "nudgeDoNow")}
-            </AppButton>
-            <AppButton variant="ghost" onPress={onViewNudge}>
+            </AppButton> : null}
+            {onViewNudge ? <AppButton variant="ghost" onPress={onViewNudge}>
               {getMessage("vi", "homeNudgeDetails")}
-            </AppButton>
+            </AppButton> : null}
           </XStack>
         </>
       ) : (
@@ -68,12 +69,12 @@ export function HomeEmotionHero({ presentation, nudge, onOpenComposer, onDoNudge
             {presentation.kind === "saved" ? (
               <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textPrimary" numberOfLines={2}>“{presentation.note}”</Text>
             ) : (
-              <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textSecondary">{getMessage("vi", "homeCheckInDescription")}</Text>
+              <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textSecondary">{getMessage("vi", unavailable ? "checkInsNotConnectedBody" : "homeCheckInDescription")}</Text>
             )}
           </YStack>
-          <AppButton iconAfter={<ArrowUpRight size={18} />} onPress={onOpenComposer}>
+          {!unavailable && onOpenComposer ? <AppButton iconAfter={<ArrowUpRight size={18} />} onPress={onOpenComposer}>
             {getMessage("vi", presentation.kind === "saved" ? "homeCheckInQuestion" : "emotionSend")}
-          </AppButton>
+          </AppButton> : null}
         </>
       )}
     </YStack>

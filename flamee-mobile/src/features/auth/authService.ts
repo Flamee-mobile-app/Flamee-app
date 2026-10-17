@@ -78,5 +78,15 @@ export function createAuthService({ api, credentials }: { api: AuthApi; credenti
       accessToken = null;
       try { await store(() => credentials.clear()); } catch { throw new AuthError("storage"); }
     },
+    async updateProfile(profile: { full_name: string; username: string }): Promise<AuthSession> {
+      if (!accessToken || !session) throw new AuthError("credentials");
+      const request = generation;
+      const accountId = session.accountId;
+      const user = await api.updateProfile(accessToken, profile);
+      if (request !== generation) throw new AuthError("cancelled");
+      if (user.id !== accountId) throw new AuthError("response");
+      session = { accountId, user };
+      return copy(session);
+    },
   };
 }

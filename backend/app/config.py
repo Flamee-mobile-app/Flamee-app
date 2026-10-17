@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     secret_key: str = "change-in-production-min-32-chars"
     jwt_ttl_hours: int = 24
     otp_ttl_seconds: int = 600
-    invite_code_ttl_hours: int = 168
+    invite_code_ttl_hours: int = 72
 
     # Upload
     max_upload_size_mb: int = 5

@@ -2,6 +2,11 @@
 
 > Hướng dẫn từ setup local đến deploy lên cloud (Railway/Render/Fly.io).
 
+> Cập nhật 2026-10-14: các ví dụ SQLite/SQLAlchemy bên dưới là tài liệu lịch sử,
+> không phản ánh backend hiện tại dùng Supabase. Setup đang áp dụng và lệnh chạy
+> hằng ngày nằm ở [backend/README.md](../README.md) và
+> [mobile/auth/local setup](../../.doc/MOBILE-AUTH-LOCAL-SETUP.md).
+
 ---
 
 ## 1. Local Setup (Development)

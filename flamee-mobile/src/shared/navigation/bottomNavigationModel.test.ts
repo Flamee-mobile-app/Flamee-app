@@ -82,6 +82,38 @@ test("emphasizes the selected icon without moving it", async () => {
   assert.deepEqual(model.getNavigationIconEmphasis(true), { opacity: 1, strokeWidth: 2.8 });
 });
 
+test("fits each selection capsule inside its tab on either side of the FAB", async () => {
+  const model = await import("./bottomNavigationModel.ts");
+  assert.equal(typeof model.getBottomNavigationSelection, "function");
+
+  for (const viewport of [320, 390, 1024]) {
+    const layout = model.getBottomNavigationLayout(viewport, 34);
+    const leftEdgeOfNotch = layout.width / 2 - layout.notchRadius;
+    const rightEdgeOfNotch = layout.width / 2 + layout.notchRadius;
+    const selections = [0, 1, 2, 3].map((index) => model.getBottomNavigationSelection(layout, index)!);
+    for (const selection of selections) {
+      assert.ok(selection.x > 0);
+      assert.ok(selection.x + selection.width < layout.width);
+      assert.ok(selection.y > layout.barTop);
+      assert.ok(selection.y + selection.height < layout.barTop + layout.barHeight);
+      assert.equal(selection.radius, selection.height / 2);
+    }
+    assert.ok(selections[0].x + selections[0].width < selections[1].x);
+    assert.ok(selections[1].x + selections[1].width < leftEdgeOfNotch);
+    assert.ok(selections[2].x > rightEdgeOfNotch);
+    assert.ok(selections[2].x + selections[2].width < selections[3].x);
+    assert.ok(Math.abs(selections[0].x - (layout.width - selections[3].x - selections[3].width)) < 0.001);
+  }
+});
+
+test("does not mark a regular tab when the FAB timeline or a hidden route is selected", async () => {
+  const model = await import("./bottomNavigationModel.ts");
+  assert.equal(typeof model.getBottomNavigationSelection, "function");
+  const layout = model.getBottomNavigationLayout(390, 34);
+  assert.equal(model.getBottomNavigationSelection(layout, -1), null);
+  assert.equal(model.getBottomNavigationSelection(layout, 4), null);
+});
+
 test("positions the pill above the device bottom safe area", async () => {
   const model = await import("./bottomNavigationModel.ts");
   assert.equal(typeof model.getBottomNavigationFrame, "function");

@@ -11,7 +11,7 @@ export const colors = {
   surface: "#FFFCF8",
   surfaceMuted: "#F0EAE3",
   border: "#E6DDD3",
-  accentSoft: "#F9E6DA",
+  accentSoft: "#F7DDCC",
   accentText: "#9A4234",
   calmSurface: "#EDF1E9",
   calmText: "#52634C",
@@ -28,7 +28,7 @@ export const colors = {
   glassFilter: "rgba(255, 255, 255, 0.52)",
   glassDialog: "rgba(255, 252, 248, 0.48)",
   glassCard: "rgba(255, 252, 248, 0.66)",
-  glassCardPeach: "rgba(249, 230, 218, 0.38)",
+  glassCardPeach: "rgba(247, 221, 204, 0.38)",
   glassCardLavender: "rgba(220, 206, 247, 0.20)",
   fieldSurface: "rgba(240, 234, 227, 0.52)",
   fieldDisabled: "rgba(240, 234, 227, 0.32)",
@@ -154,6 +154,13 @@ export const cardTokens = {
 export const choiceTokens = { width: 72, height: 108, artworkSize: 56 } as const;
 
 export const navigationTokens = {
+  selectionBackground: colors.supportPeach,
+  activeIconColor: colors.surface,
+  inactiveIconColor: colors.white,
+  tabIconSize: 30,
+  selectionInset: 6,
+  selectionDuration: 240,
+  emphasisDuration: 160,
   badgeBackground: "#FFF1E8",
   badgeText: "#9A3E2F",
   badgeBorder: "#FFC7A1",

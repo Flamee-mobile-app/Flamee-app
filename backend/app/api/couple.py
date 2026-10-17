@@ -15,6 +15,7 @@ from app.schemas.couple import (
     CoupleResponse,
     CreateInviteResponse,
     GetInviteResponse,
+    InvitePreviewResponse,
     MemberInfo,
     UpdateAnniversaryRequest,
 )
@@ -73,6 +74,31 @@ def accept_invite(
 ):
     _service(db).accept_invite(current["id"], payload.code)
     return _build_couple_response(current["id"], db)
+
+
+@router.post("/validate-invite")
+def validate_invite(
+    payload: AcceptInviteRequest,
+    current: dict = Depends(get_current_user),
+    db: Client = Depends(get_db),
+):
+    invite, inviter = _service(db).validate_invite(current["id"], payload.code)
+    return ok(
+        InvitePreviewResponse(
+            code=invite.code,
+            expires_at=invite.expires_at,
+            inviter=inviter,
+        ).model_dump()
+    )
+
+
+@router.delete("/invite-code")
+def revoke_invite(
+    current: dict = Depends(get_current_user),
+    db: Client = Depends(get_db),
+):
+    invite = _service(db).revoke_invite(current["id"])
+    return ok(GetInviteResponse.from_model(invite).model_dump())
 
 
 @router.get("")

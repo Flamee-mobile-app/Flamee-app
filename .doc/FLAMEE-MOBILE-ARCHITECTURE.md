@@ -1,3 +1,5 @@
+> **Quyết định triển khai ngày 2026-10-17:** đã gỡ toàn bộ service mô phỏng nghiệp vụ local khỏi mobile. Auth/invite/profile dùng API thật; các feature chưa tích hợp hiển thị chưa khả dụng. Setup local, gift local, popup ghép đôi local, outbox và cross-device chưa được coi là triển khai. Xem [bản trạng thái và kế hoạch backend](BACKEND-FIRST-CLEANUP.md); ghi chú này thay thế các mô tả local runtime cũ bên dưới.
+
 # Flamee mobile rebuild architecture
 
 **Status:** proposed Phase 1 architecture for React Native + Expo + Tamagui  
@@ -75,7 +77,7 @@ app/                                  # Expo Router route composition only
     observability/                      # scrubbed error reporting, allowlisted analytics
     validation/                         # shared primitives only; feature rules stay local
     types/                              # IDs, time-zone and non-feature primitives
-  providers/                            # QueryClient, session, theme, connectivity
+  providers/                            # QueryClient, session, theme, app-wide toast, connectivity
   config/                               # Expo config, env parsing, build-profile flags
 ```
 
@@ -106,6 +108,8 @@ Push taps route to a validated Nudge or Moment identifier and fetch current auth
 
 Use a single Tamagui token source for colors, semantic backgrounds/text, spacing, radii, type sizes, line heights, control dimensions, and animations. Mood colors map to named states and visible labels/icons, never color alone (requirements §4.2 requirement 2.1 and §6 accessibility row). Reflect tokens in native status-bar/navigation-bar settings and any OS surfaces that need colors.
 
+Transient system feedback is rendered through one root Tamagui toast provider and the shared `appToast` API. Feature actions keep their own loading/disabled state, then publish a semantic success, error, warning or info toast. The app uses in-app toasts for consistent Expo/mobile behavior; platform-native toasts remain optional and are not required for correctness.
+
 Screens use React Native primitives and safe-area-aware layout. Support system text size, screen readers, sufficient contrast, keyboard handling, platform back behavior, and localized dates. Display a partner's local clock and configured timezone difference, but calculate “today” independently for each member (§4.2 requirements 2.6–2.8; flow 5). Keep visible copy in Vietnamese localization resources with English expansion in mind (§6 language row).
 
 ## 5. Data ownership and API design
@@ -130,6 +134,8 @@ Feature services map to documented REST groups (§8): `auth`, `me/profile/settin
 Use short-lived access credentials and refresh through a single auth coordinator; cancel requests when their account scope ends. Retry transient reads with bounded backoff. Retry a mutation only when it is idempotent or carries the server-supported idempotency key. Do not duplicate the server's membership or privacy enforcement in client assumptions.
 
 Subscribe to `partner.checkin`, `moment.new`, `nudge.new`, and `couple.status` while foregrounded if the backend provides realtime transport (§8). Reconnect/refetch after foregrounding. APNs/FCM plus server jobs own notifications while suspended; no persistent socket or guaranteed background JavaScript is assumed.
+
+The implemented invite slice uses `features/invites/inviteApi.ts` and `inviteService.ts` with the in-memory auth bearer token. Invite create/preview/revoke/accept are server-authoritative. Until a realtime couple-status channel exists, create/waiting screens poll `GET /couple/invite-code` every five seconds only while active, stop on unmount, and refresh `/auth/me` after acceptance before routing Home.
 
 ## 6. Offline check-in and Tiny Moment media
 

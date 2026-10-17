@@ -129,6 +129,7 @@ class FakeSupabaseClient:
 
     def __init__(self) -> None:
         self._tables: dict[str, FakeSupabaseTable] = {}
+        self.rpc_calls: list[tuple[str, dict]] = []
         
         class FakeBucket:
             def upload(self, *args, **kwargs):
@@ -143,6 +144,57 @@ class FakeSupabaseClient:
                 return FakeBucket()
                 
         self.storage = FakeStorage()
+
+    def rpc(self, name: str, params: dict):
+        self.rpc_calls.append((name, params))
+        client = self
+
+        class RpcResult:
+            def execute(self_inner):
+                from datetime import datetime
+
+                result = {"outcome": "invite_not_found"}
+                invites = client.table("invite_codes")._data
+                invite = next((row for row in invites.values() if row["code"] == params["p_code"]), None)
+                if invite:
+                    status = invite["status"]
+                    if status == "cancelled":
+                        result = {"outcome": "invite_cancelled"}
+                    elif status == "accepted":
+                        result = {"outcome": "invite_used"}
+                    elif datetime.fromisoformat(invite["expires_at"]) <= datetime.fromisoformat(params["p_now"]):
+                        invite["status"] = "expired"
+                        result = {"outcome": "invite_expired"}
+                    elif invite["user_id"] == params["p_invitee_id"]:
+                        result = {"outcome": "self_invite"}
+                    else:
+                        users = client.table("users")._data
+                        inviter = users.get(invite["user_id"])
+                        invitee = users.get(params["p_invitee_id"])
+                        if invitee and invitee.get("couple_id"):
+                            result = {"outcome": "already_paired"}
+                        elif inviter and inviter.get("couple_id"):
+                            result = {"outcome": "inviter_already_paired"}
+                        else:
+                            couple_id = params["p_couple_id"]
+                            client.table("couples")._data[couple_id] = {
+                                "id": couple_id,
+                                "partner1_id": invite["user_id"],
+                                "partner2_id": params["p_invitee_id"],
+                                "anniversary": None,
+                                "status": "active",
+                                "created_at": params["p_now"],
+                                "updated_at": params["p_now"],
+                            }
+                            invite.update(status="accepted", used_by=params["p_invitee_id"])
+                            inviter.update(couple_id=couple_id, updated_at=params["p_now"])
+                            invitee.update(couple_id=couple_id, updated_at=params["p_now"])
+                            result = {"outcome": "accepted", "couple_id": couple_id}
+                response = MagicMock()
+                response.data = result
+                return response
+
+        return RpcResult()
 
     def table(self, name: str) -> FakeSupabaseTable:
         if name not in self._tables:

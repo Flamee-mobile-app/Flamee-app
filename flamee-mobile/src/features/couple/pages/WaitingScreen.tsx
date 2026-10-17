@@ -7,19 +7,14 @@ import { Text, XStack, YStack } from "tamagui";
 import { useSessionStore } from "../../../shared/state/sessionStore";
 import { AppButton, AppHeader, AppScreen, AsyncStateView, SectionCard, StatusBanner } from "../../../shared/components";
 import { formatMessage, getMessage } from "../../../shared/localization/messages";
-import { CheckInComposer } from "../../checkins";
 import { inviteService, invitationURL, type ServerInvite } from "../../invites";
 import { authService } from "../../auth/authRuntime";
-import { localNotificationAdapter } from "../../notifications";
 
 export function WaitingScreen() {
   const router = useRouter();
   const accountId = useSessionStore((state) => state.activeAccountId);
   const activeCoupleId = useSessionStore((state) => state.activeCoupleId);
   const setActiveCouple = useSessionStore((state) => state.setActiveCouple);
-  const [showCheckIn, setShowCheckIn] = useState(false);
-  const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
-  const [notificationPromptFailed, setNotificationPromptFailed] = useState(false);
   const [shareFailed, setShareFailed] = useState(false);
   const [invite, setInvite] = useState<ServerInvite | null>(null);
   const [loading, setLoading] = useState(true);
@@ -71,37 +66,6 @@ export function WaitingScreen() {
   };
 
   const homeButton = <AppButton variant="ghost" onPress={() => router.replace("/(main)")}>{getMessage("vi", "continueHome")}</AppButton>;
-
-  if (showCheckIn) return <CheckInComposer onClose={() => setShowCheckIn(false)} onCompleted={(result) => {
-    if (result === "error" || !accountId) return;
-    void localNotificationAdapter.getSettings(accountId).then((settings) => {
-      if (settings.firstCheckInCompleted && settings.permission === "not_requested" && !settings.promptDismissed) setShowNotificationPrompt(true);
-    });
-  }} />;
-
-  if (showNotificationPrompt) {
-    const finish = async (allow: boolean) => {
-      if (!accountId) return;
-      if (allow) {
-        const permission = await localNotificationAdapter.requestPermissionAfterFirstCheckIn(accountId);
-        if (permission.kind === "granted") {
-          const reminder = await localNotificationAdapter.setDailyReminder(accountId, true, permission.settings.reminderTime);
-          setNotificationPromptFailed(reminder.kind !== "updated");
-        } else setNotificationPromptFailed(permission.kind === "unavailable");
-      } else {
-        await localNotificationAdapter.dismissPermissionPrompt(accountId);
-      }
-      setShowNotificationPrompt(false);
-    };
-    return (
-      <AppScreen>
-        <AppHeader eyebrow={getMessage("vi", "notificationValueEyebrow")} title={getMessage("vi", "notificationValueTitle")} subtitle={getMessage("vi", "notificationValueBody")} />
-        {notificationPromptFailed ? <StatusBanner tone="warning" title={getMessage("vi", "notificationReminderError")} /> : null}
-        <AppButton onPress={() => void finish(true)}>{getMessage("vi", "allowNotifications")}</AppButton>
-        <AppButton variant="ghost" onPress={() => void finish(false)}>{getMessage("vi", "skipForNow")}</AppButton>
-      </AppScreen>
-    );
-  }
 
   if (!accountId) return <AppScreen><AsyncStateView variant="error" title="localInviteUnavailableTitle" description="localInviteUnavailableBody" actionLabel="retry" onAction={() => router.replace("/(auth)")} /></AppScreen>;
   if (loading) return <AppScreen><AsyncStateView variant="loading" title="loadingTitle" description="loadingDescription" /></AppScreen>;
@@ -162,10 +126,6 @@ export function WaitingScreen() {
         {getMessage("vi", "shareInvite")}
       </AppButton>
       {shareFailed ? <StatusBanner tone="warning" title={getMessage("vi", "shareInviteError")} /> : null}
-      <AppButton variant="secondary" onPress={() => setShowCheckIn(true)}>
-        {getMessage("vi", "firstCheckIn")}
-      </AppButton>
-      <SectionCard tone="lavender" description={getMessage("vi", "reminderTimeline")} />
       {homeButton}
     </AppScreen>
   );

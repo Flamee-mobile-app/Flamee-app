@@ -17,12 +17,13 @@ class UserService:
             raise NotFoundError("Không tìm thấy người dùng.")
         return user
         
-    def update_profile(self, user_id: str, full_name: str = None, avatar_url: str = None, birth_date: str = None, gender: str = None) -> User:
+    def update_profile(self, user_id: str, full_name: str = None, avatar_url: str = None, birth_date: str = None, gender: str = None, username: str | None = None) -> User:
         patch = {"updated_at": datetime.utcnow().isoformat() + "Z"}
         if full_name is not None: patch["full_name"] = full_name
         if avatar_url is not None: patch["avatar_url"] = avatar_url
         if birth_date is not None: patch["birth_date"] = birth_date
         if gender is not None: patch["gender"] = gender
+        if username is not None: patch["username"] = username.strip() or None
         
         return self.user_repo.update(user_id, **patch)
         

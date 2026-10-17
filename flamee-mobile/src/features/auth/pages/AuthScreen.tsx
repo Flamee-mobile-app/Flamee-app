@@ -24,7 +24,6 @@ import { RegisterForm } from "../components/RegisterForm";
 import { AuthHeroBackground } from "../components/AuthHeroBackground";
 import { LoginEntrance } from "../components/LoginEntrance";
 import { emailLoginSchema, type EmailLoginInput } from "../schemas";
-import { localOnboardingService } from "../../onboarding";
 import { resolveLoginLayout } from "../loginLayoutModel";
 
 const heroLogo = require("../../../public/flamee-logo-slogan-tachnen.png");
@@ -74,10 +73,6 @@ export function AuthScreen() {
   const motion = { visible, reducedMotion, animate: animateEntrance.current };
 
   const activateSession = async (session: AuthSession) => {
-    await localOnboardingService.initializeAuthenticatedAccount(session.accountId, {
-      displayName: session.user.full_name,
-      avatarUri: session.user.avatar_url ?? null,
-    });
     useSessionStore.getState().setActiveAccount(session.accountId, session.user.couple_id ?? null);
     router.replace(resolvePostAuthRoute(session.user.couple_id));
   };

@@ -109,7 +109,7 @@ Phần thứ 7 (widget màn hình khóa) thuộc nhóm "Nên có".
 | # | Yêu cầu |
 | --- | --- |
 | 1.1 | Đăng nhập bằng Apple, Google hoặc số điện thoại (mã xác thực gửi qua tin nhắn). **Không hỏi tuổi.** |
-| 1.2 | Nhập thông tin cơ bản: tên hiển thị, biệt danh gọi người yêu, ảnh đại diện (hai mục này không bắt buộc), múi giờ (tự lấy từ điện thoại, sửa được). |
+| 1.2 | Nhập thông tin cơ bản: tên hiển thị, biệt danh gọi người yêu và ảnh đại diện (hai mục sau không bắt buộc). Múi giờ tự lấy từ thiết bị và được lưu nội bộ, không hiển thị thành trường nhập. |
 | 1.3 | Chọn loại quan hệ: *Yêu xa* hoặc *Cùng thành phố*. Bản đầu làm tốt cho yêu xa, nhưng vẫn lưu lựa chọn này để dùng ở giai đoạn 2. |
 | 1.4 | **Tạo lời mời:** gồm một đường link và một mã 6 ký tự. Mỗi lời mời dùng được 1 lần, hết hạn sau 72 giờ. Có thể tạo lại, khi đó link cũ hết hiệu lực. Chia sẻ bằng menu chia sẻ của điện thoại (Zalo, Messenger, iMessage...). |
 | 1.5 | **Quà kèm lời mời** (không bắt buộc): ghi âm đến 30 giây, ảnh hoặc lời nhắn. Người yêu nhận được ngay khi ghép xong. |
@@ -233,7 +233,7 @@ Phần thứ 7 (widget màn hình khóa) thuộc nhóm "Nên có".
 
 | # | Yêu cầu |
 | --- | --- |
-| 6.1 | Sửa hồ sơ: tên, biệt danh, ảnh, múi giờ, giờ nhắc. |
+| 6.1 | Sửa hồ sơ: tên, biệt danh, ảnh và giờ nhắc. Múi giờ được quản lý ngầm theo thiết bị, không hiển thị trong hồ sơ hoặc form chỉnh sửa. |
 | 6.2 | Màn hình **"Ai thấy gì"** giải thích dữ liệu nào chia sẻ với người yêu, dữ liệu nào không. |
 | 6.3 | Màn hình đồng ý Điều khoản và Chính sách quyền riêng tư. Nói rõ dữ liệu cảm xúc là dữ liệu nhạy cảm và có dùng AI để xử lý. Lưu lại phiên bản và thời điểm đồng ý. |
 | 6.4 | **"Cách tôi muốn được quan tâm":** chọn nhiều mục trong *Lời nói động viên · Ghi âm · Ảnh hoặc video · Gọi điện · Để tôi yên một lúc · Quà nhỏ bất ngờ*, kèm một ô ghi thêm tối đa 140 ký tự. Người yêu chỉ thấy bản tóm tắt trong Smart Nudge, không thấy nguyên văn. |
