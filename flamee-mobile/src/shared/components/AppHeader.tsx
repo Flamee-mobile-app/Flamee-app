@@ -1,7 +1,8 @@
 import { ArrowLeft } from "@tamagui/lucide-icons-2/icons/ArrowLeft";
 import { useRouter } from "expo-router";
-import { Button, Text, XStack, YStack } from "tamagui";
+import { Text, XStack, YStack } from "tamagui";
 import { getMessage } from "../localization/messages";
+import { AppIconButton } from "./AppIconButton";
 
 type AppHeaderProps = {
   title: string;
@@ -17,11 +18,8 @@ export function AppHeader({ title, subtitle, showBack = false, onBack, eyebrow }
     <YStack gap="$sm">
       <XStack alignItems="center" gap="$sm">
         {showBack ? (
-          <Button
-            circular
-            size="$control"
-            chromeless
-            aria-label={getMessage("vi", "back")}
+          <AppIconButton
+            accessibilityLabel={getMessage("vi", "back")}
             icon={<ArrowLeft color="$textPrimary" />}
             onPress={onBack ?? router.back}
           />

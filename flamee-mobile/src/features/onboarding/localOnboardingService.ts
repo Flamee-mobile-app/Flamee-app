@@ -5,7 +5,7 @@ import {
   type ProfileValue,
 } from "./schemas.ts";
 
-export type OnboardingStep = "consent" | "profile" | "care" | "relation" | "complete";
+export type OnboardingStep = "profile" | "care" | "relation" | "complete";
 
 export type LocalAccountSnapshot = {
   accountId: string;
@@ -22,8 +22,8 @@ export type LocalAccountSnapshot = {
 };
 
 export type LocalOnboardingService = {
+  initializeAuthenticatedAccount: (accountId: string, profile: { displayName: string; avatarUri: string | null }) => Promise<LocalAccountSnapshot>;
   getAccountSnapshot: (accountId: string) => Promise<LocalAccountSnapshot>;
-  acceptConsent: (accountId: string) => Promise<LocalAccountSnapshot>;
   saveProfile: (accountId: string, profile: unknown) => Promise<LocalAccountSnapshot>;
   saveCarePreferences: (accountId: string, preferences: string[], note: string) => Promise<LocalAccountSnapshot>;
   saveRelationType: (accountId: string, relationType: string) => Promise<LocalAccountSnapshot>;
@@ -33,15 +33,11 @@ export type LocalOnboardingService = {
 };
 
 export type LocalOnboardingServiceOptions = {
-  now?: () => Date;
   timezone?: () => string;
-  consentVersion?: string;
 };
 
 export function createLocalOnboardingService({
-  now = () => new Date(),
   timezone = () => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
-  consentVersion = "1.1",
 }: LocalOnboardingServiceOptions = {}): LocalOnboardingService {
   const accounts = new Map<string, LocalAccountSnapshot>();
 
@@ -50,7 +46,7 @@ export function createLocalOnboardingService({
     if (existing) return existing;
     const created: LocalAccountSnapshot = {
       accountId,
-      onboardingStep: "consent",
+      onboardingStep: "profile",
       setupStatus: "pending",
       setupStep: "profile",
       consentedAt: null,
@@ -75,23 +71,19 @@ export function createLocalOnboardingService({
   });
 
   return {
+    async initializeAuthenticatedAccount(accountId, profile) {
+      const current = ensure(accountId);
+      if (!current.profile.displayName) current.profile.displayName = profile.displayName;
+      if (!current.profile.avatarUri) current.profile.avatarUri = profile.avatarUri;
+      return copy(current);
+    },
+
     async getAccountSnapshot(accountId) {
       return copy(ensure(accountId));
     },
 
-    async acceptConsent(accountId) {
-      const current = ensure(accountId);
-      if (!current.consentedAt) {
-        current.consentedAt = now().toISOString();
-        current.consentVersion = consentVersion;
-        current.onboardingStep = "profile";
-      }
-      return copy(current);
-    },
-
     async saveProfile(accountId, input) {
       const current = ensure(accountId);
-      if (!current.consentedAt) throw new Error("Consent is required before saving profile data.");
       const profile = profileSchema.parse(input);
       current.profile = { ...current.profile, ...profile };
       if (current.onboardingStep === "profile") current.onboardingStep = "care";
@@ -100,7 +92,6 @@ export function createLocalOnboardingService({
 
     async saveCarePreferences(accountId, preferences, note) {
       const current = ensure(accountId);
-      if (!current.consentedAt) throw new Error("Consent is required before saving care preferences.");
       const parsed = carePreferencesSchema.parse({ preferences, note });
       current.profile = { ...current.profile, carePreferences: [...parsed.preferences], careNote: parsed.note };
       if (current.onboardingStep === "care") current.onboardingStep = "relation";

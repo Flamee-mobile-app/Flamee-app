@@ -90,8 +90,8 @@ export function NudgeScreen({ nudgeId }: { nudgeId: string }) {
           <AppButton icon={<Send size={18} />} disabled={busy || !draft.trim()} onPress={doNow}>{getMessage("vi", "nudgeDoNow")}</AppButton>
           <AppButton variant="secondary" icon={<Pencil size={18} />} disabled={busy} onPress={() => setEditing((value) => !value)}>{getMessage("vi", "nudgeEditDraft")}</AppButton>
           <XStack gap="$sm">
-            <AppButton flex={1} variant="ghost" icon={<Clock3 size={18} />} disabled={busy || nudge.snoozeCount >= 1} onPress={() => run(() => localNudgeService.snooze(nudge.id))}>{getMessage("vi", "nudgeLater")}</AppButton>
-            <AppButton flex={1} variant="ghost" icon={<X size={18} />} disabled={busy} onPress={() => run(() => localNudgeService.skip(nudge.id))}>{getMessage("vi", "nudgeSkip")}</AppButton>
+            <AppButton grow variant="ghost" icon={<Clock3 size={18} />} disabled={busy || nudge.snoozeCount >= 1} onPress={() => run(() => localNudgeService.snooze(nudge.id))}>{getMessage("vi", "nudgeLater")}</AppButton>
+            <AppButton grow variant="ghost" icon={<X size={18} />} disabled={busy} onPress={() => run(() => localNudgeService.skip(nudge.id))}>{getMessage("vi", "nudgeSkip")}</AppButton>
           </XStack>
         </YStack>
       ) : (

@@ -8,10 +8,12 @@ export type EntryRouteSnapshot = {
   coupleStatus: "none" | "waiting" | "paired" | "ended" | null;
 };
 
+export function resolvePostAuthRoute(coupleId: string | null | undefined): "/(invite)" | "/(main)" {
+  return coupleId ? "/(main)" : "/(invite)";
+}
+
 export function resolveEntryRoute(snapshot: EntryRouteSnapshot): EntryRouteHref | null {
   if (!snapshot.bootstrapped) return null;
   if (!snapshot.accountId) return "/(auth)";
-  if (snapshot.setupStatus === "pending") return "/(onboarding)";
-  if (snapshot.inviteIntent) return "/(invite)";
-  return "/(main)";
+  return resolvePostAuthRoute(snapshot.coupleStatus === "paired" ? "paired" : null);
 }

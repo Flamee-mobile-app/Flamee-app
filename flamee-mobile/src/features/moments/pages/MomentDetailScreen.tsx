@@ -2,7 +2,7 @@ import { MessageCircle } from "@tamagui/lucide-icons-2/icons/MessageCircle";
 import { Trash2 } from "@tamagui/lucide-icons-2/icons/Trash2";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { Button, Text, XStack, YStack } from "tamagui";
+import { Text, XStack, YStack } from "tamagui";
 import { useSessionStore } from "../../../shared/state/sessionStore";
 import { AppButton, AppHeader, AppScreen, AsyncStateView, SectionCard, StatusBanner } from "../../../shared/components";
 import { getMessage } from "../../../shared/localization/messages";
@@ -10,6 +10,7 @@ import { localCoupleService } from "../../couple";
 import { localOnboardingService } from "../../onboarding";
 import { MomentCard } from "../components/MomentCard";
 import { MomentComposerSheet } from "../components/MomentComposerSheet";
+import { MomentReactionButton } from "../components/MomentReactionButton";
 import { localMomentService } from "../localMomentService";
 import { momentReactions, type Moment, type MomentDraft } from "../types";
 
@@ -94,7 +95,13 @@ export function MomentDetailScreen({ momentId }: { momentId: string }) {
       <SectionCard title={getMessage("vi", "reactTitle")} description={getMessage("vi", "reactBody")}>
         <XStack flexWrap="wrap" gap="$sm">
           {momentReactions.map((emoji) => (
-            <Button key={emoji} circular size="$control" backgroundColor="$supportPeachLight" borderColor="$border" borderWidth={1} fontSize={22} onPress={() => void localMomentService.react(moment.id, accountId ?? "", emoji).then((result) => { if (result.kind === "updated") setMoments((items) => items.map((item) => item.id === moment.id ? result.moment : item)); else setActionFailed(true); })}>{emoji}</Button>
+            <MomentReactionButton
+              key={emoji}
+              emoji={emoji}
+              selected={moment.reactions.some((reaction) => reaction.userId === accountId && reaction.emoji === emoji)}
+              disabled={busy}
+              onPress={() => void localMomentService.react(moment.id, accountId ?? "", emoji).then((result) => { if (result.kind === "updated") setMoments((items) => items.map((item) => item.id === moment.id ? result.moment : item)); else setActionFailed(true); })}
+            />
           ))}
         </XStack>
       </SectionCard>
@@ -108,7 +115,7 @@ export function MomentDetailScreen({ momentId }: { momentId: string }) {
       {own ? (
         deleteConfirm ? (
           <SectionCard title={getMessage("vi", "deleteMomentConfirmTitle")} description={getMessage("vi", "deleteMomentConfirmBody")}>
-            <XStack gap="$sm"><AppButton flex={1} variant="ghost" onPress={() => setDeleteConfirm(false)}>{getMessage("vi", "cancel")}</AppButton><AppButton flex={1} variant="destructive" disabled={busy} onPress={remove}>{getMessage("vi", "deleteForever")}</AppButton></XStack>
+            <XStack gap="$sm"><AppButton grow variant="ghost" onPress={() => setDeleteConfirm(false)}>{getMessage("vi", "cancel")}</AppButton><AppButton grow variant="destructive" loading={busy} onPress={remove}>{getMessage("vi", "deleteForever")}</AppButton></XStack>
           </SectionCard>
         ) : <AppButton variant="ghost" icon={<Trash2 size={18} />} onPress={() => setDeleteConfirm(true)}>{getMessage("vi", "deleteMoment")}</AppButton>
       ) : null}

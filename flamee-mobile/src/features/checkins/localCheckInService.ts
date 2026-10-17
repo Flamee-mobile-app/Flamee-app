@@ -1,17 +1,26 @@
 import { localDateKey } from "../../shared/datetime/localDate.ts";
-import { localCoupleService, type LocalCoupleService } from "../couple/index.ts";
-import { localOnboardingService } from "../onboarding/index.ts";
-import { createCheckInSchema, type CheckInInput } from "./schemas.ts";
-import { localCheckInReasons, type CheckInReason, type LocalCheckIn, type PartnerVisibleCheckIn } from "./types.ts";
+import { localCoupleService, type LocalCoupleService } from "../couple/localCoupleService.ts";
+import { localOnboardingService } from "../onboarding/localOnboardingService.ts";
+import { resolveEmotionSelection } from "./emotionCatalog.ts";
+import { emotionCheckInSchema, type EmotionCheckInInput } from "./schemas.ts";
+import {
+  localCheckInReasons,
+  type CheckInReason,
+  type EmotionCheckIn,
+  isEmotionCheckIn,
+  type LocalCheckIn,
+  type PartnerVisibleCheckIn,
+} from "./types.ts";
 
 export type CheckInSubmissionResult =
-  | { kind: "saved_local" | "pending"; checkIn: LocalCheckIn }
+  | { kind: "saved_local" | "pending"; checkIn: EmotionCheckIn }
   | { kind: "error"; error: "validation" | "storage"; retryable: boolean };
 
 export type LocalCheckInService = {
   listForAccount: (accountId: string) => Promise<LocalCheckIn[]>;
-  submit: (accountId: string, input: CheckInInput) => Promise<CheckInSubmissionResult>;
+  submit: (accountId: string, input: EmotionCheckInInput) => Promise<CheckInSubmissionResult>;
   getLatestPartnerCheckIn: (accountId: string) => Promise<PartnerVisibleCheckIn | null>;
+  getByIdForAccount: (accountId: string, checkInId: string) => Promise<PartnerVisibleCheckIn | null>;
   getReasons: () => Promise<CheckInReason[]>;
   clearAccount: (accountId: string) => Promise<void>;
   clearCouple: (coupleId: string) => Promise<void>;
@@ -22,60 +31,112 @@ export type LocalCheckInServiceOptions = {
   createId?: () => string;
   now?: () => Date;
   timezoneForAccount?: (accountId: string) => string | Promise<string>;
-  hasConsentForAccount?: (accountId: string) => boolean | Promise<boolean>;
   reasonCatalog?: readonly CheckInReason[];
-  persist?: (checkIn: LocalCheckIn) => Promise<"saved_local" | "pending">;
+  initialCheckIns?: readonly LocalCheckIn[];
+  persist?: (checkIn: EmotionCheckIn) => Promise<"saved_local" | "pending">;
 };
+
+function cloneCheckIn(checkIn: LocalCheckIn): LocalCheckIn {
+  if (isEmotionCheckIn(checkIn)) return { ...checkIn };
+  return { ...checkIn, reasonIds: [...checkIn.reasonIds] };
+}
+
+function toPartnerVisible(checkIn: LocalCheckIn): PartnerVisibleCheckIn | null {
+  if (isEmotionCheckIn(checkIn)) {
+    return {
+      kind: "emotion",
+      id: checkIn.id,
+      authorId: checkIn.authorId,
+      emotionId: checkIn.emotionId,
+      customEmotionLabel: checkIn.customEmotionLabel,
+      emotionTone: checkIn.emotionTone,
+      note: checkIn.note,
+      mascotStickerId: checkIn.mascotStickerId,
+      createdAt: checkIn.createdAt,
+      localDate: checkIn.localDate,
+    };
+  }
+  if (checkIn.shareScope === "private_only") return null;
+  if (checkIn.shareScope === "mood_only") {
+    return {
+      kind: "legacy",
+      id: checkIn.id,
+      authorId: checkIn.authorId,
+      mood: checkIn.mood,
+      shareScope: "mood_only",
+      createdAt: checkIn.createdAt,
+      localDate: checkIn.localDate,
+    };
+  }
+  return {
+    kind: "legacy",
+    id: checkIn.id,
+    authorId: checkIn.authorId,
+    mood: checkIn.mood,
+    shareScope: "full",
+    reasonIds: [...checkIn.reasonIds],
+    note: checkIn.note,
+    createdAt: checkIn.createdAt,
+    localDate: checkIn.localDate,
+  };
+}
 
 export function createLocalCheckInService({
   coupleService = localCoupleService,
   createId,
   now = () => new Date(),
   timezoneForAccount = async (accountId) => (await localOnboardingService.getAccountSnapshot(accountId)).profile.timezone,
-  hasConsentForAccount = async (accountId) => Boolean((await localOnboardingService.getAccountSnapshot(accountId)).consentedAt),
   reasonCatalog = localCheckInReasons,
+  initialCheckIns = [],
   persist = async () => "saved_local",
 }: LocalCheckInServiceOptions = {}): LocalCheckInService {
-  const checkIns = new Map<string, LocalCheckIn>();
+  const checkIns = new Map<string, LocalCheckIn>(initialCheckIns.map((checkIn) => [checkIn.id, cloneCheckIn(checkIn)]));
   let sequence = 0;
   const makeId = createId ?? (() => `local-checkin-${now().getTime()}-${++sequence}`);
 
-  const clone = (checkIn: LocalCheckIn): LocalCheckIn => ({ ...checkIn, reasonIds: [...checkIn.reasonIds] });
+  const visibleForPartner = async (accountId: string, checkIn: LocalCheckIn): Promise<PartnerVisibleCheckIn | null> => {
+    const membership = await coupleService.getMembership(accountId);
+    if (membership.status !== "paired" || !membership.partner || checkIn.authorId !== membership.partner.id) return null;
+    if (!checkIn.coupleId || checkIn.coupleId !== membership.coupleId) return null;
+    return toPartnerVisible(checkIn);
+  };
 
   return {
     async listForAccount(accountId) {
       return [...checkIns.values()]
         .filter((checkIn) => checkIn.authorId === accountId)
         .sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt))
-        .map(clone);
+        .map(cloneCheckIn);
     },
 
     async submit(accountId, input) {
-      if (!await hasConsentForAccount(accountId)) return { kind: "error", error: "validation", retryable: false };
-      const parsed = createCheckInSchema(reasonCatalog.map((reason) => reason.id)).safeParse(input);
+      const parsed = emotionCheckInSchema.safeParse(input);
       if (!parsed.success) return { kind: "error", error: "validation", retryable: false };
+      const emotion = resolveEmotionSelection(parsed.data.emotionId, parsed.data.customEmotionLabel);
+      if (!emotion) return { kind: "error", error: "validation", retryable: false };
 
       const createdAt = now().toISOString();
       const membership = await coupleService.getMembership(accountId);
-      const draft: LocalCheckIn = {
+      const draft: EmotionCheckIn = {
+        kind: "emotion",
         id: makeId(),
-        clientId: makeId(),
         authorId: accountId,
         coupleId: membership.status === "paired" ? membership.coupleId : null,
-        mood: parsed.data.mood as LocalCheckIn["mood"],
-        reasonIds: [...parsed.data.reasonIds],
+        emotionId: emotion.emotionId,
+        customEmotionLabel: emotion.customEmotionLabel,
+        emotionTone: emotion.emotionTone,
         note: parsed.data.note,
-        shareScope: parsed.data.shareScope,
+        mascotStickerId: parsed.data.mascotStickerId,
         createdAt,
         localDate: localDateKey(new Date(createdAt), await timezoneForAccount(accountId)),
-        storageStatus: "saved_local",
+        status: "saved_local",
       };
 
       try {
-        const kind = await persist(clone(draft));
-        const saved = { ...draft, storageStatus: kind };
+        const kind = await persist({ ...draft });
+        const saved: EmotionCheckIn = { ...draft, status: kind };
         checkIns.set(saved.id, saved);
-        return { kind, checkIn: clone(saved) };
+        return { kind, checkIn: { ...saved } };
       } catch {
         return { kind: "error", error: "storage", retryable: true };
       }
@@ -87,37 +148,23 @@ export function createLocalCheckInService({
       if (membership.status !== "paired" || !partner) return null;
 
       const partnerToday = localDateKey(now(), partner.timezone);
-      const latest = [...checkIns.values()]
+      const candidates = [...checkIns.values()]
         .filter((checkIn) =>
           checkIn.authorId === partner.id &&
           checkIn.coupleId === membership.coupleId &&
-          checkIn.shareScope !== "private_only" &&
           localDateKey(new Date(checkIn.createdAt), partner.timezone) === partnerToday,
         )
-        .sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt))[0];
-      if (!latest) return null;
-
-      if (latest.shareScope === "mood_only") {
-        return {
-          id: latest.id,
-          authorId: latest.authorId,
-          mood: latest.mood,
-          shareScope: latest.shareScope,
-          createdAt: latest.createdAt,
-          localDate: latest.localDate,
-        };
+        .sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
+      for (const candidate of candidates) {
+        const visible = toPartnerVisible(candidate);
+        if (visible) return visible;
       }
-      if (latest.shareScope !== "full") return null;
-      return {
-        id: latest.id,
-        authorId: latest.authorId,
-        mood: latest.mood,
-        shareScope: latest.shareScope,
-        reasonIds: [...latest.reasonIds],
-        note: latest.note,
-        createdAt: latest.createdAt,
-        localDate: latest.localDate,
-      };
+      return null;
+    },
+
+    async getByIdForAccount(accountId, checkInId) {
+      const checkIn = checkIns.get(checkInId);
+      return checkIn ? visibleForPartner(accountId, checkIn) : null;
     },
 
     async getReasons() {

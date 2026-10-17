@@ -1,30 +1,44 @@
+import { ArrowUpRight } from "@tamagui/lucide-icons-2/icons/ArrowUpRight";
 import { BellRing } from "@tamagui/lucide-icons-2/icons/BellRing";
 import { Heart } from "@tamagui/lucide-icons-2/icons/Heart";
-import { Plus } from "@tamagui/lucide-icons-2/icons/Plus";
-import { Sparkles } from "@tamagui/lucide-icons-2/icons/Sparkles";
+import { MessageCircle } from "@tamagui/lucide-icons-2/icons/MessageCircle";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AppState } from "react-native";
+import { AppState, Image } from "react-native";
 import { Text, XStack, YStack } from "tamagui";
-import { useSessionStore } from "../../../shared/state/sessionStore";
-import { AppButton, AppHeader, AppScreen, AsyncStateView, SectionCard, StatusBanner } from "../../../shared/components";
-import { formatMessage, getMessage } from "../../../shared/localization/messages";
-import { CheckInComposer, localCheckInService, type PartnerVisibleCheckIn } from "../../checkins";
-import { localCoupleService, localPairingReminderService } from "../../couple";
-import { localInviteService, type PairingNotice } from "../../invites";
-import { PairingNoticeModal } from "../components/PairingNoticeModal";
-import { localOnboardingService } from "../../onboarding";
-import { localNotificationAdapter } from "../../notifications";
-import type { NotificationSettings } from "../../notifications";
-import { PartnerStatusCard, selectPartnerStatus } from "../../partner-status";
-import { localNudgeService } from "../../nudges";
-import type { Nudge } from "../../nudges";
-import { localMomentService } from "../../moments";
-import type { Moment } from "../../moments";
+import { AppButton, AppHeader, AppScreen, AsyncStateView, StatusBanner } from "../../../shared/components";
+import { homeShadows, homeTokens } from "../../../shared/constants/tokens";
 import { localDateKey } from "../../../shared/datetime/localDate";
-import type { LocalPartnerSummary } from "../../couple";
+import { formatMessage, getMessage } from "../../../shared/localization/messages";
+import { useSessionStore } from "../../../shared/state/sessionStore";
+import {
+  CheckInComposer,
+  isEmotionCheckIn,
+  localCheckInService,
+  type EmotionCheckIn,
+  type PartnerVisibleCheckIn,
+} from "../../checkins";
+import { localCoupleService, localPairingReminderService, type LocalPartnerSummary } from "../../couple";
+import { localInviteService, type PairingNotice } from "../../invites";
+import { localMomentService, MomentComposerSheet, type Moment, type MomentDraft } from "../../moments";
+import { localNotificationAdapter, type NotificationSettings } from "../../notifications";
+import { localNudgeService, type Nudge } from "../../nudges";
+import { localOnboardingService } from "../../onboarding";
+import { HomeEmotionHero } from "../components/HomeEmotionHero";
+import { HomeLoadingView } from "../components/HomeLoadingView";
+import { PairingNoticeModal } from "../components/PairingNoticeModal";
+import { PartnerNoteCard } from "../components/PartnerNoteCard";
+import { PartnerNoteSheet } from "../components/PartnerNoteSheet";
+import { getNudgeHomeAction } from "../homeActionModel";
+import { createPartnerNotePreview, isCurrentHomeLoad, selectHomeHero } from "../homePresentationModel";
 
-export function HomeScreen() {
+type HomeScreenProps = {
+  checkInRequest?: string;
+  momentRequest?: string;
+  momentKind?: MomentDraft["kind"];
+};
+
+export function HomeScreen({ checkInRequest, momentRequest, momentKind }: HomeScreenProps) {
   const router = useRouter();
   const activeAccountId = useSessionStore((session) => session.activeAccountId);
   const sessionId = useSessionStore((session) => session.sessionId);
@@ -33,15 +47,20 @@ export function HomeScreen() {
   const [loadedAccountId, setLoadedAccountId] = useState<string | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const [profileName, setProfileName] = useState("");
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [timezone, setTimezone] = useState("Asia/Ho_Chi_Minh");
   const [coupleId, setCoupleId] = useState<string | null>(null);
   const [partner, setPartner] = useState<LocalPartnerSummary | null>(null);
+  const [latestCheckIn, setLatestCheckIn] = useState<EmotionCheckIn | null>(null);
   const [partnerCheckIn, setPartnerCheckIn] = useState<PartnerVisibleCheckIn | null>(null);
-  const [hasCheckedInToday, setHasCheckedInToday] = useState(false);
+  const [selectedPartnerCheckIn, setSelectedPartnerCheckIn] = useState<PartnerVisibleCheckIn | null>(null);
   const [localNudges, setLocalNudges] = useState<Nudge[]>([]);
   const [moments, setMoments] = useState<Moment[]>([]);
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings | null>(null);
   const [showCheckIn, setShowCheckIn] = useState(false);
+  const [showFabComposer, setShowFabComposer] = useState(Boolean(momentRequest));
+  const [momentBusy, setMomentBusy] = useState(false);
+  const [momentFeedback, setMomentFeedback] = useState<"saved" | "pending" | "failed" | null>(null);
   const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
   const [permissionPromptFailed, setPermissionPromptFailed] = useState(false);
   const [pendingNudgeId, setPendingNudgeId] = useState<string>();
@@ -49,11 +68,28 @@ export function HomeScreen() {
   const [reminderVisible, setReminderVisible] = useState(false);
   const [notice, setNotice] = useState<PairingNotice | null>(null);
   const requestRevision = useRef(0);
+
   useEffect(() => {
     requestRevision.current += 1;
-    setLoading(true); setNotice(null); setShowCheckIn(false);
-    setShowPermissionPrompt(false); setPendingNudgeId(undefined);
+    setLoading(true);
+    setNotice(null);
+    setShowCheckIn(false);
+    setShowFabComposer(false);
+    setShowPermissionPrompt(false);
+    setPendingNudgeId(undefined);
+    setSelectedPartnerCheckIn(null);
   }, [activeAccountId]);
+
+  useEffect(() => {
+    if (checkInRequest) setShowCheckIn(true);
+  }, [checkInRequest]);
+
+  useEffect(() => {
+    if (momentRequest) {
+      setMomentFeedback(null);
+      setShowFabComposer(true);
+    }
+  }, [momentRequest]);
 
   const load = useCallback(async () => {
     const revision = ++requestRevision.current;
@@ -76,15 +112,18 @@ export function HomeScreen() {
         membership.status === "paired" && membership.partner ? localCheckInService.getLatestPartnerCheckIn(activeAccountId) : Promise.resolve(null),
         localInviteService.getPairingNotice(activeAccountId),
       ]);
-      if (revision !== requestRevision.current || useSessionStore.getState().activeAccountId !== activeAccountId) return;
-      const nextCoupleId = membership.status === "paired" ? membership.coupleId : null;
-      const nextPartner = membership.status === "paired" ? membership.partner : null;
+      if (!isCurrentHomeLoad(revision, activeAccountId, requestRevision.current, useSessionStore.getState().activeAccountId)) return;
+
+      const today = localDateKey(new Date(), account.profile.timezone);
+      const currentEmotion = checkIns.find((checkIn): checkIn is EmotionCheckIn => isEmotionCheckIn(checkIn) && checkIn.localDate === today) ?? null;
+      const nextCoupleId = useSessionStore.getState().activeCoupleId ?? (membership.status === "paired" ? membership.coupleId : null);
       setCoupleId(nextCoupleId);
       setActiveCouple(nextCoupleId);
-      setPartner(nextPartner);
+      setPartner(membership.status === "paired" ? membership.partner : null);
       setProfileName(account.profile.displayName);
+      setAvatarUri(account.profile.avatarUri);
       setTimezone(account.profile.timezone);
-      setHasCheckedInToday(checkIns.some((checkIn) => localDateKey(new Date(checkIn.createdAt), account.profile.timezone) === localDateKey(new Date(), account.profile.timezone)));
+      setLatestCheckIn(currentEmotion);
       setPartnerCheckIn(nextPartnerCheckIn);
       setLocalNudges(nudges);
       setMoments(nextMoments);
@@ -109,6 +148,7 @@ export function HomeScreen() {
 
   const afterCheckIn = async (result: "saved_local" | "pending" | "error", nudgeId?: string) => {
     setShowCheckIn(false);
+    router.setParams({ checkInRequest: undefined });
     if (result === "error" || !activeAccountId) return;
     setPendingNudgeId(nudgeId);
     await load();
@@ -121,9 +161,39 @@ export function HomeScreen() {
     }
   };
 
-  if (showCheckIn && loadedAccountId === activeAccountId) return <CheckInComposer key={activeAccountId} onClose={() => setShowCheckIn(false)} onCompleted={(result, nudgeId) => {
-    void afterCheckIn(result, nudgeId);
-  }} />;
+  const closeFabComposer = () => {
+    setShowFabComposer(false);
+    router.setParams({ momentRequest: undefined, momentKind: undefined });
+  };
+
+  const submitFabMoment = async (draft: MomentDraft) => {
+    if (!activeAccountId || !coupleId) return;
+    setMomentBusy(true);
+    try {
+      const result = await localMomentService.create(activeAccountId, coupleId, draft);
+      if (result.kind !== "created") {
+        setMomentFeedback("failed");
+        return;
+      }
+      setMomentFeedback(result.moment.status === "pending" ? "pending" : result.moment.status === "failed" ? "failed" : "saved");
+      if (result.moment.status !== "failed") {
+        closeFabComposer();
+        await load();
+      }
+    } catch {
+      setMomentFeedback("failed");
+    } finally {
+      setMomentBusy(false);
+    }
+  };
+
+  if (showCheckIn && loadedAccountId === activeAccountId) return (
+    <CheckInComposer
+      key={`${activeAccountId}-${checkInRequest ?? "home"}`}
+      onClose={() => { setShowCheckIn(false); router.setParams({ checkInRequest: undefined }); }}
+      onCompleted={(result, nudgeId) => { void afterCheckIn(result, nudgeId); }}
+    />
+  );
 
   if (showPermissionPrompt && loadedAccountId === activeAccountId) {
     const finish = async (allow: boolean) => {
@@ -135,12 +205,8 @@ export function HomeScreen() {
           const reminder = await localNotificationAdapter.setDailyReminder(activeAccountId, true, permission.settings.reminderTime);
           setNotificationSettings(reminder.settings);
           setPermissionPromptFailed(reminder.kind !== "updated");
-        } else {
-          setPermissionPromptFailed(permission.kind === "unavailable");
-        }
-      } else {
-        setNotificationSettings(await localNotificationAdapter.dismissPermissionPrompt(activeAccountId));
-      }
+        } else setPermissionPromptFailed(permission.kind === "unavailable");
+      } else setNotificationSettings(await localNotificationAdapter.dismissPermissionPrompt(activeAccountId));
       setShowPermissionPrompt(false);
       if (pendingNudgeId) router.push({ pathname: "/nudge/[nudgeId]", params: { nudgeId: pendingNudgeId } });
       setPendingNudgeId(undefined);
@@ -156,66 +222,124 @@ export function HomeScreen() {
   }
 
   if (!activeAccountId) return <AppScreen><AsyncStateView variant="error" title="localAuthErrorTitle" description="localSessionRequiredBody" actionLabel="retry" onAction={() => router.replace("/(auth)")} /></AppScreen>;
-  if (loading || (!loadFailed && loadedAccountId !== activeAccountId)) return <AppScreen><AsyncStateView variant="loading" title="homeLoadingTitle" description="homeLoadingBody" /></AppScreen>;
+  if (loading || (!loadFailed && loadedAccountId !== activeAccountId)) return <HomeLoadingView />;
   if (loadFailed) return <AppScreen><AsyncStateView variant="error" title="localHomeUnavailableTitle" description="localHomeUnavailableBody" actionLabel="retry" onAction={() => void load()} /></AppScreen>;
+  if (showFabComposer && coupleId) return (
+    <AppScreen contentProps={{ width: "100%", maxWidth: homeTokens.maxWidth, alignSelf: "center", paddingHorizontal: "$lg", paddingTop: "$lg", paddingBottom: homeTokens.navigationClearance, gap: "$lg" }}>
+      <AppHeader showBack onBack={closeFabComposer} title={getMessage("vi", "homeQuickShareTitle")} subtitle={getMessage("vi", "homeQuickShareBody")} />
+      {momentFeedback === "failed" ? <StatusBanner tone="warning" title={getMessage("vi", "momentCreateFailedTitle")} description={getMessage("vi", "momentCreateFailedBody")} /> : null}
+      <MomentComposerSheet initialKind={momentKind} busy={momentBusy} onCancel={closeFabComposer} onSubmit={(draft) => void submitFabMoment(draft)} />
+    </AppScreen>
+  );
 
   const now = new Date();
-  const partnerVisibleCheckIns = partnerCheckIn ? [partnerCheckIn] : [];
-  const partnerStatus = partner ? selectPartnerStatus(partnerVisibleCheckIns, { userId: activeAccountId, timezone, partner, now }) : null;
-  const activeNudge = localNudges.find((nudge) => nudge.status === "new" || nudge.status === "snoozed");
-  const latestMoment = moments[0];
+  const heroPresentation = selectHomeHero(latestCheckIn, localNudges);
+  const activeNudge = heroPresentation.kind === "nudge" ? localNudges.find((nudge) => nudge.id === heroPresentation.nudgeId) ?? null : null;
+  const partnerPreview = createPartnerNotePreview(partnerCheckIn);
+  const latestMoment = moments[0] ?? null;
   const today = new Intl.DateTimeFormat("vi-VN", { weekday: "long", day: "numeric", month: "long", timeZone: timezone }).format(now);
+  const partnerName = partner?.nickname || partner?.displayName || getMessage("vi", "partnerGenericName");
+  const relatedNudge = selectedPartnerCheckIn ? localNudges.find((nudge) => nudge.sourceCheckInId === selectedPartnerCheckIn.id && (nudge.status === "new" || nudge.status === "snoozed")) ?? null : null;
+
+  const openMomentComposer = (kind?: MomentDraft["kind"], nudge?: Nudge) => router.push({
+    pathname: "/(main)/moments",
+    params: { composeRequest: `home-${Date.now()}`, ...(kind ? { kind } : {}), ...(nudge ? { draft: nudge.draft, nudgeId: nudge.id } : {}) },
+  });
+  const openNudgeAction = (nudge: Nudge) => {
+    const action = getNudgeHomeAction(nudge.actionType);
+    if (action.kind === "composer") openMomentComposer(action.momentKind, nudge);
+    else router.push({ pathname: "/nudge/[nudgeId]", params: { nudgeId: nudge.id } });
+  };
+  const openPartnerNote = async () => {
+    if (!partnerPreview) return;
+    const detail = await localCheckInService.getByIdForAccount(activeAccountId, partnerPreview.checkInId);
+    if (detail) setSelectedPartnerCheckIn(detail);
+  };
+  const formatMomentTime = (moment: Moment) => new Intl.DateTimeFormat("vi-VN", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit", timeZone: timezone }).format(new Date(moment.createdAt));
+  const noteTime = selectedPartnerCheckIn ? new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit", day: "numeric", month: "long", timeZone: timezone }).format(new Date(selectedPartnerCheckIn.createdAt)) : "";
 
   return (
-    <AppScreen>
-      <AppHeader
-        eyebrow={today}
-        title={formatMessage("vi", "todayGreeting", { name: profileName || getMessage("vi", "defaultUserName") })}
-        subtitle={getMessage("vi", "todaySubtitle")}
+    <AppScreen contentProps={{ width: "100%", maxWidth: homeTokens.maxWidth, alignSelf: "center", paddingHorizontal: "$lg", paddingTop: "$lg", paddingBottom: homeTokens.navigationClearance, gap: "$xl" }}>
+      <XStack alignItems="center" gap="$lg" justifyContent="space-between">
+        <YStack flex={1} minWidth={0} gap="$xs">
+          <Text fontFamily="$body" fontSize="$bodyS" lineHeight="$bodyS" color="$textSecondary">{today}</Text>
+          <Text role="heading" aria-level={1} fontFamily="$heading" fontSize="$h2" lineHeight="$h2" fontWeight="$bold" color="$textPrimary">
+            {formatMessage("vi", "todayGreeting", { name: profileName || getMessage("vi", "defaultUserName") })}
+          </Text>
+        </YStack>
+        <YStack width={homeTokens.avatarSize} height={homeTokens.avatarSize} backgroundColor="$surfaceMuted" borderRadius="$xl" alignItems="center" justifyContent="center" overflow="hidden" role="button" aria-label={getMessage("vi", "profileTitle")} pressStyle={{ opacity: 0.7 }} onPress={() => router.push("/(main)/profile")}>
+          {avatarUri ? <Image source={{ uri: avatarUri }} style={{ width: homeTokens.avatarSize, height: homeTokens.avatarSize }} accessible={false} /> : <Text fontFamily="$heading" fontSize="$h5" fontWeight="$semibold" color="$textSecondary">{(profileName || getMessage("vi", "defaultUserName")).trim().charAt(0).toLocaleUpperCase("vi")}</Text>}
+        </YStack>
+      </XStack>
+
+      {momentFeedback === "saved" ? <StatusBanner tone="success" title={getMessage("vi", "momentSentTitle")} description={getMessage("vi", "momentSentBody")} /> : null}
+      {momentFeedback === "pending" ? <StatusBanner tone="offline" title={getMessage("vi", "momentQueuedTitle")} description={getMessage("vi", "momentQueuedBody")} /> : null}
+
+      <HomeEmotionHero
+        presentation={heroPresentation}
+        nudge={activeNudge}
+        onOpenComposer={() => setShowCheckIn(true)}
+        onDoNudge={() => { if (activeNudge) openNudgeAction(activeNudge); }}
+        onViewNudge={() => { if (activeNudge) router.push({ pathname: "/nudge/[nudgeId]", params: { nudgeId: activeNudge.id } }); }}
       />
-      <StatusBanner tone="info" title={getMessage("vi", "homeLocalOnlyTitle")} description={getMessage("vi", "homeLocalOnlyBody")} />
+
       <PairingNoticeModal notice={notice} onClose={() => {
         if (notice) localInviteService.acknowledgePairingNotice(activeAccountId, notice.inviteId);
         setNotice(null);
       }} />
-      {waiting ? <SectionCard tone="peach" title={getMessage("vi", "waitingStatus")} description={getMessage("vi", "waitingHomeBody")}>
-        <AppButton variant="secondary" onPress={() => router.push("/(waiting)")}>{getMessage("vi", "viewWaitingInvite")}</AppButton>
-      </SectionCard> : !coupleId && reminderVisible ? <SectionCard tone="peach" title={getMessage("vi", "pairingReminderTitle")} description={getMessage("vi", "pairingReminderBody")}>
-        <AppButton variant="secondary" onPress={() => router.push({ pathname: "/(onboarding)", params: { start: "partner" } })}>{getMessage("vi", "pairNow")}</AppButton>
-        <AppButton variant="ghost" onPress={() => { localPairingReminderService.snooze(activeAccountId); setReminderVisible(false); }}>{getMessage("vi", "pairingSnoozeDay")}</AppButton>
-        <AppButton variant="ghost" onPress={() => { localPairingReminderService.muteSession(activeAccountId, sessionId); setReminderVisible(false); }}>{getMessage("vi", "pairingMuteSession")}</AppButton>
-      </SectionCard> : null}
-      {partner && partnerStatus ? <YStack gap="$sm">
-        <Text fontFamily="$heading" fontSize="$h5" fontWeight="$semibold" color="$textPrimary">
-          {formatMessage("vi", "partnerStatusTitle", { name: partner.nickname || partner.displayName })}
-        </Text>
-        <PartnerStatusCard status={partnerStatus} onSignal={() => router.push("/(main)/moments")} />
-      </YStack> : null}
-      {activeNudge ? (
-        <SectionCard tone="lavender" title={activeNudge.observation} description={activeNudge.reason}>
-          <AppButton icon={<Sparkles size={18} />} onPress={() => router.push({ pathname: "/nudge/[nudgeId]", params: { nudgeId: activeNudge.id } })}>
-            {getMessage("vi", "viewNudge")}
-          </AppButton>
-        </SectionCard>
+
+      {partner ? (
+        <PartnerNoteCard partnerName={partnerName} preview={partnerPreview} onOpen={() => void openPartnerNote()} />
+      ) : (
+        <YStack gap="$md">
+          <Text role="heading" aria-level={2} fontFamily="$heading" fontSize="$h5" fontWeight="$semibold" color="$textPrimary">{getMessage("vi", "homeConnectionTitle")}</Text>
+          <YStack borderRadius="$xl" backgroundColor="$surface" padding="$lg" gap="$md" {...homeShadows.card}>
+            <XStack alignItems="center" justifyContent="center" gap="$md" aria-hidden={true}>
+              <YStack width={34} height={34} borderRadius="$xl" backgroundColor="$secondary" opacity={0.9} />
+              <Heart size={22} color="$supportCoral" />
+              <YStack width={34} height={34} borderRadius="$xl" backgroundColor="$primary" opacity={0.9} />
+            </XStack>
+            <Text textAlign="center" fontFamily="$heading" fontSize="$bodyL" lineHeight="$bodyL" fontWeight="$semibold" color="$textPrimary">{getMessage("vi", waiting ? "waitingStatus" : "pairingReminderTitle")}</Text>
+            <Text textAlign="center" fontFamily="$body" fontSize="$bodyS" lineHeight="$bodyS" color="$textSecondary">{getMessage("vi", waiting ? "waitingHomeBody" : "pairingReminderBody")}</Text>
+            <AppButton variant="secondary" iconAfter={<ArrowUpRight size={18} />} onPress={waiting ? () => router.push("/(waiting)") : () => router.push({ pathname: "/(onboarding)", params: { start: "partner" } })}>{getMessage("vi", waiting ? "viewWaitingInvite" : "pairNow")}</AppButton>
+            {!waiting && reminderVisible ? <XStack justifyContent="center" flexWrap="wrap" gap="$sm">
+              <AppButton variant="ghost" onPress={() => { localPairingReminderService.snooze(activeAccountId); setReminderVisible(false); }}>{getMessage("vi", "pairingSnoozeDay")}</AppButton>
+              <AppButton variant="ghost" onPress={() => { localPairingReminderService.muteSession(activeAccountId, sessionId); setReminderVisible(false); }}>{getMessage("vi", "pairingMuteSession")}</AppButton>
+            </XStack> : null}
+          </YStack>
+        </YStack>
+      )}
+
+      {partner ? (
+        <YStack gap="$md">
+          <Text role="heading" aria-level={2} fontFamily="$heading" fontSize="$h5" fontWeight="$semibold" color="$textPrimary">{getMessage("vi", "recentMoments")}</Text>
+          {latestMoment ? (
+            <YStack backgroundColor="$surface" borderRadius="$lg" padding="$lg" gap="$sm" role="button" aria-label={getMessage("vi", "viewRecentMoment")} pressStyle={{ opacity: 0.75 }} onPress={() => router.push({ pathname: "/moment/[momentId]", params: { momentId: latestMoment.id } })} {...homeShadows.card}>
+              <XStack gap="$sm" alignItems="center">
+                <MessageCircle size={16} color="$accentText" />
+                <Text flex={1} fontFamily="$body" fontSize="$bodyS" color="$textSecondary">{formatMessage("vi", latestMoment.authorId === activeAccountId ? "homeMomentFromYou" : "homeMomentFromPartner", { name: partnerName, time: formatMomentTime(latestMoment) })}</Text>
+                <ArrowUpRight size={16} color="$textSecondary" />
+              </XStack>
+              <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textPrimary" numberOfLines={2}>{latestMoment.text || latestMoment.caption || getMessage("vi", latestMoment.kind === "photo" ? "photoMoment" : latestMoment.kind === "voice" ? "voiceMoment" : "momentSignal")}</Text>
+            </YStack>
+          ) : (
+            <YStack backgroundColor="$surface" borderRadius="$lg" padding="$lg" gap="$sm" {...homeShadows.card}>
+              <Text fontFamily="$heading" fontSize="$bodyL" fontWeight="$medium" color="$textPrimary">{getMessage("vi", "homeNoMomentTitle")}</Text>
+              <Text fontFamily="$body" fontSize="$bodyS" lineHeight="$bodyS" color="$textSecondary">{getMessage("vi", "homeNoMomentBody")}</Text>
+            </YStack>
+          )}
+        </YStack>
       ) : null}
-      <SectionCard title={getMessage("vi", "yourCheckInTitle")} description={getMessage("vi", "yourCheckInBody")}>
-        {hasCheckedInToday ? <StatusBanner tone="success" title={getMessage("vi", "checkInTodaySavedTitle")} description={getMessage("vi", "checkInTodaySavedBody")} /> : null}
-        <AppButton icon={<Plus size={18} />} onPress={() => setShowCheckIn(true)}>{getMessage("vi", "checkInNow")}</AppButton>
-      </SectionCard>
-      {latestMoment ? (
-        <SectionCard tone="lavender" title={getMessage("vi", "recentMoments")} description={latestMoment.text || latestMoment.caption || getMessage("vi", latestMoment.kind === "photo" ? "photoMoment" : latestMoment.kind === "voice" ? "voiceMoment" : "momentSignal")}>
-          <AppButton variant="secondary" onPress={() => router.push({ pathname: "/moment/[momentId]", params: { momentId: latestMoment.id } })}>{getMessage("vi", "viewRecentMoment")}</AppButton>
-        </SectionCard>
-      ) : null}
-      {notificationSettings?.reminderEnabled ? <StatusBanner tone="info" title={getMessage("vi", "notificationReminderEnabled")} description={formatMessage("vi", "reminderTimeLabelWithValue", { time: notificationSettings.reminderTime })} /> : null}
-      <SectionCard tone="peach" title={getMessage("vi", "dailyPromptTitle")} description={getMessage("vi", "dailyPromptLocal")}>
-        <XStack gap="$sm">
-          <AppButton flex={1} variant="secondary" icon={<Heart size={18} />} onPress={() => router.push("/(main)/moments")}>
-            {getMessage("vi", "shareAMoment")}
-          </AppButton>
-          <AppButton width="$control" circular variant="ghost" icon={<BellRing size={18} />} aria-label={getMessage("vi", "settingsTitle")} onPress={() => router.push("/settings")} />
-        </XStack>
-      </SectionCard>
+
+      <PartnerNoteSheet
+        visible={Boolean(selectedPartnerCheckIn)}
+        partnerName={partnerName}
+        checkIn={selectedPartnerCheckIn}
+        formattedTime={noteTime}
+        hasNudge={Boolean(relatedNudge)}
+        onClose={() => setSelectedPartnerCheckIn(null)}
+        onDoNudge={() => { if (relatedNudge) openNudgeAction(relatedNudge); }}
+      />
     </AppScreen>
   );
 }

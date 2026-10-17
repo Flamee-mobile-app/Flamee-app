@@ -1,4 +1,4 @@
-import { localAuthService, type LocalAuthService } from "../auth/localAuthService.ts";
+import { authService, type AuthService } from "../auth/index.ts";
 import { localCheckInService, type LocalCheckInService } from "../checkins/localCheckInService.ts";
 import { localCoupleService, type LocalCoupleService } from "../couple/localCoupleService.ts";
 import { localInviteService, type LocalInviteService } from "../invites/localInviteService.ts";
@@ -9,6 +9,7 @@ import { localOnboardingService, type LocalOnboardingService } from "../onboardi
 import { supportRequestSchema } from "./schemas.ts";
 import { inviteIntent } from "../invites/index.ts";
 import { localPairingReminderService } from "../couple/index.ts";
+import { isEmotionCheckIn } from "../checkins/types.ts";
 
 export type LocalExportPreview = {
   accountId: string;
@@ -26,16 +27,31 @@ export type LocalExportPreview = {
   consent: { version: string | null; acceptedAt: string | null };
   couple: { status: "none" | "waiting" | "paired"; partnerName: string | null };
   invite: { status: "open" | null; expiresAt: string | null; hasGift: boolean };
-  checkIns: Array<{
-    id: string;
-    mood: number;
-    reasonIds: string[];
-    note: string;
-    shareScope: string;
-    createdAt: string;
-    localDate: string;
-    storageStatus: string;
-  }>;
+  checkIns: Array<
+    | {
+        kind: "emotion";
+        id: string;
+        emotionId: string;
+        customEmotionLabel: string | null;
+        emotionTone: string;
+        note: string;
+        mascotStickerId: string | null;
+        createdAt: string;
+        localDate: string;
+        storageStatus: string;
+      }
+    | {
+        kind: "legacy";
+        id: string;
+        mood: number;
+        reasonIds: string[];
+        note: string;
+        shareScope: string;
+        createdAt: string;
+        localDate: string;
+        storageStatus: string;
+      }
+  >;
   nudges: Array<{
     id: string;
     observation: string;
@@ -99,7 +115,7 @@ export type LocalAccountLifecycleServiceOptions = {
   nudges?: LocalNudgeService;
   moments?: LocalMomentService;
   notifications?: LocalNotificationAdapter;
-  auth?: LocalAuthService;
+  auth?: Pick<AuthService, "signOut">;
   session?: LocalLifecycleSessionPort;
   now?: () => Date;
   // The local runtime intentionally has no transport; this remains injectable
@@ -115,7 +131,7 @@ export function createLocalAccountLifecycleService({
   nudges = localNudgeService,
   moments = localMomentService,
   notifications = localNotificationAdapter,
-  auth = localAuthService,
+  auth = authService,
   session,
   now = () => new Date(),
 }: LocalAccountLifecycleServiceOptions = {}): LocalAccountLifecycleService {
@@ -165,7 +181,19 @@ export function createLocalAccountLifecycleService({
           expiresAt: openInvite?.expiresAt ?? null,
           hasGift: Boolean(openInvite?.gift),
         },
-        checkIns: accountCheckIns.map((item) => ({
+        checkIns: accountCheckIns.map((item) => isEmotionCheckIn(item) ? ({
+          kind: "emotion" as const,
+          id: item.id,
+          emotionId: item.emotionId,
+          customEmotionLabel: item.customEmotionLabel,
+          emotionTone: item.emotionTone,
+          note: item.note,
+          mascotStickerId: item.mascotStickerId,
+          createdAt: item.createdAt,
+          localDate: item.localDate,
+          storageStatus: item.status,
+        }) : ({
+          kind: "legacy" as const,
           id: item.id,
           mood: item.mood,
           reasonIds: [...item.reasonIds],
@@ -251,7 +279,8 @@ export function createLocalAccountLifecycleService({
         notifications.clearAccount(accountId),
         onboarding.clearAccount(accountId),
       ]);
-      await auth.deleteAccount(accountId);
+      // This action removes only local feature data, not the backend identity.
+      await auth.signOut();
       inviteIntent.clear();
       localPairingReminderService.clearAccount(accountId);
       session?.reset();

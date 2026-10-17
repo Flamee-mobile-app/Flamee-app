@@ -1,7 +1,7 @@
 import { Camera } from "@tamagui/lucide-icons-2/icons/Camera";
 import { useEffect, useRef, useState } from "react";
 import { Image, XStack, YStack } from "tamagui";
-import { AppButton, AppField, ChoiceChip, SectionCard, StatusBanner } from "../../../shared/components";
+import { AppButton, AppField, AppFilterChip, SectionCard, StatusBanner } from "../../../shared/components";
 import { getMessage } from "../../../shared/localization/messages";
 import { localMediaAdapter } from "../../media";
 import { VoiceDraftControl } from "../../moments/screens";
@@ -75,15 +75,15 @@ export function InviteGiftComposer({ initialGift = null, initialMessage = "", on
   return <SectionCard title={getMessage("vi", "giftTitle")} description={getMessage("vi", "inviteOptionalGiftBody")}>
     <AppField multiline label={getMessage("vi", "giftMessageLabel")} placeholder={getMessage("vi", "giftMessagePlaceholder")} value={message} editable={!busy} maxLength={200} onChangeText={(value) => { setMessage(value); setSaved(false); }} characterCount={message.length + "/200"} />
     <XStack flexWrap="wrap" gap="$sm">
-      <ChoiceChip label={getMessage("vi", "giftMessageOnly")} selected={kind === "none"} onPress={() => choose("none")} />
-      <ChoiceChip label={getMessage("vi", "giftMascot")} selected={kind === "mascot"} onPress={() => choose("mascot")} />
-      <ChoiceChip label={getMessage("vi", "giftPhoto")} selected={kind === "photo"} onPress={() => choose("photo")} />
-      <ChoiceChip label={getMessage("vi", "giftVoice")} selected={kind === "voice"} onPress={() => choose("voice")} />
+      <AppFilterChip selectionMode="single" label={getMessage("vi", "giftMessageOnly")} selected={kind === "none"} onPress={() => choose("none")} />
+      <AppFilterChip selectionMode="single" label={getMessage("vi", "giftMascot")} selected={kind === "mascot"} onPress={() => choose("mascot")} />
+      <AppFilterChip selectionMode="single" label={getMessage("vi", "giftPhoto")} selected={kind === "photo"} onPress={() => choose("photo")} />
+      <AppFilterChip selectionMode="single" label={getMessage("vi", "giftVoice")} selected={kind === "voice"} onPress={() => choose("voice")} />
     </XStack>
     {kind === "mascot" ? <YStack gap="$sm" alignItems="center">
       <FlameeMascot gift={mascotGift} />
       <XStack flexWrap="wrap" justifyContent="center" gap="$sm">
-        {(["heart", "hug", "flower"] as const).map((gift) => <ChoiceChip key={gift} label={getMessage("vi", gift === "heart" ? "mascotHeart" : gift === "hug" ? "mascotHug" : "mascotFlower")} selected={mascotGift === gift} onPress={() => { if (!busy) { setMascotGift(gift); setSaved(false); } }} />)}
+        {(["heart", "hug", "flower"] as const).map((gift) => <AppFilterChip key={gift} selectionMode="single" label={getMessage("vi", gift === "heart" ? "mascotHeart" : gift === "hug" ? "mascotHug" : "mascotFlower")} selected={mascotGift === gift} onPress={() => { if (!busy) { setMascotGift(gift); setSaved(false); } }} />)}
       </XStack>
     </YStack> : kind === "photo" ? <YStack gap="$sm">
       <AppButton variant="secondary" disabled={busy} icon={<Camera size={18} />} onPress={() => void selectPhoto()}>{getMessage("vi", "giftPhotoReady")}</AppButton>

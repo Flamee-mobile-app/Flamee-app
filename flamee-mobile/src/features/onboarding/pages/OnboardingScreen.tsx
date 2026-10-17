@@ -1,7 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { HeartHandshake } from "@tamagui/lucide-icons-2/icons/HeartHandshake";
-import { Check } from "@tamagui/lucide-icons-2/icons/Check";
-import { Square } from "@tamagui/lucide-icons-2/icons/Square";
 import { MapPin } from "@tamagui/lucide-icons-2/icons/MapPin";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -16,11 +14,9 @@ import { profileSchema, type ProfileInput } from "../schemas";
 
 function QuickProfile({ account, busy, failed, onSave, onSkip, onReceive }: {
   account: LocalAccountSnapshot; busy: boolean; failed: boolean;
-  onSave: (value: ProfileInput, consent: boolean) => void;
+  onSave: (value: ProfileInput) => void;
   onSkip: () => void; onReceive?: () => void;
 }) {
-  const [accepted, setAccepted] = useState(Boolean(account.consentedAt));
-  const [consentError, setConsentError] = useState(false);
   const form = useForm<ProfileInput>({
     resolver: zodResolver(profileSchema),
     defaultValues: { displayName: account.profile.displayName, partnerNickname: account.profile.partnerNickname, avatarUri: account.profile.avatarUri, timezone: account.profile.timezone },
@@ -28,13 +24,8 @@ function QuickProfile({ account, busy, failed, onSave, onSkip, onReceive }: {
   return <AppScreen>
     <AppHeader eyebrow={getMessage("vi", "onboardingEyebrow")} title={getMessage("vi", "quickProfileTitle")} subtitle={getMessage("vi", "quickProfileBody")} />
     <Controller control={form.control} name="displayName" render={({ field, fieldState }) => <AppField label={getMessage("vi", "displayNameLabel")} placeholder={getMessage("vi", "displayNamePlaceholder")} value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} maxLength={40} error={fieldState.error?.message} />} />
-    <Controller control={form.control} name="timezone" render={({ field, fieldState }) => <AppField label={getMessage("vi", "timezoneLabel")} value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} error={fieldState.error?.message} />} />
-    {!account.consentedAt ? <SectionCard description={getMessage("vi", "consentBody")}>
-      <AppButton variant="ghost" icon={accepted ? <Check size={20} color="$primary" aria-hidden={true} /> : <Square size={20} aria-hidden={true} />} role="checkbox" aria-checked={accepted} disabled={busy} onPress={() => { setAccepted((value) => !value); setConsentError(false); }}>{getMessage("vi", "consentCheckbox")}</AppButton>
-      {consentError ? <Text color="$error">{getMessage("vi", "consentRequired")}</Text> : null}
-    </SectionCard> : null}
     {failed ? <StatusBanner tone="warning" title={getMessage("vi", "localSaveErrorTitle")} description={getMessage("vi", "localSaveErrorBody")} /> : null}
-    <AppButton disabled={busy} onPress={form.handleSubmit((value) => { if (!accepted) { setConsentError(true); return; } onSave(value, accepted); })}>{getMessage("vi", "continue")}</AppButton>
+    <AppButton disabled={busy} onPress={form.handleSubmit(onSave)}>{getMessage("vi", "continue")}</AppButton>
     {onReceive ? <AppButton variant="secondary" disabled={busy} onPress={onReceive}>{getMessage("vi", "continueToInvitation")}</AppButton> : null}
     <AppButton variant="ghost" disabled={busy} onPress={onSkip}>{getMessage("vi", "skipToHome")}</AppButton>
   </AppScreen>;
@@ -83,8 +74,7 @@ export function OnboardingScreen() {
 
   if (step === "profile") return <QuickProfile key={accountId} account={account} busy={busy} failed={failed} onSkip={skip}
     onReceive={inviteIntent.getCode() ? () => { void run(() => finish(false, true)); } : undefined}
-    onSave={(value, consent) => { void run(async () => {
-      if (!account.consentedAt && consent) await localOnboardingService.acceptConsent(accountId);
+    onSave={(value) => { void run(async () => {
       await localOnboardingService.saveProfile(accountId, value);
       if (inviteIntent.getCode()) { await finish(false, true); return; }
       setAccount(await localOnboardingService.advanceSetup(accountId, "partner"));

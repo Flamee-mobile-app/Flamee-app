@@ -1,4 +1,4 @@
-import type { LocalCheckIn } from "../checkins/index.ts";
+import type { EmotionTone, LocalCheckIn, Mood } from "../checkins/types.ts";
 
 export const negativeFeedbackReasons = [
   "wrong_tone",
@@ -35,6 +35,10 @@ export type Nudge = {
 
 export type NudgeContent = Pick<Nudge, "observation" | "actionType" | "draft" | "reason" | "tone">;
 
+export type NudgeSourceSignal =
+  | { kind: "emotion"; id: string; emotionTone: EmotionTone }
+  | { kind: "legacy"; id: string; mood: Mood };
+
 export type CreateNudgeInput = {
   sourceCheckIn: LocalCheckIn;
   recipientId: string;
@@ -52,3 +56,7 @@ export type CreateNudgeResult =
 export type NudgeMutationResult =
   | { kind: "updated"; nudge: Nudge }
   | { kind: "not_found" | "expired" | "invalid_transition" | "validation" };
+
+export function getNudgeRouteIdForAccount(nudge: Nudge, accountId: string): string | undefined {
+  return nudge.recipientId === accountId ? nudge.id : undefined;
+}

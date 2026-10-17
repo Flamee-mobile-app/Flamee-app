@@ -1,6 +1,7 @@
 import type { PropsWithChildren } from "react";
-import { Button, Text, YStack } from "tamagui";
+import { Text, YStack } from "tamagui";
 import { getMessage, type MessageKey } from "../localization/messages";
+import { AppButton } from "./AppButton";
 
 type FoundationScreenProps = PropsWithChildren<{
   title: MessageKey;
@@ -35,21 +36,11 @@ export function FoundationScreen({ title, description, actionLabel, onAction }: 
         {getMessage("vi", description ?? "foundationDescription")}
       </Text>
       {actionLabel && onAction ? (
-        <Button
-          marginTop="$xl"
-          minHeight="$control"
-          borderRadius="$md"
-          backgroundColor="$primary"
-          paddingHorizontal="$xl"
-          fontFamily="$body"
-          fontSize="$button"
-          fontWeight="$medium"
-          color="$white"
-          pressStyle={{ opacity: 0.85 }}
-          onPress={onAction}
-        >
-          {getMessage("vi", actionLabel)}
-        </Button>
+        <YStack marginTop="$xl">
+          <AppButton onPress={onAction}>
+            {getMessage("vi", actionLabel)}
+          </AppButton>
+        </YStack>
       ) : null}
     </YStack>
   );

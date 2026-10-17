@@ -6,7 +6,7 @@ import { Send } from "@tamagui/lucide-icons-2/icons/Send";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Image, Text, XStack, YStack } from "tamagui";
 import type { MomentDraft } from "../types";
-import { AppButton, AppField, ChoiceChip, SectionCard, StatusBanner } from "../../../shared/components";
+import { AppButton, AppField, AppFilterChip, SectionCard, StatusBanner } from "../../../shared/components";
 import { getMessage, type MessageKey } from "../../../shared/localization/messages";
 import { localMediaAdapter } from "../../media/localMediaAdapter";
 import { momentDraftSchema } from "../schemas";
@@ -14,6 +14,7 @@ import { VoiceDraftControl } from "./VoiceDraftControl";
 
 type Kind = MomentDraft["kind"];
 type Props = {
+  embedded?: boolean;
   initialText?: string;
   initialKind?: Kind;
   busy: boolean;
@@ -27,7 +28,7 @@ const signals: Array<{ value: string; label: MessageKey }> = [
   { value: "good_night", label: "signalGoodNight" },
 ];
 
-export function MomentComposerSheet({ initialText = "", initialKind, busy, onCancel, onSubmit }: Props) {
+export function MomentComposerSheet({ embedded = false, initialText = "", initialKind, busy, onCancel, onSubmit }: Props) {
   const [kind, setKind] = useState<Kind>(initialKind ?? (initialText ? "text" : "signal"));
   const [text, setText] = useState(initialKind === "voice" || initialKind === "photo" ? "" : initialText);
   const [caption, setCaption] = useState(initialKind === "voice" || initialKind === "photo" ? initialText.slice(0, 100) : "");
@@ -94,19 +95,19 @@ export function MomentComposerSheet({ initialText = "", initialKind, busy, onCan
     onSubmit(parsed.data);
   };
 
-  return (
-    <SectionCard title={getMessage("vi", "createMomentTitle")} description={getMessage("vi", "createMomentBody")}>
+  const content = (
+    <>
       <XStack flexWrap="wrap" gap="$sm">
-        <ChoiceChip label={getMessage("vi", "momentText")} selected={kind === "text"} onPress={() => setKind("text")} />
-        <ChoiceChip label={getMessage("vi", "momentPhoto")} selected={kind === "photo"} onPress={() => setKind("photo")} />
-        <ChoiceChip label={getMessage("vi", "momentVoice")} selected={kind === "voice"} onPress={() => setKind("voice")} />
-        <ChoiceChip label={getMessage("vi", "momentSignal")} selected={kind === "signal"} onPress={() => setKind("signal")} />
+        <AppFilterChip selectionMode="single" label={getMessage("vi", "momentText")} selected={kind === "text"} onPress={() => setKind("text")} />
+        <AppFilterChip selectionMode="single" label={getMessage("vi", "momentPhoto")} selected={kind === "photo"} onPress={() => setKind("photo")} />
+        <AppFilterChip selectionMode="single" label={getMessage("vi", "momentVoice")} selected={kind === "voice"} onPress={() => setKind("voice")} />
+        <AppFilterChip selectionMode="single" label={getMessage("vi", "momentSignal")} selected={kind === "signal"} onPress={() => setKind("signal")} />
       </XStack>
       {kind === "text" ? <AppField multiline label={getMessage("vi", "momentTextLabel")} value={text} onChangeText={setText} maxLength={200} characterCount={`${text.length}/200`} /> : null}
-      {kind === "signal" ? <XStack flexWrap="wrap" gap="$sm">{signals.map((signal) => <ChoiceChip key={signal.value} label={getMessage("vi", signal.label)} selected={text === getMessage("vi", signal.label)} onPress={() => setText(getMessage("vi", signal.label))} />)}</XStack> : null}
+      {kind === "signal" ? <XStack flexWrap="wrap" gap="$sm">{signals.map((signal) => <AppFilterChip key={signal.value} selectionMode="single" label={getMessage("vi", signal.label)} selected={text === getMessage("vi", signal.label)} onPress={() => setText(getMessage("vi", signal.label))} />)}</XStack> : null}
       {kind === "photo" ? (
         <YStack gap="$sm">
-          <XStack gap="$sm"><AppButton flex={1} variant="secondary" icon={<Camera size={18} />} onPress={() => void selectPhoto("camera")}>{getMessage("vi", "takePhoto")}</AppButton><AppButton flex={1} variant="ghost" onPress={() => void selectPhoto("library")}>{getMessage("vi", mediaUri ? "chooseAnotherPhoto" : "choosePhoto")}</AppButton></XStack>
+          <XStack gap="$sm"><AppButton grow variant="secondary" icon={<Camera size={18} />} onPress={() => void selectPhoto("camera")}>{getMessage("vi", "takePhoto")}</AppButton><AppButton grow variant="ghost" onPress={() => void selectPhoto("library")}>{getMessage("vi", mediaUri ? "chooseAnotherPhoto" : "choosePhoto")}</AppButton></XStack>
           {mediaState === "ready" && mediaUri ? <Image source={{ uri: mediaUri }} width="100%" height={220} borderRadius="$lg" resizeMode="cover" accessibilityLabel={getMessage("vi", "photoPreviewLabel")} /> : null}
           {mediaState === "denied" ? <StatusBanner tone="warning" title={getMessage("vi", "photoPermissionDeniedTitle")} description={getMessage("vi", "photoPermissionDeniedBody")} /> : null}
           {mediaState === "unavailable" ? <StatusBanner tone="info" title={getMessage("vi", "photoFallbackTitle")} description={getMessage("vi", "photoFallbackBody")} /> : null}
@@ -121,9 +122,10 @@ export function MomentComposerSheet({ initialText = "", initialKind, busy, onCan
       ) : null}
       {error ? <Text color="$error" fontSize="$bodyS">{error}</Text> : null}
       <XStack gap="$sm">
-        <AppButton flex={1} variant="ghost" disabled={busy} onPress={() => { void discardOwnedMedia(); onCancel(); }}>{getMessage("vi", "cancel")}</AppButton>
-        <AppButton flex={1} icon={kind === "voice" ? <Mic size={18} /> : kind === "photo" ? <Camera size={18} /> : kind === "signal" ? <Radio size={18} /> : <MessageCircle size={18} />} disabled={busy} onPress={submit}>{getMessage("vi", "sendMoment")}</AppButton>
+        <AppButton grow variant="ghost" disabled={busy} onPress={() => { void discardOwnedMedia(); onCancel(); }}>{getMessage("vi", "cancel")}</AppButton>
+        <AppButton grow icon={kind === "voice" ? <Mic size={18} /> : kind === "photo" ? <Camera size={18} /> : kind === "signal" ? <Radio size={18} /> : <MessageCircle size={18} />} loading={busy} onPress={submit}>{getMessage("vi", "sendMoment")}</AppButton>
       </XStack>
-    </SectionCard>
+    </>
   );
+  return embedded ? <YStack gap="$lg">{content}</YStack> : <SectionCard title={getMessage("vi", "createMomentTitle")} description={getMessage("vi", "createMomentBody")}>{content}</SectionCard>;
 }

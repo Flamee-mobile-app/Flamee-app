@@ -1,6 +1,5 @@
-import { Image, Platform, StyleSheet } from "react-native";
-import { Heart } from "@tamagui/lucide-icons-2/icons/Heart";
-import Animated, { interpolate, useAnimatedProps, useAnimatedStyle, type SharedValue } from "react-native-reanimated";
+import { Image, Platform, StyleSheet, View } from "react-native";
+import Animated, { useAnimatedProps, useAnimatedStyle, type SharedValue } from "react-native-reanimated";
 import Svg, { Circle, Defs, Image as SvgImage, LinearGradient, Mask, Path, RadialGradient, Rect, Stop } from "react-native-svg";
 export { StartupBackground } from "./StartupBackground";
 import { startupTokens as tokens } from "../../../shared/constants/tokens";
@@ -25,11 +24,18 @@ type MotionProps = {
 function LightPaths({ time, size }: Pick<MotionProps, "time" | "size">) {
   const connections = useAnimatedProps(() => ({
     strokeDashoffset: 180 * (1 - phase(time.value, tokens.connectionStart, tokens.connectionEnd)),
-    opacity: phase(time.value, 250, 360) * (1 - phase(time.value, 580, 850)),
+    opacity: phase(time.value, tokens.connectionStart, tokens.connectionStart + 100)
+      * (1 - phase(time.value, tokens.heartDrawStart, tokens.heartDrawEnd)),
+  }));
+  const heart = useAnimatedProps(() => ({
+    strokeDashoffset: 420 * (1 - phase(time.value, tokens.heartDrawStart, tokens.heartDrawEnd)),
+    opacity: phase(time.value, tokens.heartDrawStart, tokens.heartDrawStart + 120)
+      * (1 - phase(time.value, tokens.flameEnd, tokens.wordmarkEnd)),
   }));
   const trails = useAnimatedProps(() => ({
-    strokeDashoffset: 300 * (1 - phase(time.value, tokens.flameStart, 1250)),
-    opacity: phase(time.value, 550, 700) * (1 - phase(time.value, 1100, 1550)),
+    strokeDashoffset: 300 * (1 - phase(time.value, tokens.flameStart, tokens.flameEnd)),
+    opacity: phase(time.value, tokens.flameStart, tokens.flameStart + 140)
+      * (1 - phase(time.value, tokens.wordmarkStart, tokens.wordmarkEnd)),
   }));
   return (
     <Svg width={size} height={size} viewBox="0 0 320 320" style={StyleSheet.absoluteFill} aria-hidden={true}>
@@ -45,26 +51,55 @@ function LightPaths({ time, size }: Pick<MotionProps, "time" | "size">) {
           <Stop offset="1" stopColor={tokens.coral} stopOpacity={0} />
         </LinearGradient>
       </Defs>
-      <AnimatedPath d="M 4 181 Q 70 176 160 208 M 316 181 Q 250 176 160 208" stroke="url(#startup-connection)" strokeWidth={1.2} fill="none" strokeDasharray="180 180" animatedProps={connections} />
+      <AnimatedPath d="M 8 181 Q 76 154 160 208 M 312 181 Q 244 154 160 208" stroke="url(#startup-connection)" strokeWidth={1.8} strokeLinecap="round" fill="none" strokeDasharray="180 180" animatedProps={connections} />
+      <AnimatedPath d="M 160 222 C 121 196 94 168 99 136 C 104 105 143 100 160 128 C 177 100 216 105 221 136 C 226 168 199 196 160 222 Z" stroke="url(#startup-trail)" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" fill="none" strokeDasharray="420 420" animatedProps={heart} />
       <AnimatedPath d="M 160 208 C 104 157 225 142 169 93 C 148 73 181 48 171 25" stroke="url(#startup-trail)" strokeWidth={1.6} strokeLinecap="round" fill="none" strokeDasharray="300 300" animatedProps={trails} />
       <AnimatedPath d="M 160 208 C 210 161 140 137 178 99 C 197 78 168 60 176 38" stroke="url(#startup-trail)" strokeWidth={0.65} fill="none" strokeDasharray="300 300" animatedProps={trails} />
     </Svg>
   );
 }
 
+function Ember({ side, time, size }: Pick<MotionProps, "time" | "size"> & { side: "left" | "right" }) {
+  const unit = size / tokens.canvasSize;
+  const glowSize = tokens.emberGlowSize * unit;
+  const coreSize = tokens.emberSize * unit;
+  const style = useAnimatedStyle(() => {
+    const progress = phase(time.value, tokens.connectionStart, tokens.connectionEnd);
+    const startX = side === "left" ? 8 : 312;
+    const x = startX + (tokens.heartX - startX) * progress;
+    const y = 181 + (tokens.heartY - 181) * progress - Math.sin(progress * Math.PI) * 27;
+    const appear = phase(time.value, 0, tokens.connectionStart + 80);
+    const disappear = 1 - phase(time.value, tokens.heartDrawStart, tokens.heartDrawEnd);
+    return {
+      opacity: appear * disappear,
+      transform: [
+        { translateX: x * unit },
+        { translateY: y * unit },
+        { scale: 0.84 + 0.22 * Math.sin(Math.max(0, progress) * Math.PI * 3) },
+      ],
+    };
+  });
+
+  return (
+    <Animated.View style={[styles.emberGlow, { left: -glowSize / 2, top: -glowSize / 2, width: glowSize, height: glowSize }, style]}>
+      <View style={[styles.emberCore, { width: coreSize, height: coreSize, borderRadius: coreSize }]} />
+    </Animated.View>
+  );
+}
+
 const sparks = [
   { x: -57, y: -153, delay: 0, radius: 1.3 },
-  { x: 42, y: -180, delay: 110, radius: 1 },
-  { x: -26, y: -202, delay: 180, radius: 1.6 },
-  { x: 65, y: -117, delay: 240, radius: 1.2 },
-  { x: 18, y: -165, delay: 300, radius: 0.9 },
-  { x: -73, y: -97, delay: 350, radius: 1.1 },
+  { x: 42, y: -180, delay: 40, radius: 1 },
+  { x: -26, y: -202, delay: 70, radius: 1.6 },
+  { x: 65, y: -117, delay: 100, radius: 1.2 },
+  { x: 18, y: -165, delay: 130, radius: 0.9 },
+  { x: -73, y: -97, delay: 160, radius: 1.1 },
 ] as const;
 
 function Spark({ spark, time, size }: Pick<MotionProps, "time" | "size"> & { spark: typeof sparks[number] }) {
   const scale = size / tokens.canvasSize;
   const style = useAnimatedStyle(() => {
-    const progress = phase(time.value, tokens.flameStart + spark.delay, tokens.flameEnd + spark.delay);
+    const progress = phase(time.value, tokens.flameStart + spark.delay, tokens.flameEnd);
     return {
       opacity: Math.sin(progress * Math.PI) * 0.7,
       transform: [
@@ -84,29 +119,17 @@ export function StartupArtwork({ time, breath, reducedMotion, size, onImageError
   const logoHeight = logoWidth * 266 / 223;
   const wordmarkWidth = tokens.wordmarkWidth * scale;
   const glowSize = tokens.glowSize * scale;
-  const heartSize = tokens.heartSize * scale;
-  const heartStyle = useAnimatedStyle(() => ({
-    opacity: phase(time.value, 0, 120) * (1 - phase(time.value, 850, 1450)),
-    transform: [
-      { scale: interpolate(time.value, [0, 170, 280, 550, 1450], [0.8, 1.12, 1, 1, 0.72], "clamp") },
-      { rotate: `${-18 * phase(time.value, 550, 1400)}deg` },
-    ],
-  }));
   const logoStyle = useAnimatedStyle(() => ({
-    opacity: reducedMotion ? 1 : phase(time.value, 550, 850),
+    opacity: reducedMotion ? 1 : phase(time.value, tokens.flameStart, tokens.flameStart + 220),
     transform: [{ scale: reducedMotion ? 1 : 0.13 + 0.87 * phase(time.value, tokens.flameStart, tokens.flameEnd) }],
   }));
   const wordmarkStyle = useAnimatedStyle(() => ({
     width: wordmarkWidth * (reducedMotion ? 1 : phase(time.value, tokens.wordmarkStart, tokens.wordmarkEnd)),
-    opacity: reducedMotion ? 1 : phase(time.value, 1200, 1430),
+    opacity: reducedMotion ? 1 : phase(time.value, tokens.wordmarkStart, tokens.wordmarkEnd),
   }));
   const glowStyle = useAnimatedStyle(() => ({
-    opacity: reducedMotion ? 0.32 : phase(time.value, 0, 350) * (0.4 + breath.value * 0.13),
-    transform: [{ scale: reducedMotion ? 1 : 0.88 + 0.12 * phase(time.value, 550, 1450) }],
-  }));
-  const ringStyle = useAnimatedStyle(() => ({
-    opacity: phase(time.value, 400, 510) * (1 - phase(time.value, 510, 1000)) * 0.45,
-    transform: [{ scale: 0.45 + 1.4 * phase(time.value, 400, 1000) }],
+    opacity: reducedMotion ? 0.38 : phase(time.value, tokens.connectionStart, tokens.heartDrawStart) * (0.46 + breath.value * 0.16),
+    transform: [{ scale: reducedMotion ? 1 : 0.72 + 0.28 * phase(time.value, tokens.connectionStart, tokens.flameEnd) }],
   }));
 
   return (
@@ -125,7 +148,8 @@ export function StartupArtwork({ time, breath, reducedMotion, size, onImageError
       </Animated.View>
       {!reducedMotion && <>
         <LightPaths time={time} size={size} />
-        <Animated.View style={[styles.ring, { width: tokens.ringSize * scale, height: tokens.ringSize * scale, left: (tokens.heartX - tokens.ringSize / 2) * scale, top: (tokens.heartY - tokens.ringSize / 2) * scale }, ringStyle]} />
+        <Ember side="left" time={time} size={size} />
+        <Ember side="right" time={time} size={size} />
         {sparks.map((spark, index) => <Spark key={index} spark={spark} time={time} size={size} />)}
       </>}
       <Animated.View style={[styles.absolute, {
@@ -135,14 +159,10 @@ export function StartupArtwork({ time, breath, reducedMotion, size, onImageError
         height: logoHeight,
         // Grow uniformly around the original heart cutout, without stretching the flame.
         transformOrigin: [logoWidth * 0.457, logoHeight * 0.9, 0],
-      }, logoStyle]}>
+      }, styles.brandHidden, logoStyle]}>
         <Image source={symbol} style={styles.image} resizeMode="contain" accessible={false} fadeDuration={0} onError={onImageError} />
       </Animated.View>
-      {!reducedMotion && <Animated.View style={[styles.absolute, { left: tokens.heartX * scale - heartSize / 2, top: tokens.heartY * scale - heartSize / 2 }, heartStyle]}>
-        {/* A transient light particle; the supplied logo and its heart cutout are untouched. */}
-        <Heart size={heartSize} color={tokens.amber} fill={tokens.amber} strokeWidth={0} />
-      </Animated.View>}
-      <Animated.View style={[styles.wordmark, { left: (size - wordmarkWidth) / 2, top: tokens.wordmarkY * scale, height: wordmarkWidth * 168 / 772 }, wordmarkStyle]}>
+      <Animated.View style={[styles.wordmark, styles.brandHidden, { left: (size - wordmarkWidth) / 2, top: tokens.wordmarkY * scale, height: wordmarkWidth * 168 / 772 }, wordmarkStyle]}>
         <Svg width={wordmarkWidth} height={wordmarkWidth * 168 / 772} viewBox="0 0 772 168" aria-hidden={true}>
           <Defs>
             <LinearGradient id="startup-wordmark-fill" x1="0" y1="0" x2="0" y2="1">
@@ -162,8 +182,26 @@ export function StartupArtwork({ time, breath, reducedMotion, size, onImageError
 
 const styles = StyleSheet.create({
   absolute: { position: "absolute" },
+  brandHidden: { opacity: 0 },
   image: { width: "100%", height: "100%" },
   wordmark: { position: "absolute", overflow: "hidden" },
-  ring: { position: "absolute", borderWidth: 1, borderColor: tokens.amber, borderRadius: 999 },
   spark: { position: "absolute", backgroundColor: tokens.peach, borderRadius: 999 },
+  emberGlow: {
+    position: "absolute",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 999,
+    backgroundColor: `${tokens.coral}26`,
+    shadowColor: tokens.amber,
+    shadowOpacity: 0.95,
+    shadowRadius: 14,
+    elevation: 9,
+  },
+  emberCore: {
+    backgroundColor: tokens.peach,
+    shadowColor: tokens.amber,
+    shadowOpacity: 1,
+    shadowRadius: 7,
+    elevation: 12,
+  },
 });

@@ -1,11 +1,11 @@
 import { localDateKey } from "../../shared/datetime/localDate.ts";
 import { getMessage } from "../../shared/localization/messages.ts";
-import type { LocalCheckIn, PartnerVisibleCheckIn } from "../checkins/types.ts";
+import { isEmotionCheckIn, type LocalCheckIn } from "../checkins/types.ts";
 import { nudgeFeedbackSchema, nudgeSchema } from "./schemas.ts";
-import type { CreateNudgeInput, CreateNudgeResult, Nudge, NudgeContent, NudgeMutationResult } from "./types.ts";
+import type { CreateNudgeInput, CreateNudgeResult, Nudge, NudgeContent, NudgeMutationResult, NudgeSourceSignal } from "./types.ts";
 
 type NudgeContentInput = Omit<CreateNudgeInput, "sourceCheckIn"> & {
-  sourceCheckIn: PartnerVisibleCheckIn;
+  sourceCheckIn: NudgeSourceSignal;
   safetyConcern: boolean;
 };
 
@@ -28,31 +28,35 @@ export type LocalNudgeServiceOptions = {
   safetyContentProvider?: (input: NudgeContentInput) => NudgeContent | null | Promise<NudgeContent | null>;
 };
 
-function toPartnerVisibleCheckIn(checkIn: LocalCheckIn): PartnerVisibleCheckIn | null {
-  if (checkIn.shareScope === "private_only") return null;
-  if (checkIn.shareScope === "mood_only") {
-    return {
-      id: checkIn.id,
-      authorId: checkIn.authorId,
-      mood: checkIn.mood,
-      shareScope: "mood_only",
-      createdAt: checkIn.createdAt,
-      localDate: checkIn.localDate,
-    };
+function toNudgeSourceSignal(checkIn: LocalCheckIn): NudgeSourceSignal | null {
+  if (isEmotionCheckIn(checkIn)) {
+    return { kind: "emotion", id: checkIn.id, emotionTone: checkIn.emotionTone };
   }
-  return {
-    id: checkIn.id,
-    authorId: checkIn.authorId,
-    mood: checkIn.mood,
-    shareScope: "full",
-    reasonIds: [...checkIn.reasonIds],
-    note: checkIn.note,
-    createdAt: checkIn.createdAt,
-    localDate: checkIn.localDate,
-  };
+  if (checkIn.shareScope === "private_only") return null;
+  return { kind: "legacy", id: checkIn.id, mood: checkIn.mood };
 }
 
-function defaultTemplateProvider(): NudgeContent {
+function defaultTemplateProvider(input: NudgeContentInput): NudgeContent {
+  if (input.sourceCheckIn.kind === "emotion") {
+    const copy = input.sourceCheckIn.emotionTone === "heavy"
+      ? { observation: "nudgeHeavyObservation" as const, draft: "nudgeHeavyDraft" as const, reason: "nudgeHeavyReason" as const, tone: "supportive" as const }
+      : input.sourceCheckIn.emotionTone === "low"
+        ? { observation: "nudgeLowObservation" as const, draft: "nudgeLowDraft" as const, reason: "nudgeLowReason" as const, tone: "supportive" as const }
+        : input.sourceCheckIn.emotionTone === "warm"
+          ? { observation: "nudgeWarmObservation" as const, draft: "nudgeWarmDraft" as const, reason: "nudgeWarmReason" as const, tone: "playful" as const }
+          : input.sourceCheckIn.emotionTone === "bright"
+            ? { observation: "nudgeBrightObservation" as const, draft: "nudgeBrightDraft" as const, reason: "nudgeBrightReason" as const, tone: "celebratory" as const }
+            : null;
+    if (copy) {
+      return {
+        observation: getMessage("vi", copy.observation),
+        actionType: "text",
+        draft: getMessage("vi", copy.draft),
+        reason: getMessage("vi", copy.reason),
+        tone: copy.tone,
+      };
+    }
+  }
   return {
     observation: getMessage("vi", "nudgeTemplateObservation"),
     actionType: "text",
@@ -90,11 +94,13 @@ export function createLocalNudgeService({
 
   return {
     async createForSharedCheckIn(input) {
-      if (input.sourceCheckIn.shareScope === "private_only") return { kind: "suppressed", reason: "private_only" };
+      if (!isEmotionCheckIn(input.sourceCheckIn) && input.sourceCheckIn.shareScope === "private_only") {
+        return { kind: "suppressed", reason: "private_only" };
+      }
       if (!input.sourceCheckIn.coupleId || input.sourceCheckIn.coupleId !== input.coupleId) {
         return { kind: "suppressed", reason: "stale_couple" };
       }
-      const sourceCheckIn = toPartnerVisibleCheckIn(input.sourceCheckIn);
+      const sourceCheckIn = toNudgeSourceSignal(input.sourceCheckIn);
       if (!sourceCheckIn) return { kind: "suppressed", reason: "private_only" };
 
       const currentTime = now();

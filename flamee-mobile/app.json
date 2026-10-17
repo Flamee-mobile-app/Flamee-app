@@ -52,12 +52,9 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#FFF4EC",
-          "image": "./src/public/Flamee.png",
-          "imageWidth": 280,
+          "backgroundColor": "#24110F",
           "dark": {
-            "backgroundColor": "#FFF4EC",
-            "image": "./src/public/Flamee.png"
+            "backgroundColor": "#24110F"
           }
         }
       ]

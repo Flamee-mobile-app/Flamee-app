@@ -7,6 +7,10 @@ import { startupTokens } from "../shared/constants/tokens";
 import { useSessionStore } from "../shared/state/sessionStore";
 import { ScreenRevealContext } from "../shared/motion/ScreenReveal";
 
+// Keep the native surface over the first React render. The custom splash will
+// release it only after its layout and image assets are ready.
+void NativeSplash.preventAutoHideAsync().catch(() => undefined);
+
 export function revealStartupError(): void {
   startupLifetime.animationCompleted = true;
   // Retrying a failed cold start shows the completed artwork and keeps the
@@ -34,19 +38,29 @@ export function StartupProvider({ children }: PropsWithChildren) {
   const [visible, setVisible] = useState(!startupLifetime.dismissed);
   const [prepared, setPrepared] = useState(startupLifetime.dismissed);
   const [complete, setComplete] = useState(startupLifetime.animationCompleted);
+  const [revealReady, setRevealReady] = useState(startupLifetime.dismissed);
   const [entryFailed, setEntryFailed] = useState(false);
   const [timedOut, setTimedOut] = useState(false);
   // Keep the overlay until the entry Redirect has mounted its destination.
-  const { canNavigate, canDismiss: dismiss } = resolveStartupGate({ prepared, animationComplete: complete, sessionReady: bootstrapped, isEntryRoute, entryFailed });
+  const { canNavigate, canDismiss: dismiss, canReveal } = resolveStartupGate({
+    prepared,
+    animationComplete: complete,
+    sessionReady: bootstrapped,
+    isEntryRoute,
+    entryFailed,
+    overlayVisible: visible,
+    contentRevealReady: revealReady,
+  });
 
-  const onPrepared = useCallback(() => {
+  const onPrepared = useCallback(async () => {
+    await NativeSplash.hideAsync().catch(() => undefined);
     setPrepared(true);
-    void NativeSplash.hideAsync().catch(() => undefined);
   }, []);
   const onAnimationComplete = useCallback(() => {
     startupLifetime.animationCompleted = true;
     setComplete(true);
   }, []);
+  const onRevealReady = useCallback(() => setRevealReady(true), []);
   const onDismissed = useCallback(() => {
     startupLifetime.dismissed = true;
     setVisible(false);
@@ -65,12 +79,12 @@ export function StartupProvider({ children }: PropsWithChildren) {
 
   return (
     <StartupContext.Provider value={value}>
-      <ScreenRevealContext.Provider value={!visible || dismiss}>
+      <ScreenRevealContext.Provider value={canReveal}>
         <YStack flex={1}>
           <YStack flex={1} pointerEvents={visible ? "none" : "auto"} aria-hidden={visible}>
             {children}
           </YStack>
-          {visible && <StartupSplash animationAlreadyComplete={startupLifetime.animationCompleted} dismiss={dismiss} onPrepared={onPrepared} onAnimationComplete={onAnimationComplete} onDismissed={onDismissed} />}
+          {visible && <StartupSplash animationAlreadyComplete={startupLifetime.animationCompleted} dismiss={dismiss} onPrepared={onPrepared} onAnimationComplete={onAnimationComplete} onRevealReady={onRevealReady} onDismissed={onDismissed} />}
         </YStack>
       </ScreenRevealContext.Provider>
     </StartupContext.Provider>

@@ -22,6 +22,13 @@ export type PartnerStatusView =
       note: string;
       updatedAt: string;
       minutesAgo: number;
+    })
+  | (PartnerStatusBase & {
+      kind: "emotion";
+      note: string;
+      mascotStickerId: string | null;
+      updatedAt: string;
+      minutesAgo: number;
     });
 
 export type PartnerStatusViewer = {

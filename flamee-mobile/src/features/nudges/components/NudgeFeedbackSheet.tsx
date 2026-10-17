@@ -1,7 +1,7 @@
 import { ThumbsDown } from "@tamagui/lucide-icons-2/icons/ThumbsDown";
 import { ThumbsUp } from "@tamagui/lucide-icons-2/icons/ThumbsUp";
 import { Text, XStack, YStack } from "tamagui";
-import { AppButton, ChoiceChip, SectionCard } from "../../../shared/components";
+import { AppButton, AppFilterChip, SectionCard } from "../../../shared/components";
 import { getMessage, type MessageKey } from "../../../shared/localization/messages";
 import { negativeFeedbackReasons, type NegativeFeedbackReason } from "../types";
 
@@ -28,10 +28,10 @@ export function NudgeFeedbackSheet({ selectedReason, saved, busy, onReasonChange
   return (
     <SectionCard title={getMessage("vi", "nudgeFeedbackTitle")}>
       <XStack gap="$sm">
-        <AppButton flex={1} variant="secondary" icon={<ThumbsUp size={18} />} disabled={busy} onPress={() => onRate("up")}>
+        <AppButton grow variant="secondary" icon={<ThumbsUp size={18} />} disabled={busy} onPress={() => onRate("up")}>
           {getMessage("vi", "nudgeHelpful")}
         </AppButton>
-        <AppButton flex={1} variant="ghost" icon={<ThumbsDown size={18} />} disabled={busy || !selectedReason} onPress={() => selectedReason ? onRate("down", selectedReason) : undefined}>
+        <AppButton grow variant="ghost" icon={<ThumbsDown size={18} />} disabled={busy || !selectedReason} onPress={() => selectedReason ? onRate("down", selectedReason) : undefined}>
           {getMessage("vi", "nudgeNotHelpful")}
         </AppButton>
       </XStack>
@@ -39,7 +39,7 @@ export function NudgeFeedbackSheet({ selectedReason, saved, busy, onReasonChange
         <Text fontSize="$bodyS" color="$textSecondary">{getMessage("vi", "nudgeFeedbackReasonTitle")}</Text>
         <XStack flexWrap="wrap" gap="$sm">
           {negativeFeedbackReasons.map((reason) => (
-            <ChoiceChip key={reason} label={getMessage("vi", reasonLabels[reason])} selected={selectedReason === reason} onPress={() => onReasonChange(reason)} />
+            <AppFilterChip key={reason} selectionMode="single" label={getMessage("vi", reasonLabels[reason])} selected={selectedReason === reason} onPress={() => onReasonChange(reason)} />
           ))}
         </XStack>
       </YStack>

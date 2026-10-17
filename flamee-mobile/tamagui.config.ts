@@ -1,14 +1,9 @@
 import { Platform } from "react-native";
-import { createAnimations } from "@tamagui/animations-react-native";
+import { createElement } from "react";
 import { defaultConfig } from "@tamagui/config/v4";
 import { createFont, createTamagui } from "tamagui";
 import { colors, radii, spacing, typography } from "./src/shared/constants/tokens";
-
-const animations = createAnimations({
-  fast: { type: "timing", duration: 150 },
-  medium: { type: "timing", duration: 250 },
-  slow: { type: "timing", duration: 400 },
-});
+import { resolveToastWebWrapperProps } from "./src/shared/components/appToastModel";
 
 const fontSize = {
   caption: typography.caption.fontSize,
@@ -73,9 +68,39 @@ const headingFont = createFont({
   letterSpacing: fontLetterSpacing,
 });
 
+const semanticColors = {
+  glassButton: colors.glassButton,
+  glassFilter: colors.glassFilter,
+  glassDialog: colors.glassDialog,
+  glassCard: colors.glassCard,
+  glassCardPeach: colors.glassCardPeach,
+  glassCardLavender: colors.glassCardLavender,
+  fieldSurface: colors.fieldSurface,
+  fieldDisabled: colors.fieldDisabled,
+  surface: colors.surface,
+  surfaceMuted: colors.surfaceMuted,
+  border: colors.border,
+  accentSoft: colors.accentSoft,
+  accentText: colors.accentText,
+  calmSurface: colors.calmSurface,
+  calmText: colors.calmText,
+  moodVeryBadSurface: colors.moodVeryBadSurface,
+  moodBadSurface: colors.moodBadSurface,
+  moodNeutralSurface: colors.moodNeutralSurface,
+  moodGoodSurface: colors.moodGoodSurface,
+  moodGreatSurface: colors.moodGreatSurface,
+};
+
 export const tamaguiConfig = createTamagui({
   ...defaultConfig,
-  animations,
+  animations: defaultConfig.animations,
+  defaultProps: {
+    ...(Platform.OS === "web" ? {
+      ToastPositionWrapper: {
+        render: (props: Record<string, unknown>) => createElement("div", resolveToastWebWrapperProps(props)),
+      },
+    } : {}),
+  },
   settings: {
     ...defaultConfig.settings,
     onlyAllowShorthands: false,
@@ -101,9 +126,8 @@ export const tamaguiConfig = createTamagui({
       success: colors.success,
       error: colors.error,
       white: colors.white,
-      surface: colors.white,
+      ...semanticColors,
       muted: colors.supportPeachLight,
-      border: colors.supportPeach,
       moodVeryBad: colors.moodVeryBad,
       moodBad: colors.moodBad,
       moodNeutral: colors.moodNeutral,
@@ -136,14 +160,14 @@ export const tamaguiConfig = createTamagui({
     light: {
       ...defaultConfig.themes.light,
       background: colors.background,
-      backgroundHover: colors.supportPeachLight,
-      backgroundPress: colors.supportPeach,
-      backgroundFocus: colors.supportPeachLight,
+      backgroundHover: colors.surfaceMuted,
+      backgroundPress: colors.accentSoft,
+      backgroundFocus: colors.surfaceMuted,
       color: colors.textPrimary,
       colorHover: colors.textPrimary,
       colorPress: colors.textPrimary,
       colorFocus: colors.textPrimary,
-      borderColor: colors.supportPeach,
+      borderColor: colors.border,
       borderColorHover: colors.secondary,
       borderColorPress: colors.primary,
       borderColorFocus: colors.primary,
@@ -160,9 +184,8 @@ export const tamaguiConfig = createTamagui({
       success: colors.success,
       error: colors.error,
       white: colors.white,
-      surface: colors.white,
+      ...semanticColors,
       muted: colors.supportPeachLight,
-      border: colors.supportPeach,
       moodVeryBad: colors.moodVeryBad,
       moodBad: colors.moodBad,
       moodNeutral: colors.moodNeutral,

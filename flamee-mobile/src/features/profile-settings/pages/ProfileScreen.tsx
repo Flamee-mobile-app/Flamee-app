@@ -3,7 +3,6 @@ import { ChevronRight } from "@tamagui/lucide-icons-2/icons/ChevronRight";
 import { Database } from "@tamagui/lucide-icons-2/icons/Database";
 import { HeartHandshake } from "@tamagui/lucide-icons-2/icons/HeartHandshake";
 import { HelpCircle } from "@tamagui/lucide-icons-2/icons/HelpCircle";
-import { LockKeyhole } from "@tamagui/lucide-icons-2/icons/LockKeyhole";
 import { Settings } from "@tamagui/lucide-icons-2/icons/Settings";
 import { UserRound } from "@tamagui/lucide-icons-2/icons/UserRound";
 import { useRouter } from "expo-router";
@@ -14,16 +13,16 @@ import { AppButton, AppHeader, AppScreen, SectionCard, StatusBanner } from "../.
 import { formatMessage, getMessage, type MessageKey } from "../../../shared/localization/messages";
 import { localCoupleService } from "../../couple";
 import { localOnboardingService, type LocalAccountSnapshot } from "../../onboarding";
+import { profileSettingsSections } from "../settingsSections";
 
-const rows: Array<{ key: MessageKey; section: string; icon: typeof UserRound }> = [
-  { key: "profileEditTitle", section: "profile", icon: UserRound },
-  { key: "careSettingsTitle", section: "care", icon: HeartHandshake },
-  { key: "notificationSettingsTitle", section: "notifications", icon: Bell },
-  { key: "privacySettingsTitle", section: "privacy", icon: LockKeyhole },
-  { key: "dataSettingsTitle", section: "data", icon: Database },
-  { key: "supportSettingsTitle", section: "support", icon: HelpCircle },
-  { key: "accountSettingsTitle", section: "account", icon: Settings },
-];
+const rowDetails: Record<(typeof profileSettingsSections)[number], { key: MessageKey; icon: typeof UserRound }> = {
+  profile: { key: "profileEditTitle", icon: UserRound },
+  care: { key: "careSettingsTitle", icon: HeartHandshake },
+  notifications: { key: "notificationSettingsTitle", icon: Bell },
+  data: { key: "dataSettingsTitle", icon: Database },
+  support: { key: "supportSettingsTitle", icon: HelpCircle },
+  account: { key: "accountSettingsTitle", icon: Settings },
+};
 
 export function ProfileScreen() {
   const router = useRouter();
@@ -70,17 +69,19 @@ export function ProfileScreen() {
           </YStack>
           <YStack flex={1} gap="$xs">
             <Text fontFamily="$heading" fontSize="$h4" fontWeight="$bold" color="$textPrimary">{profile.displayName}</Text>
-            <Text fontSize="$bodyS" color="$textSecondary">{profile.timezone}</Text>
             <Text fontSize="$bodyS" color="$textSecondary">{relationship}</Text>
           </YStack>
         </XStack>
       </SectionCard>
       <YStack gap="$sm">
-        {rows.map(({ key, section, icon: Icon }) => (
-          <AppButton key={section} variant="ghost" justifyContent="flex-start" icon={<Icon size={20} color="$primary" />} iconAfter={<ChevronRight size={18} color="$textSecondary" />} onPress={() => router.push({ pathname: "/settings", params: { section } })}>
+        {profileSettingsSections.map((section) => {
+          const { key, icon: Icon } = rowDetails[section];
+          return (
+          <AppButton key={section} variant="ghost" fill contentAlign="start" icon={<Icon size={20} color="$primary" />} iconAfter={<ChevronRight size={18} color="$textSecondary" />} onPress={() => router.push({ pathname: "/settings", params: { section } })}>
             {getMessage("vi", key)}
           </AppButton>
-        ))}
+          );
+        })}
       </YStack>
     </AppScreen>
   );

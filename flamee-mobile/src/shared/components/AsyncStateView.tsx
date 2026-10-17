@@ -46,9 +46,11 @@ export function AsyncStateView({ variant, title, description, actionLabel, onAct
         {getMessage("vi", description ?? copy.description)}
       </Text>
       {(actionLabel ?? copy.actionLabel) && onAction ? (
-        <AppButton marginTop="$sm" onPress={onAction}>
-          {getMessage("vi", actionLabel ?? copy.actionLabel!)}
-        </AppButton>
+        <YStack marginTop="$sm">
+          <AppButton onPress={onAction}>
+            {getMessage("vi", actionLabel ?? copy.actionLabel!)}
+          </AppButton>
+        </YStack>
       ) : null}
     </YStack>
   );

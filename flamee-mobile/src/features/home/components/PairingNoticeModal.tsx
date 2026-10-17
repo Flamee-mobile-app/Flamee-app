@@ -1,7 +1,7 @@
-import { Modal, StyleSheet, View } from "react-native";
+import { Modal, Platform, StyleSheet, View } from "react-native";
 import { ScrollView, Text, YStack } from "tamagui";
 import { AppButton } from "../../../shared/components";
-import { colors, spacing } from "../../../shared/constants/tokens";
+import { colors, glassTokens, spacing } from "../../../shared/constants/tokens";
 import { formatMessage, getMessage } from "../../../shared/localization/messages";
 import type { PairingNotice } from "../../invites";
 import { InviteGiftPreview } from "../../invites/screens";
@@ -9,7 +9,27 @@ import { InviteGiftPreview } from "../../invites/screens";
 export function PairingNoticeModal({ notice, onClose }: { notice: PairingNotice | null; onClose: () => void }) {
   return <Modal visible={Boolean(notice)} transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
     <View style={styles.overlay}>
-      <YStack width="100%" maxWidth={400} maxHeight="85%" borderRadius="$xl" backgroundColor="$background" overflow="hidden" role="dialog" aria-modal={true} aria-label={getMessage("vi", "connectedTitle")}>
+      <YStack
+        width="100%"
+        maxWidth={400}
+        maxHeight="85%"
+        borderRadius="$xl"
+        backgroundColor="$glassDialog"
+        borderWidth={0}
+        borderColor="transparent"
+        backdropFilter={glassTokens.dialogBackdrop}
+        backgroundImage={glassTokens.dialogSheen}
+        boxShadow={Platform.OS === "web" ? glassTokens.dialogReflection : undefined}
+        shadowColor={Platform.OS === "web" ? undefined : glassTokens.dialogShadow.shadowColor}
+        shadowOffset={Platform.OS === "web" ? undefined : glassTokens.dialogShadow.shadowOffset}
+        shadowOpacity={Platform.OS === "web" ? undefined : glassTokens.dialogShadow.shadowOpacity}
+        shadowRadius={Platform.OS === "web" ? undefined : glassTokens.dialogShadow.shadowRadius}
+        elevation={Platform.OS === "android" ? glassTokens.dialogShadow.elevation : undefined}
+        overflow="hidden"
+        role="dialog"
+        aria-modal={true}
+        aria-label={getMessage("vi", "connectedTitle")}
+      >
         <ScrollView contentContainerStyle={{ padding: spacing.xl, gap: spacing.lg }}>
         <Text id="pairing-notice-title" role="heading" aria-level={1} fontFamily="$heading" fontSize="$h3" lineHeight="$h3" fontWeight="$bold" textAlign="center">{getMessage("vi", "connectedTitle")}</Text>
         <Text fontFamily="$body" fontSize="$bodyM" textAlign="center">{formatMessage("vi", "pairingNoticeBody", { name: notice?.partnerName || getMessage("vi", "partnerGenericName") })}</Text>
@@ -25,4 +45,4 @@ export function PairingNoticeModal({ notice, onClose }: { notice: PairingNotice 
   </Modal>;
 }
 
-const styles = StyleSheet.create({ overlay: { flex: 1, alignItems: "center", justifyContent: "center", padding: spacing.xl, backgroundColor: colors.textPrimary + "88" } });
+const styles = StyleSheet.create({ overlay: { flex: 1, alignItems: "center", justifyContent: "center", padding: spacing.xl, backgroundColor: colors.textPrimary + "52" } });

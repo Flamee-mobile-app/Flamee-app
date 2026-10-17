@@ -21,7 +21,7 @@ export function PairedSuccess() {
         {getMessage("vi", "pairedSuccessBody")}
       </Text>
       <StatusBanner tone="info" title={getMessage("vi", "inviteLocalOnlyTitle")} description={getMessage("vi", "inviteLocalOnlyBody")} />
-      <AppButton alignSelf="stretch" onPress={() => router.replace("/(main)")}>
+      <AppButton fill onPress={() => router.replace("/(main)")}>
         {getMessage("vi", "enterHome")}
       </AppButton>
     </AppScreen>

@@ -24,8 +24,8 @@ export function DoubleConfirmDialog({ title, description, phrase, busy, actionLa
           <Text fontSize="$bodyS" color="$textSecondary">{getMessage("vi", "typeToConfirm")} “{phrase}”</Text>
           <AppField label={getMessage("vi", "confirmationLabel")} value={state.confirmation} onChangeText={(value) => setState((current) => reduceDestructiveConfirmation(current, { type: "type", value }))} autoCapitalize="characters" />
           <XStack gap="$sm">
-            <AppButton flex={1} variant="ghost" onPress={() => setState((current) => reduceDestructiveConfirmation(current, { type: "cancel" }))}>{getMessage("vi", "cancel")}</AppButton>
-            <AppButton flex={1} variant="destructive" disabled={busy || !isDestructiveConfirmationValid(state, phrase)} onPress={() => void confirmDestructiveAction({ ...state, phrase, action: onConfirm })}>{actionLabel}</AppButton>
+            <AppButton grow variant="ghost" onPress={() => setState((current) => reduceDestructiveConfirmation(current, { type: "cancel" }))}>{getMessage("vi", "cancel")}</AppButton>
+            <AppButton grow variant="destructive" disabled={busy || !isDestructiveConfirmationValid(state, phrase)} onPress={() => void confirmDestructiveAction({ ...state, phrase, action: onConfirm })}>{actionLabel}</AppButton>
           </XStack>
         </YStack>
       )}

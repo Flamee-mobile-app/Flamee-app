@@ -5,7 +5,7 @@ import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Text, XStack, YStack } from "tamagui";
 import { useSessionStore } from "../../../shared/state/sessionStore";
-import { AppButton, AppField, ChoiceChip, SectionCard, StatusBanner } from "../../../shared/components";
+import { AppButton, AppField, AppFilterChip, SectionCard, StatusBanner } from "../../../shared/components";
 import { formatMessage, getMessage } from "../../../shared/localization/messages";
 import { localCoupleService } from "../../couple";
 import { DoubleConfirmDialog } from "../components/DoubleConfirmDialog";
@@ -110,7 +110,7 @@ export function AccountLifecycleScreen({ mode }: { mode: Mode }) {
     return (
       <YStack gap="$lg">
         <SectionCard title={getMessage("vi", "supportTitle")} description={getMessage("vi", "supportBody")}>
-          <XStack flexWrap="wrap" gap="$sm"><ChoiceChip label={getMessage("vi", "supportContact")} selected={supportKind === "contact"} onPress={() => setSupportKind("contact")} /><ChoiceChip label={getMessage("vi", "supportBug")} selected={supportKind === "bug"} onPress={() => setSupportKind("bug")} /><ChoiceChip label={getMessage("vi", "supportContent")} selected={supportKind === "content"} onPress={() => setSupportKind("content")} /></XStack>
+          <XStack flexWrap="wrap" gap="$sm"><AppFilterChip selectionMode="single" label={getMessage("vi", "supportContact")} selected={supportKind === "contact"} onPress={() => setSupportKind("contact")} /><AppFilterChip selectionMode="single" label={getMessage("vi", "supportBug")} selected={supportKind === "bug"} onPress={() => setSupportKind("bug")} /><AppFilterChip selectionMode="single" label={getMessage("vi", "supportContent")} selected={supportKind === "content"} onPress={() => setSupportKind("content")} /></XStack>
           <AppField multiline label={getMessage("vi", "supportMessageLabel")} value={message} onChangeText={setMessage} maxLength={500} characterCount={`${message.length}/500`} />
           <AppButton icon={<LifeBuoy size={18} />} disabled={busy} onPress={() => void submitSupport()}>{getMessage("vi", "validateSupportRequest")}</AppButton>
         </SectionCard>

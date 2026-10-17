@@ -1,6 +1,7 @@
 import type { PartnerVisibleCheckIn } from "../checkins/types.ts";
 import type { PartnerStatusView, PartnerStatusViewer } from "./types.ts";
 import { localDateKey } from "../../shared/datetime/localDate.ts";
+import { isPartnerVisibleEmotionCheckIn } from "../checkins/types.ts";
 
 function timezoneOffsetHours(date: Date, timezone: string): number {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -55,6 +56,16 @@ export function selectPartnerStatus(
     0,
     Math.floor((viewer.now.getTime() - Date.parse(latest.createdAt)) / 60_000),
   );
+  if (isPartnerVisibleEmotionCheckIn(latest)) {
+    return {
+      ...base,
+      kind: "emotion",
+      note: latest.note,
+      mascotStickerId: latest.mascotStickerId,
+      updatedAt: latest.createdAt,
+      minutesAgo,
+    };
+  }
   if (latest.shareScope === "mood_only") {
     return {
       ...base,

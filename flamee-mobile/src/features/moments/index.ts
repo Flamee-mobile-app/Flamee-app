@@ -1,4 +1,5 @@
 export * from "./localMomentService.ts";
+export * from "./components/MomentComposerSheet";
 export * from "./pages/MomentDetailScreen";
 export * from "./pages/MomentsScreen";
 export * from "./schemas";

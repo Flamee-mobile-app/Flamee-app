@@ -1,8 +1,8 @@
 import { BellRing } from "@tamagui/lucide-icons-2/icons/BellRing";
 import { useEffect, useState } from "react";
-import { Label, Switch, Text, XStack, YStack } from "tamagui";
+import { Label, Text, XStack, YStack } from "tamagui";
 import { useSessionStore } from "../../../shared/state/sessionStore";
-import { AppButton, AppField, SectionCard, StatusBanner } from "../../../shared/components";
+import { AppButton, AppField, AppSwitch, SectionCard, StatusBanner } from "../../../shared/components";
 import { getMessage } from "../../../shared/localization/messages";
 import { localNotificationAdapter } from "../../notifications";
 import type { NotificationSettings } from "../../notifications";
@@ -62,8 +62,8 @@ export function NotificationSettingsScreen() {
       </SectionCard>
       <SectionCard title={getMessage("vi", "notificationScheduleTitle")} description={getMessage("vi", "notificationScheduleBody")}>
         <XStack alignItems="center" justifyContent="space-between" gap="$md">
-          <Label flex={1} fontSize="$bodyM" color="$textPrimary">{getMessage("vi", "notificationReminderEnabled")}</Label>
-          <Switch aria-label={getMessage("vi", "notificationReminderEnabled")} disabled={!draft.firstCheckInCompleted} checked={draft.reminderEnabled} onCheckedChange={(reminderEnabled) => setDraft({ ...draft, reminderEnabled })}><Switch.Thumb /></Switch>
+          <Label htmlFor="notification-reminder-switch" flex={1} fontSize="$bodyM" color="$textPrimary">{getMessage("vi", "notificationReminderEnabled")}</Label>
+          <AppSwitch id="notification-reminder-switch" accessibilityLabel={getMessage("vi", "notificationReminderEnabled")} disabled={!draft.firstCheckInCompleted} checked={draft.reminderEnabled} onCheckedChange={(reminderEnabled) => setDraft({ ...draft, reminderEnabled })} />
         </XStack>
         <AppField label={getMessage("vi", "reminderTimeLabel")} value={draft.reminderTime} onChangeText={(reminderTime) => setDraft({ ...draft, reminderTime })} placeholder="20:00" />
         {needsFirstCheckIn ? <StatusBanner tone="info" title={getMessage("vi", "notificationFirstCheckInNeeded")} /> : null}

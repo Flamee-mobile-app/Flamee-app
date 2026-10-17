@@ -1,20 +1,19 @@
 import { Clock3 } from "@tamagui/lucide-icons-2/icons/Clock3";
 import { Heart } from "@tamagui/lucide-icons-2/icons/Heart";
-import { MapPin } from "@tamagui/lucide-icons-2/icons/MapPin";
+import { Image } from "react-native";
 import { Text, XStack, YStack } from "tamagui";
-import { AppButton, SectionCard } from "../../../shared/components";
+import { AppButton } from "../../../shared/components";
+import { colors, homeShadows, homeTokens } from "../../../shared/constants/tokens";
 import { formatMessage, getMessage, type MessageKey } from "../../../shared/localization/messages";
-import type { Mood } from "../../checkins";
+import { MoodFace, type Mood } from "../../checkins";
 import type { PartnerStatusView } from "../types";
 
-type MoodColor = "$moodVeryBad" | "$moodBad" | "$moodNeutral" | "$moodGood" | "$moodGreat";
-
-const moodCopy: Record<Mood, { emoji: string; label: MessageKey; color: MoodColor }> = {
-  1: { emoji: "😣", label: "moodVeryBad", color: "$moodVeryBad" },
-  2: { emoji: "😔", label: "moodBad", color: "$moodBad" },
-  3: { emoji: "😐", label: "moodNeutral", color: "$moodNeutral" },
-  4: { emoji: "🙂", label: "moodGood", color: "$moodGood" },
-  5: { emoji: "😊", label: "moodGreat", color: "$moodGreat" },
+const moodCopy: Record<Mood, MessageKey> = {
+  1: "moodVeryBad",
+  2: "moodBad",
+  3: "moodNeutral",
+  4: "moodGood",
+  5: "moodGreat",
 };
 
 const reasonKeys: Record<string, MessageKey> = {
@@ -37,47 +36,36 @@ const reasonKeys: Record<string, MessageKey> = {
 export function PartnerStatusCard({ status, onSignal }: { status: PartnerStatusView; onSignal: () => void }) {
   const partnerName = status.partner.nickname || status.partner.displayName;
   const difference = Math.abs(status.timezoneDifferenceHours);
-  const differenceText = formatMessage(
+  const differenceText = difference < 0.01 ? getMessage("vi", "homeSameTimezone") : formatMessage(
     "vi",
     status.timezoneDifferenceHours < 0 ? "timezoneBehind" : "timezoneAhead",
-    { hours: difference },
+    { hours: Math.round(difference * 100) / 100 },
   );
 
-  if (status.kind === "no_update") {
-    return (
-      <SectionCard tone="lavender" title={getMessage("vi", "partnerNoUpdate")} description={formatMessage("vi", "partnerNoUpdateBody", { name: partnerName })}>
-        <XStack gap="$sm" alignItems="center">
-          <Clock3 size={18} color="$textSecondary" />
-          <Text fontSize="$bodyS" color="$textSecondary">
-            {formatMessage("vi", "partnerLocalClock", { name: partnerName, time: status.partnerLocalTime })} · {differenceText}
-          </Text>
-        </XStack>
-        <AppButton variant="secondary" icon={<Heart size={18} />} onPress={onSignal}>
-          {getMessage("vi", "sendMissYou")}
-        </AppButton>
-      </SectionCard>
-    );
-  }
-
-  const mood = moodCopy[status.mood];
   return (
-    <SectionCard tone="peach">
+    <YStack backgroundColor="$surface" borderRadius="$xl" padding="$lg" gap="$lg" {...homeShadows.card}>
       <XStack alignItems="center" gap="$md">
-        <YStack width={64} height={64} borderRadius="$xl" backgroundColor={mood.color} alignItems="center" justifyContent="center">
-          <Text fontSize={32}>{mood.emoji}</Text>
+        <YStack width={homeTokens.avatarSize} height={homeTokens.avatarSize} borderRadius="$lg" backgroundColor="$surfaceMuted" alignItems="center" justifyContent="center" overflow="hidden">
+          {status.partner.avatarUri ? (
+            <Image source={{ uri: status.partner.avatarUri }} style={{ width: homeTokens.avatarSize, height: homeTokens.avatarSize }} accessible={false} />
+          ) : <Text fontFamily="$heading" fontSize="$h4" fontWeight="$semibold" color="$textSecondary">{partnerName.trim().charAt(0).toLocaleUpperCase("vi")}</Text>}
         </YStack>
-        <YStack flex={1} gap="$xs">
-          <Text fontFamily="$heading" fontSize="$h4" fontWeight="$bold">{getMessage("vi", mood.label)}</Text>
-          <Text fontSize="$bodyS" color="$textSecondary">
-            {formatMessage("vi", "updatedMinutesAgo", { minutes: status.minutesAgo })}
+        <YStack flex={1} minWidth={0} gap="$xs">
+          <Text fontFamily="$heading" fontSize="$h5" fontWeight="$semibold" color="$textPrimary">{partnerName}</Text>
+          <Text fontFamily="$body" fontSize="$bodyS" lineHeight="$bodyS" color="$textSecondary">
+            {status.kind === "no_update" ? getMessage("vi", "partnerNoUpdate") : status.kind === "emotion" ? getMessage("vi", "partnerSharedANote") : getMessage("vi", moodCopy[status.mood])}
           </Text>
         </YStack>
+        {status.kind !== "no_update" && status.kind !== "emotion" ? <MoodFace mood={status.mood} size={homeTokens.moodIconSize} color={colors.calmText} /> : null}
       </XStack>
+      {status.kind === "no_update" ? <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textSecondary">{formatMessage("vi", "partnerNoUpdateBody", { name: partnerName })}</Text> : (
+        <Text fontFamily="$body" fontSize="$bodyS" color="$textSecondary">{formatMessage("vi", "updatedMinutesAgo", { minutes: status.minutesAgo })}</Text>
+      )}
       {status.kind === "full" && status.reasonIds.length ? (
         <XStack flexWrap="wrap" gap="$sm">
           {status.reasonIds.map((id) => (
-            <YStack key={id} borderRadius="$xl" backgroundColor="$surface" paddingHorizontal="$md" paddingVertical="$sm">
-              <Text fontSize="$bodyS">{getMessage("vi", reasonKeys[id] ?? "reasonOther")}</Text>
+            <YStack key={id} borderRadius="$sm" backgroundColor="$surfaceMuted" paddingHorizontal="$sm" paddingVertical="$xs">
+              <Text fontFamily="$body" fontSize="$bodyS" color="$textSecondary">{getMessage("vi", reasonKeys[id] ?? "reasonOther")}</Text>
             </YStack>
           ))}
         </XStack>
@@ -85,12 +73,19 @@ export function PartnerStatusCard({ status, onSignal }: { status: PartnerStatusV
       {status.kind === "full" && status.note ? (
         <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textPrimary">“{status.note}”</Text>
       ) : null}
-      <XStack gap="$sm" alignItems="center">
-        <MapPin size={16} color="$textSecondary" />
-        <Text flex={1} fontSize="$bodyS" color="$textSecondary">
-          {formatMessage("vi", "partnerLocalClock", { name: partnerName, time: status.partnerLocalTime })} · {differenceText}
-        </Text>
-      </XStack>
-    </SectionCard>
+      {status.kind === "emotion" ? (
+        <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textPrimary" numberOfLines={2}>“{status.note}”</Text>
+      ) : null}
+      <YStack borderTopWidth={1} borderColor="$border" paddingTop="$md" gap="$xs">
+        <XStack gap="$sm" alignItems="center">
+          <Clock3 size={14} color="$textSecondary" />
+          <Text flex={1} fontFamily="$body" fontSize="$bodyS" lineHeight="$bodyS" color="$textSecondary">
+            {formatMessage("vi", "partnerLocalClock", { name: partnerName, time: status.partnerLocalTime })}
+          </Text>
+        </XStack>
+        <Text fontFamily="$body" fontSize="$caption" lineHeight="$caption" color="$textSecondary">{differenceText}</Text>
+      </YStack>
+      {status.kind === "no_update" ? <AppButton variant="secondary" icon={<Heart size={16} />} onPress={onSignal}>{getMessage("vi", "sendMissYou")}</AppButton> : null}
+    </YStack>
   );
 }

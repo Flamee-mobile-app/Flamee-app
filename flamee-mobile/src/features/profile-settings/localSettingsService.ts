@@ -16,7 +16,6 @@ export type LocalSettingsSnapshot = {
     carePreferences: string[];
     careNote: string;
   };
-  consent: { version: string | null; acceptedAt: string | null };
   notifications: Awaited<ReturnType<LocalNotificationAdapter["getSettings"]>>;
 };
 
@@ -45,7 +44,6 @@ export function createLocalSettingsService({
       accountId,
       onboardingStep: account.onboardingStep,
       profile: { ...account.profile, carePreferences: [...account.profile.carePreferences] },
-      consent: { version: account.consentVersion, acceptedAt: account.consentedAt },
       notifications: notificationSettings,
     };
   };

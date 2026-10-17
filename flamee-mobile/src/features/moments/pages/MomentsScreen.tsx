@@ -1,11 +1,11 @@
 import { Plus } from "@tamagui/lucide-icons-2/icons/Plus";
 import { Sparkles } from "@tamagui/lucide-icons-2/icons/Sparkles";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { RefreshControl } from "react-native";
 import { Text, YStack } from "tamagui";
 import { useSessionStore } from "../../../shared/state/sessionStore";
-import { AppButton, AppHeader, AppScreen, AsyncStateView, SectionCard, StatusBanner } from "../../../shared/components";
+import { AppButton, AsyncStateView, FeatureScreen, SectionCard, StatusBanner } from "../../../shared/components";
 import { getMessage } from "../../../shared/localization/messages";
 import { localCoupleService } from "../../couple";
 import { localOnboardingService } from "../../onboarding";
@@ -15,9 +15,9 @@ import type { Moment, MomentDraft } from "../types";
 import { MomentCard } from "../components/MomentCard";
 import { MomentComposerSheet } from "../components/MomentComposerSheet";
 
-type Props = { initialText?: string; initialKind?: MomentDraft["kind"]; fromNudgeId?: string };
+type Props = { composerRequest?: string; initialText?: string; initialKind?: MomentDraft["kind"]; fromNudgeId?: string };
 
-export function MomentsScreen({ initialText = "", initialKind, fromNudgeId }: Props) {
+export function MomentsScreen({ composerRequest, initialText = "", initialKind, fromNudgeId }: Props) {
   const router = useRouter();
   const accountId = useSessionStore((session) => session.activeAccountId);
   const setActiveCouple = useSessionStore((session) => session.setActiveCouple);
@@ -25,7 +25,7 @@ export function MomentsScreen({ initialText = "", initialKind, fromNudgeId }: Pr
   const [viewerTimezone, setViewerTimezone] = useState("Asia/Ho_Chi_Minh");
   const [partnerName, setPartnerName] = useState("");
   const [moments, setMoments] = useState<Moment[]>([]);
-  const [composerOpen, setComposerOpen] = useState(Boolean(initialText || fromNudgeId));
+  const [composerOpen, setComposerOpen] = useState(Boolean(composerRequest || initialText || initialKind || fromNudgeId));
   const [busy, setBusy] = useState(false);
   const [submissionState, setSubmissionState] = useState<"saved" | "pending" | "failed" | null>(null);
   const [feedbackNudge, setFeedbackNudge] = useState<Nudge | null>(null);
@@ -34,6 +34,10 @@ export function MomentsScreen({ initialText = "", initialKind, fromNudgeId }: Pr
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    if (composerRequest) setComposerOpen(true);
+  }, [composerRequest]);
 
   const load = useCallback(async () => {
     if (!accountId) {
@@ -50,6 +54,7 @@ export function MomentsScreen({ initialText = "", initialKind, fromNudgeId }: Pr
       ]);
       const nextCoupleId = membership.status === "paired" ? membership.coupleId : null;
       setCoupleId(nextCoupleId);
+      if (!nextCoupleId) setComposerOpen(false);
       setActiveCouple(nextCoupleId);
       setViewerTimezone(account.profile.timezone);
       setPartnerName(membership.partner?.nickname || membership.partner?.displayName || "");
@@ -108,7 +113,7 @@ export function MomentsScreen({ initialText = "", initialKind, fromNudgeId }: Pr
       setComposerOpen(false);
       setSubmissionState(moment.status === "pending" ? "pending" : moment.status === "failed" ? "failed" : "saved");
       if (moment.status !== "failed") await completeNudgeAction(moment);
-      router.setParams({ draft: undefined, nudgeId: undefined, kind: undefined });
+      router.setParams({ composeRequest: undefined, draft: undefined, nudgeId: undefined, kind: undefined });
     } catch {
       setSubmissionState("failed");
     } finally {
@@ -127,12 +132,16 @@ export function MomentsScreen({ initialText = "", initialKind, fromNudgeId }: Pr
     }
   };
 
+  const closeComposer = () => {
+    setComposerOpen(false);
+    router.setParams({ composeRequest: undefined, draft: undefined, nudgeId: undefined, kind: undefined });
+  };
+
   return (
-    <AppScreen refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} />}>
-      <AppHeader eyebrow={getMessage("vi", "momentsEyebrow")} title={getMessage("vi", "momentsTitle")} subtitle={getMessage("vi", "momentsSubtitle")} />
+    <FeatureScreen title={getMessage("vi", composerOpen && coupleId ? "createMomentTitle" : "momentsTitle")} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} />}>
       {loading ? <AsyncStateView variant="loading" title="momentsLoadingTitle" description="momentsLoadingBody" /> : null}
       {loadFailed ? <AsyncStateView variant="error" title="localMomentUnavailableTitle" description="localMomentUnavailableBody" actionLabel="retry" onAction={() => void load()} /> : null}
-      {!loading && !loadFailed && !coupleId ? <AsyncStateView variant="empty" title="momentsNeedPartnerTitle" description="momentsNeedPartnerBody" actionLabel="createInvite" onAction={() => router.push("/(invite)")} /> : null}
+      {!loading && !loadFailed && !coupleId ? <AsyncStateView variant="empty" title="momentsNeedPartnerTitle" description="momentsNeedPartnerBody" actionLabel="fabConnection" onAction={() => router.push("/connection")} /> : null}
       <StatusBanner tone="info" title={getMessage("vi", "momentLocalOnlyTitle")} description={getMessage("vi", "momentLocalOnlyBody")} />
       {submissionState === "saved" ? <StatusBanner tone="success" title={getMessage("vi", "momentSentTitle")} description={getMessage("vi", "momentSentBody")} /> : null}
       {submissionState === "pending" ? <StatusBanner tone="offline" title={getMessage("vi", "momentQueuedTitle")} description={getMessage("vi", "momentQueuedBody")} /> : null}
@@ -141,15 +150,15 @@ export function MomentsScreen({ initialText = "", initialKind, fromNudgeId }: Pr
       {feedbackNudge ? (
         <NudgeFeedbackSheet selectedReason={feedbackReason} saved={Boolean(feedbackNudge.feedback)} busy={busy} onReasonChange={setFeedbackReason} onRate={(value, reason) => void rateNudge(value, reason)} />
       ) : null}
-      <SectionCard tone="lavender" title={getMessage("vi", "dailyPromptTitle")} description={getMessage("vi", "dailyPromptLocal")}>
+      {!loading && !loadFailed && coupleId && !composerOpen ? <SectionCard tone="lavender" title={getMessage("vi", "dailyPromptTitle")} description={getMessage("vi", "dailyPromptLocal")}>
         {!composerOpen ? <AppButton variant="secondary" icon={<Sparkles size={18} />} onPress={() => setComposerOpen(true)}>{getMessage("vi", "answerPrompt")}</AppButton> : null}
-      </SectionCard>
-      {composerOpen ? <MomentComposerSheet initialText={initialText} initialKind={initialKind} busy={busy} onCancel={() => setComposerOpen(false)} onSubmit={submit} /> : (
+      </SectionCard> : null}
+      {!loading && !loadFailed && coupleId && composerOpen ? <MomentComposerSheet key={composerRequest ?? "activity"} embedded initialText={initialText} initialKind={initialKind} busy={busy} onCancel={closeComposer} onSubmit={submit} /> : !loading && !loadFailed && coupleId ? (
         <AppButton icon={<Plus size={18} />} onPress={() => setComposerOpen(true)}>{getMessage("vi", "createMoment")}</AppButton>
-      )}
-      {!loading && !loadFailed && moments.length === 0 ? (
+      ) : null}
+      {!loading && !loadFailed && !composerOpen && coupleId && moments.length === 0 ? (
         <AsyncStateView variant="empty" title="momentsEmptyTitle" description="momentsEmptyBody" actionLabel="createMoment" onAction={() => setComposerOpen(true)} />
-      ) : !loading && !loadFailed ? (
+      ) : !loading && !loadFailed && !composerOpen && coupleId ? (
         <YStack gap="$md">
           <Text fontFamily="$heading" fontSize="$h5" fontWeight="$semibold" color="$textPrimary">{getMessage("vi", "recentMoments")}</Text>
           {moments.map((moment) => (
@@ -165,6 +174,6 @@ export function MomentsScreen({ initialText = "", initialKind, fromNudgeId }: Pr
           ))}
         </YStack>
       ) : null}
-    </AppScreen>
+    </FeatureScreen>
   );
 }
