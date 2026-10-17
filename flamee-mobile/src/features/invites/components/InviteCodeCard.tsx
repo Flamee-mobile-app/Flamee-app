@@ -4,7 +4,7 @@ import { RefreshCw } from "@tamagui/lucide-icons-2/icons/RefreshCw";
 import { Share2 } from "@tamagui/lucide-icons-2/icons/Share2";
 import { useEffect, useRef, useState } from "react";
 import { Text, XStack, YStack } from "tamagui";
-import { AppButton } from "../../../shared/components";
+import { AppButton, AppDialog } from "../../../shared/components";
 import { getMessage } from "../../../shared/localization/messages";
 import { getInviteCountdown, splitInviteCode } from "../inviteCodePresentation";
 
@@ -119,26 +119,13 @@ export function InviteCodeCard({ code, expiresAt, action, onShare, onCopy, onRec
         </Text>
       </YStack>
 
-      {confirmingRecreate ? (
-        <YStack borderRadius="$lg" backgroundColor="$supportPeachLight" padding="$lg" gap="$md">
-          <YStack gap="$xs">
-            <Text fontFamily="$heading" fontSize="$h5" lineHeight="$h5" fontWeight="$semibold" color="$textPrimary">
-              {getMessage("vi", "recreateInviteConfirmTitle")}
-            </Text>
-            <Text fontFamily="$body" fontSize="$bodyS" lineHeight="$bodyS" color="$textSecondary">
-              {getMessage("vi", "recreateInviteConfirmBody")}
-            </Text>
-          </YStack>
-          <YStack gap="$sm">
-            <AppButton fill loading={action === "recreate"} onPress={onRecreate}>
-              {getMessage("vi", "confirmRecreateInvite")}
-            </AppButton>
-            <AppButton fill variant="secondary" disabled={busy} onPress={() => setConfirmingRecreate(false)}>
-              {getMessage("vi", "keepCurrentInvite")}
-            </AppButton>
-          </YStack>
+      <AppDialog open={confirmingRecreate} onOpenChange={setConfirmingRecreate} dismissible={!busy}
+        title={getMessage("vi", "recreateInviteConfirmTitle")} description={getMessage("vi", "recreateInviteConfirmBody")}>
+        <YStack gap="$sm">
+          <AppButton fill variant="destructive" loading={action === "recreate"} onPress={onRecreate}>{getMessage("vi", "confirmRecreateInvite")}</AppButton>
+          <AppButton fill variant="ghost" disabled={busy} onPress={() => setConfirmingRecreate(false)}>{getMessage("vi", "keepCurrentInvite")}</AppButton>
         </YStack>
-      ) : (
+      </AppDialog>
         <YStack gap="$sm">
           <AppButton fill loading={action === "share"} disabled={countdown.expired || busy} icon={<Share2 size={18} />} onPress={onShare}>
             {getMessage("vi", "shareInvite")}
@@ -156,7 +143,7 @@ export function InviteCodeCard({ code, expiresAt, action, onShare, onCopy, onRec
             {getMessage("vi", "recreateInvite")}
           </AppButton>
         </YStack>
-      )}
+
     </YStack>
   );
 }

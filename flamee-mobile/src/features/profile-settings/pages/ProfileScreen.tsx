@@ -1,18 +1,18 @@
 import { Bell } from "@tamagui/lucide-icons-2/icons/Bell";
-import { ChevronRight } from "@tamagui/lucide-icons-2/icons/ChevronRight";
 import { Database } from "@tamagui/lucide-icons-2/icons/Database";
 import { HeartHandshake } from "@tamagui/lucide-icons-2/icons/HeartHandshake";
 import { HelpCircle } from "@tamagui/lucide-icons-2/icons/HelpCircle";
+import { Moon } from "@tamagui/lucide-icons-2/icons/Moon";
 import { Settings } from "@tamagui/lucide-icons-2/icons/Settings";
 import { UserRound } from "@tamagui/lucide-icons-2/icons/UserRound";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import { Text, XStack, YStack } from "tamagui";
-import { useSessionStore } from "../../../shared/state/sessionStore";
-import { AppButton, AppHeader, AppScreen, SectionCard, StatusBanner } from "../../../shared/components";
-import { formatMessage, getMessage, type MessageKey } from "../../../shared/localization/messages";
-import { localCoupleService } from "../../couple";
-import { localOnboardingService, type LocalAccountSnapshot } from "../../onboarding";
+import { Children, Fragment, type PropsWithChildren } from "react";
+import { Text, YStack } from "tamagui";
+import { AppHeader, AppMenuRow, AppScreen, SectionCard } from "../../../shared/components";
+import { featureTokens, menuTokens } from "../../../shared/constants/tokens";
+import { getMessage, type MessageKey } from "../../../shared/localization/messages";
+import { useFabActions } from "../../main-navigation";
+import { PremiumPreview } from "../components/PremiumPreview";
 import { profileSettingsSections } from "../settingsSections";
 
 const rowDetails: Record<(typeof profileSettingsSections)[number], { key: MessageKey; icon: typeof UserRound }> = {
@@ -24,64 +24,73 @@ const rowDetails: Record<(typeof profileSettingsSections)[number], { key: Messag
   account: { key: "accountSettingsTitle", icon: Settings },
 };
 
+const menuGroups = [
+  { title: "profileMenuAccountGroup", sections: ["profile", "notifications"] },
+  { title: "profileMenuConnectionGroup", sections: ["care", "account"] },
+  { title: "profileMenuSupportGroup", sections: ["support", "data"] },
+] as const;
+
+function MenuGroup({ title, tone = "default", children }: PropsWithChildren<{ title: string; tone?: "default" | "peach" }>) {
+  const rows = Children.toArray(children);
+  return (
+    <YStack gap="$sm">
+      <Text role="heading" aria-level={2} fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" fontWeight="$semibold" color="$textSecondary" paddingHorizontal="$xs">
+        {title}
+      </Text>
+      <SectionCard tone={tone} density="compact">
+        <YStack>
+          {rows.map((row, index) => (
+            <Fragment key={index}>
+              {index > 0 ? <YStack height={1} marginLeft={menuTokens.separatorInset} backgroundColor="$border" aria-hidden={true} /> : null}
+              {row}
+            </Fragment>
+          ))}
+        </YStack>
+      </SectionCard>
+    </YStack>
+  );
+}
+
 export function ProfileScreen() {
   const router = useRouter();
-  const accountId = useSessionStore((session) => session.activeAccountId);
-  const [account, setAccount] = useState<LocalAccountSnapshot | null>(null);
-  const [coupleStatus, setCoupleStatus] = useState<{ status: "none" | "waiting" | "paired"; partnerName: string | null }>({ status: "none", partnerName: null });
-  const [loading, setLoading] = useState(true);
-  const [failed, setFailed] = useState(false);
-  const load = async () => {
-    if (!accountId) { setLoading(false); setFailed(true); return; }
-    setLoading(true); setFailed(false);
-    try {
-      const [profileSnapshot, membership] = await Promise.all([
-        localOnboardingService.getAccountSnapshot(accountId),
-        localCoupleService.getMembership(accountId),
-      ]);
-      setAccount(profileSnapshot);
-      setCoupleStatus({
-        status: membership.status,
-        partnerName: membership.partner?.nickname || membership.partner?.displayName || null,
-      });
-    } catch {
-      setFailed(true);
-    } finally {
-      setLoading(false);
-    }
-  };
-  useEffect(() => { void load(); }, [accountId]);
-
-  if (loading || (!failed && accountId !== null && account?.accountId !== accountId)) return <AppScreen><AppHeader eyebrow={getMessage("vi", "profileEyebrow")} title={getMessage("vi", "profileTitle")} /><StatusBanner tone="info" title={getMessage("vi", "loadingTitle")} description={getMessage("vi", "loadingDescription")} /></AppScreen>;
-  if (failed || !accountId || !account) return <AppScreen><AppHeader eyebrow={getMessage("vi", "profileEyebrow")} title={getMessage("vi", "profileTitle")} /><StatusBanner tone="warning" title={getMessage("vi", "profileLoadError")} /><AppButton variant="secondary" onPress={() => void load()}>{getMessage("vi", "retry")}</AppButton></AppScreen>;
-  const profile = account.profile;
-  const relationship = coupleStatus.status === "paired" && coupleStatus.partnerName
-    ? formatMessage("vi", "pairedStatusLabel", { name: coupleStatus.partnerName })
-    : coupleStatus.status === "waiting" ? getMessage("vi", "waitingPartnerStatusLabel") : getMessage("vi", "unpairedStatusLabel");
+  const { quickActions } = useFabActions("accent");
 
   return (
-    <AppScreen>
-      <AppHeader eyebrow={getMessage("vi", "profileEyebrow")} title={profile.displayName || getMessage("vi", "profileTitle")} subtitle={getMessage("vi", "profileSubtitle")} />
-      <SectionCard tone="peach">
-        <XStack gap="$md" alignItems="center">
-          <YStack width={64} height={64} borderRadius="$xl" backgroundColor="$primary" alignItems="center" justifyContent="center">
-            <Text color="$white" fontSize="$h3" fontWeight="$bold">{(profile.displayName || "F").slice(0, 1).toUpperCase()}</Text>
-          </YStack>
-          <YStack flex={1} gap="$xs">
-            <Text fontFamily="$heading" fontSize="$h4" fontWeight="$bold" color="$textPrimary">{profile.displayName}</Text>
-            <Text fontSize="$bodyS" color="$textSecondary">{relationship}</Text>
-          </YStack>
-        </XStack>
-      </SectionCard>
-      <YStack gap="$sm">
-        {profileSettingsSections.map((section) => {
-          const { key, icon: Icon } = rowDetails[section];
-          return (
-          <AppButton key={section} variant="ghost" fill contentAlign="start" icon={<Icon size={20} color="$primary" />} iconAfter={<ChevronRight size={18} color="$textSecondary" />} onPress={() => router.push({ pathname: "/settings", params: { section } })}>
-            {getMessage("vi", key)}
-          </AppButton>
-          );
-        })}
+    <AppScreen contentProps={{ width: "100%", maxWidth: featureTokens.maxWidth, alignSelf: "center", paddingBottom: featureTokens.navigationClearance }}>
+      <AppHeader title={getMessage("vi", "profileMenuTitle")} />
+      <YStack gap="$lg">
+        {menuGroups.map((group) => (
+          <MenuGroup key={group.title} title={getMessage("vi", group.title)}>
+              {group.sections.map((section) => {
+                const { key, icon: Icon } = rowDetails[section];
+                return (
+                  <AppMenuRow
+                    key={section}
+                    testID={`profile-menu-${section}`}
+                    label={getMessage("vi", key)}
+                    icon={<Icon size={menuTokens.iconSize} color="$textSecondary" aria-hidden={true} />}
+                    onPress={() => router.push({ pathname: "/settings", params: { section } })}
+                  />
+                );
+              })}
+              {group.title === "profileMenuAccountGroup" ? (
+                <AppMenuRow
+                  testID="profile-menu-dark-mode"
+                  label={getMessage("vi", "profileDarkMode")}
+                  icon={<Moon size={menuTokens.iconSize} color="$textSecondary" aria-hidden={true} />}
+                  onPress={() => undefined}
+                />
+              ) : null}
+          </MenuGroup>
+        ))}
+        <MenuGroup title={getMessage("vi", "profileSubscriptionGroup")} tone="peach">
+          <PremiumPreview />
+        </MenuGroup>
+        <MenuGroup title={getMessage("vi", "profileAlsoFlameeGroup")}>
+            {quickActions.map((action) => (
+              <AppMenuRow key={action.key} testID={`profile-quick-${action.key}`} label={action.label} icon={action.icon} onPress={action.onPress} />
+            ))}
+        </MenuGroup>
       </YStack>
     </AppScreen>
   );

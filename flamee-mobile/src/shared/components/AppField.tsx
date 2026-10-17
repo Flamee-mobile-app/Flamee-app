@@ -1,9 +1,9 @@
 import { CircleAlert } from "@tamagui/lucide-icons-2/icons/CircleAlert";
-import { useId, useState } from "react";
+import { useId, useState, type ComponentProps, type ReactNode } from "react";
 import { Platform, type TextInputProps } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
-import { Input, Label, Text, TextArea, XStack, YStack } from "tamagui";
-import { fieldTokens } from "../constants/tokens";
+import { Input, Label, Text, TextArea, XStack, YStack, type InputProps } from "tamagui";
+import { colors, fieldTokens, spacing } from "../constants/tokens";
 
 type AppFieldProps = Pick<
   TextInputProps,
@@ -17,7 +17,10 @@ type AppFieldProps = Pick<
   | "maxLength"
   | "editable"
   | "accessibilityLabel"
-> & {
+> & Pick<InputProps, "autoComplete" | "textContentType" | "returnKeyType" | "submitBehavior" | "onSubmitEditing" | "inputMode" | "type"> & {
+  inputRef?: ComponentProps<typeof Input>["ref"];
+  startIcon?: ReactNode;
+  endAction?: ReactNode;
   id?: string;
   label: string;
   error?: string;
@@ -37,6 +40,9 @@ export function AppField({
   accessibilityLabel,
   editable,
   onBlur,
+  inputRef,
+  startIcon,
+  endAction,
   ...props
 }: AppFieldProps) {
   const generatedId = useId();
@@ -54,6 +60,7 @@ export function AppField({
   const resetStyle = { borderWidth: 0, outlineWidth: 0, outlineStyle: "none", backgroundColor: "transparent" } as const;
   const fieldProps = {
     ...props,
+    type: props.type ?? (props.secureTextEntry ? "password" : props.keyboardType === "email-address" ? "email" : "text"),
     unstyled: true,
     id: fieldId,
     "aria-label": accessibilityLabel ?? label,
@@ -71,13 +78,17 @@ export function AppField({
     backgroundColor: "transparent" as const,
     color: disabled ? ("$textSecondary" as const) : ("$textPrimary" as const),
     placeholderTextColor: "$textSecondary" as const,
-    selectionColor: "$accentSoft" as const,
+    // iOS uses selectionColor for its caret as well as the selection highlight.
+    selectionColor: Platform.OS === "ios" ? ("$accentText" as const) : ("$accentSoft" as const),
     cursorColor: "$accentText" as const,
+    selectionHandleColor: "$accentText" as const,
+    ...(Platform.OS === "web" ? { caretColor: colors.accentText } : {}),
     underlineColorAndroid: "$colorTransparent" as const,
     fontFamily: "$body" as const,
     fontSize: "$bodyL" as const,
-    width: "100%" as const,
-    paddingHorizontal: fieldTokens.paddingHorizontal,
+    flex: 1,
+    minWidth: 0,
+    paddingHorizontal: startIcon ? spacing.md : fieldTokens.paddingHorizontal,
     paddingVertical: fieldTokens.paddingVertical,
     hoverStyle: resetStyle,
     focusStyle: resetStyle,
@@ -103,6 +114,7 @@ export function AppField({
         {label}
       </Label>
       <YStack
+        testID={`${fieldId}-surface`}
         borderRadius={fieldTokens.radius}
         backgroundColor={disabled ? "$fieldDisabled" : error ? "$accentSoft" : "$fieldSurface"}
         transform={[{ translateY: active && !reducedMotion ? -fieldTokens.focusLift : 0 }]}
@@ -143,11 +155,15 @@ export function AppField({
           transition={transition}
           animateOnly={["opacity"]}
         />
-        {multiline ? (
-          <TextArea minHeight={fieldTokens.multilineMinHeight} textAlignVertical="top" {...fieldProps} />
-        ) : (
-          <Input minHeight={fieldTokens.minHeight} {...fieldProps} />
-        )}
+        <XStack alignItems="center" position="relative" zIndex={1}>
+          {startIcon ? <YStack paddingLeft={fieldTokens.paddingHorizontal} pointerEvents="none">{startIcon}</YStack> : null}
+          {multiline ? (
+            <TextArea minHeight={fieldTokens.multilineMinHeight} textAlignVertical="top" {...fieldProps} />
+          ) : (
+            <Input ref={inputRef} minHeight={fieldTokens.minHeight} {...fieldProps} />
+          )}
+          {endAction ? <YStack paddingRight="$xs">{endAction}</YStack> : null}
+        </XStack>
       </YStack>
       {error || help || characterCount ? (
         <XStack alignItems="flex-start" justifyContent="space-between" gap="$sm">

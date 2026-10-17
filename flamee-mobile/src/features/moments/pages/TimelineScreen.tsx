@@ -4,7 +4,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import { SectionList } from "react-native";
 import { ScrollView, Text, XStack, YStack } from "tamagui";
-import { AppButton, AppFilterChip, AsyncStateView, FeatureScreen } from "../../../shared/components";
+import { AppButton, AppFilterChip, SectionCard, AsyncStateView, FeatureScreen } from "../../../shared/components";
 import { getMessage } from "../../../shared/localization/messages";
 import { useSessionStore } from "../../../shared/state/sessionStore";
 import { localCoupleService, type CoupleMembership } from "../../couple";
@@ -71,11 +71,11 @@ export function TimelineScreen() {
           onRefresh={() => void load()}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={view === "memories" && membership?.connectedAt ? (
-            <YStack gap="$md" backgroundColor="$accentSoft" borderRadius="$lg" padding="$lg" marginBottom="$lg">
+            <YStack marginBottom="$lg"><SectionCard tone="peach">
               <HeartHandshake size={28} color="$accentText" />
               <Text fontFamily="$heading" fontSize="$h5" fontWeight="$semibold" color="$textPrimary">{getMessage("vi", "memoryConnectedTitle")}</Text>
               <Text fontFamily="$body" fontSize="$bodyM" color="$accentText">{formatDate(membership.connectedAt)}</Text>
-            </YStack>
+            </SectionCard></YStack>
           ) : null}
           ListEmptyComponent={<AsyncStateView variant="empty" title={view === "timeline" ? "timelineEmptyTitle" : "memoriesEmptyTitle"} description={view === "timeline" ? "timelineEmptyBody" : "memoriesEmptyBody"} actionLabel="createMoment" onAction={openComposer} />}
           renderSectionHeader={({ section }) => <Text fontFamily="$heading" fontSize="$bodyL" fontWeight="$semibold" color="$textPrimary" paddingVertical="$md">{formatDate(section.timestamp)}</Text>}

@@ -1,7 +1,6 @@
 import { useCallback, useState } from "react";
 import { useFocusEffect, useRouter } from "expo-router";
-import { AppButton, AsyncStateView, FeatureScreen } from "../../../shared/components";
-import { Text, YStack } from "tamagui";
+import { SectionCard, AsyncStateView, FeatureScreen } from "../../../shared/components";
 import { getMessage } from "../../../shared/localization/messages";
 import { useSessionStore } from "../../../shared/state/sessionStore";
 import { localNudgeService } from "../localNudgeService";
@@ -42,13 +41,7 @@ export function TasksScreen() {
         <AsyncStateView variant="empty" title="tasksEmptyTitle" description="tasksEmptyBody" />
       ) : null}
       {!loading && !failed ? tasks.map((task) => (
-        <YStack key={task.id} gap="$md" paddingVertical="$md" borderBottomWidth={1} borderBottomColor="$border">
-          <Text fontFamily="$heading" fontSize="$h5" lineHeight="$h5" fontWeight="$semibold" color="$textPrimary">{task.observation}</Text>
-          <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textSecondary">{task.reason}</Text>
-          <AppButton onPress={() => router.push({ pathname: "/nudge/[nudgeId]", params: { nudgeId: task.id } })}>
-            {getMessage("vi", "viewNudge")}
-          </AppButton>
-        </YStack>
+        <SectionCard key={task.id} title={task.observation} description={task.reason} accessibilityLabel={getMessage("vi", "viewNudge")} onPress={() => router.push({ pathname: "/nudge/[nudgeId]", params: { nudgeId: task.id } })} />
       )) : null}
     </FeatureScreen>
   );

@@ -1,9 +1,7 @@
 import { Bell, Heart, Plus, Trash2 } from "@tamagui/lucide-icons-2";
 import { useState } from "react";
 import {
-  Dialog,
   Label,
-  Sheet,
   Text,
   XStack,
   YStack,
@@ -11,10 +9,13 @@ import {
 import {
   AppButton,
   AppCheckbox,
-  AppDialogContent,
+  AppChoiceTile,
+  AppDialog,
+  AppSheet,
   AppField,
   AppFilterChip,
   AppIconButton,
+  AppMenuRow,
   AppSwitch,
   FeatureScreen,
   SectionCard,
@@ -82,6 +83,7 @@ function PreviewSection({
 
 function ButtonPreview() {
   const [filter, setFilter] = useState("all");
+  const [choice, setChoice] = useState("none");
   const [multipleFilters, setMultipleFilters] = useState<string[]>(["text"]);
   const toggleFilter = (value: string) => setMultipleFilters((current) => (
     current.includes(value) ? current.filter((item) => item !== value) : [...current, value]
@@ -128,6 +130,16 @@ function ButtonPreview() {
           <AppFilterChip testID="filter-single-photo" label={getMessage(locale, "momentPhoto")} selected={filter === "photo"} selectionMode="single" onPress={() => setFilter("photo")} />
         </XStack>
       </YStack>
+      <AppMenuRow
+        testID="design-menu-row"
+        label={getMessage(locale, "careSettingsTitle")}
+        icon={<Heart size={20} color="$textSecondary" aria-hidden={true} />}
+        onPress={() => appToast.info(getMessage(locale, "careSettingsTitle"))}
+      />
+      <XStack gap="$sm" role="radiogroup" aria-label={getMessage(locale, "mascotOptionalTitle")}>
+        <AppChoiceTile testID="design-choice-none" label={getMessage(locale, "mascotNone")} selected={choice === "none"} artwork={<Text color="$textSecondary">—</Text>} onPress={() => setChoice("none")} />
+        <AppChoiceTile testID="design-choice-heart" label={getMessage(locale, "mascotHeart")} selected={choice === "heart"} artwork={<Heart size={28} color="$accentText" />} onPress={() => setChoice("heart")} />
+      </XStack>
       <YStack gap="$xs">
         <Text fontFamily="$body" fontSize="$bodyS" color="$textSecondary">{getMessage(locale, "designSystemMultipleFilter")}</Text>
         <XStack gap="$xs" flexWrap="wrap" role="group" aria-label={getMessage(locale, "designSystemMultipleFilter")}>
@@ -237,41 +249,16 @@ function DialogPreview() {
           <Text fontFamily="$heading" fontSize="$h5" lineHeight="$h5" fontWeight="$semibold" color="$textPrimary">{getMessage(locale, "designSystemGlassTitle")}</Text>
           <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textPrimary">{getMessage(locale, "designSystemGlassBody")}</Text>
         </YStack>
-        <AppButton fill variant="ghost" onPress={() => setOpen(true)}>
+        <AppButton testID="design-dialog-trigger" fill variant="ghost" onPress={() => setOpen(true)}>
           {getMessage(locale, "recreateInviteConfirmTitle")}
         </AppButton>
       </YStack>
-      <Dialog modal open={open} onOpenChange={setOpen}>
-        <Dialog.Portal>
-          <Dialog.Overlay
-            key="overlay"
-            backgroundColor="$textPrimary"
-            opacity={glassTokens.overlayOpacity}
-            enterStyle={{ opacity: 0 }}
-            exitStyle={{ opacity: 0 }}
-          />
-          <AppDialogContent
-            key="content"
-          >
-            <YStack gap="$sm">
-              <Dialog.Title fontFamily="$heading" fontSize="$h4" lineHeight="$h4" fontWeight="$bold" color="$textPrimary">
-                {getMessage(locale, "recreateInviteConfirmTitle")}
-              </Dialog.Title>
-              <Dialog.Description fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textSecondary">
-                {getMessage(locale, "recreateInviteConfirmBody")}
-              </Dialog.Description>
-            </YStack>
-            <XStack gap="$sm">
-              <AppButton grow variant="ghost" onPress={() => setOpen(false)}>
-                {getMessage(locale, "keepCurrentInvite")}
-              </AppButton>
-              <AppButton grow variant="destructive" onPress={() => setOpen(false)}>
-                {getMessage(locale, "confirmRecreateInvite")}
-              </AppButton>
-            </XStack>
-          </AppDialogContent>
-        </Dialog.Portal>
-      </Dialog>
+      <AppDialog open={open} onOpenChange={setOpen} title={getMessage(locale, "recreateInviteConfirmTitle")} description={getMessage(locale, "recreateInviteConfirmBody")}>
+        <XStack gap="$sm">
+          <AppButton grow variant="ghost" onPress={() => setOpen(false)}>{getMessage(locale, "keepCurrentInvite")}</AppButton>
+          <AppButton grow variant="destructive" onPress={() => setOpen(false)}>{getMessage(locale, "confirmRecreateInvite")}</AppButton>
+        </XStack>
+      </AppDialog>
     </>
   );
 }
@@ -281,39 +268,17 @@ function SheetPreview() {
 
   return (
     <>
-      <AppButton fill variant="secondary" onPress={() => setOpen(true)}>
+      <AppButton testID="design-sheet-trigger" fill variant="secondary" onPress={() => setOpen(true)}>
         {getMessage(locale, "createMomentTitle")}
       </AppButton>
-      <Sheet modal open={open} onOpenChange={setOpen} snapPoints={[55]} dismissOnSnapToBottom zIndex={100_000}>
-        <Sheet.Overlay backgroundColor="$textPrimary" opacity={0.45} enterStyle={{ opacity: 0 }} exitStyle={{ opacity: 0 }} />
-        <Sheet.Frame
-          backgroundColor="$surface"
-          borderTopLeftRadius="$xl"
-          borderTopRightRadius="$xl"
-          padding="$xl"
-          gap="$lg"
-        >
-          <Sheet.Handle backgroundColor="$border" />
-          <YStack width="100%" maxWidth={560} alignSelf="center" gap="$lg">
-            <YStack gap="$sm">
-              <Text fontFamily="$heading" fontSize="$h4" lineHeight="$h4" fontWeight="$bold" color="$textPrimary">
-                {getMessage(locale, "createMomentTitle")}
-              </Text>
-              <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textSecondary">
-                {getMessage(locale, "createMomentBody")}
-              </Text>
-            </YStack>
-            <XStack gap="$sm" flexWrap="wrap">
-              <AppFilterChip label={getMessage(locale, "momentText")} selected selectionMode="single" onPress={() => undefined} />
-              <AppFilterChip label={getMessage(locale, "momentPhoto")} selected={false} selectionMode="single" onPress={() => undefined} />
-              <AppFilterChip label={getMessage(locale, "momentVoice")} selected={false} selectionMode="single" onPress={() => undefined} />
-            </XStack>
-            <AppButton fill onPress={() => setOpen(false)}>
-              {getMessage(locale, "continue")}
-            </AppButton>
-          </YStack>
-        </Sheet.Frame>
-      </Sheet>
+      <AppSheet open={open} onOpenChange={setOpen} title={getMessage(locale, "createMomentTitle")} description={getMessage(locale, "createMomentBody")}>
+        <XStack gap="$sm" flexWrap="wrap">
+          <AppFilterChip label={getMessage(locale, "momentText")} selected selectionMode="single" onPress={() => undefined} />
+          <AppFilterChip label={getMessage(locale, "momentPhoto")} selected={false} selectionMode="single" onPress={() => undefined} />
+          <AppFilterChip label={getMessage(locale, "momentVoice")} selected={false} selectionMode="single" onPress={() => undefined} />
+        </XStack>
+        <AppButton fill onPress={() => setOpen(false)}>{getMessage(locale, "continue")}</AppButton>
+      </AppSheet>
     </>
   );
 }

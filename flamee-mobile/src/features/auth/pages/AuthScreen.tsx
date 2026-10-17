@@ -9,8 +9,8 @@ import { AccessibilityInfo, Image, Keyboard, KeyboardAvoidingView, Platform, Sty
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useReducedMotion } from "react-native-reanimated";
 import { Controller, useForm } from "react-hook-form";
-import { Input, Label, ScrollView, Text, XStack, YStack } from "tamagui";
-import { AppButton, AppCheckbox, AppIconButton, AppTextButton, StatusBanner } from "../../../shared/components";
+import { Label, ScrollView, Text, XStack, YStack } from "tamagui";
+import { AppButton, AppCheckbox, AppField, AppIconButton, AppTextButton, StatusBanner } from "../../../shared/components";
 import { loginTokens, spacing } from "../../../shared/constants/tokens";
 import { getMessage } from "../../../shared/localization/messages";
 import { lockedHeroScrollProps } from "../../../shared/layout/heroScrollBehavior";
@@ -49,7 +49,6 @@ export function AuthScreen() {
   const visible = useScreenReveal();
   const systemReducedMotion = useReducedMotion();
   const [reducedMotion, setReducedMotion] = useState(systemReducedMotion);
-  const [focused, setFocused] = useState<"email" | "password" | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [unavailable, setUnavailable] = useState<UnavailableAction | null>(null);
@@ -126,38 +125,29 @@ export function AuthScreen() {
 
             <LoginEntrance order={3} {...motion}>
               <Controller control={form.control} name="email" render={({ field, fieldState }) => (
-                <YStack gap="$xs" marginBottom="$sm">
-                  <XStack alignItems="center" minHeight={loginTokens.controlHeight} paddingHorizontal="$lg" borderRadius="$xl" borderWidth={1} borderColor={fieldState.error ? "$error" : focused === "email" ? "$primary" : "$supportPeachLight"} backgroundColor="$white">
-                    <Mail size={20} color="$textSecondary" aria-hidden={true} />
-                    <Input ref={field.ref} id="login-email" flex={1} minWidth={0} height={loginTokens.controlHeight - 2} paddingHorizontal="$md" borderWidth={0} borderRadius="$xl" backgroundColor="transparent" fontFamily="$body" fontSize="$bodyM" color="$textPrimary" placeholderTextColor="$textSecondary"
-                      aria-label={getMessage("vi", "loginEmailLabel")} aria-invalid={!!fieldState.error} aria-describedby={fieldState.error ? "login-email-error" : undefined}
-                      placeholder={getMessage("vi", "loginEmailPlaceholder")} keyboardType="email-address" inputMode="email" autoComplete="email" textContentType="emailAddress" autoCapitalize="none" autoCorrect={false} maxLength={254}
-                      disabled={busy} value={field.value} onChangeText={(value) => { field.onChange(value); setUnavailable(null); setLoginError(null); }} onFocus={() => setFocused("email")} onBlur={() => { setFocused(null); field.onBlur(); }} onSubmitEditing={() => form.setFocus("password")} submitBehavior="submit" returnKeyType="next"
-                      focusStyle={{ borderWidth: 0, outlineWidth: 0 }} />
-                  </XStack>
-                  {fieldState.error && <Text id="login-email-error" role="alert" aria-live="polite" fontFamily="$body" fontSize="$bodyS" lineHeight="$bodyS" color="$error">{fieldState.error.message}</Text>}
+                <YStack marginBottom="$sm">
+                  <AppField inputRef={field.ref} id="login-email" label={getMessage("vi", "loginEmailLabel")}
+                    startIcon={<Mail size={20} color="$textSecondary" aria-hidden={true} />}
+                    placeholder={getMessage("vi", "loginEmailPlaceholder")} keyboardType="email-address" inputMode="email" autoComplete="email" textContentType="emailAddress" maxLength={254} autoCapitalize="none" autoCorrect={false}
+                    editable={!busy} value={field.value} error={fieldState.error?.message}
+                    onChangeText={(value) => { field.onChange(value); setUnavailable(null); setLoginError(null); }} onBlur={field.onBlur}
+                    onSubmitEditing={() => form.setFocus("password")} submitBehavior="submit" returnKeyType="next"  />
                 </YStack>
               )} />
             </LoginEntrance>
 
             <LoginEntrance order={4} {...motion}>
               <Controller control={form.control} name="password" render={({ field, fieldState }) => (
-                <YStack gap="$xs">
-                  <XStack alignItems="center" minHeight={loginTokens.controlHeight} paddingLeft="$lg" paddingRight="$xs" borderRadius="$xl" borderWidth={1} borderColor={fieldState.error ? "$error" : focused === "password" ? "$primary" : "$supportPeachLight"} backgroundColor="$white">
-                    <LockKeyhole size={20} color="$textSecondary" aria-hidden={true} />
-                    <Input ref={field.ref} id="login-password" flex={1} minWidth={0} height={loginTokens.controlHeight - 2} paddingHorizontal="$md" borderWidth={0} borderRadius="$xl" backgroundColor="transparent" fontFamily="$body" fontSize="$bodyM" color="$textPrimary" placeholderTextColor="$textSecondary"
-                      aria-label={getMessage("vi", "loginPasswordLabel")} aria-invalid={!!fieldState.error} aria-describedby={fieldState.error ? "login-password-error" : undefined}
-                      placeholder={getMessage("vi", "loginPasswordPlaceholder")} secureTextEntry={!showPassword} type={showPassword ? "text" : "password"} autoComplete="current-password" textContentType="password" autoCapitalize="none" autoCorrect={false} maxLength={128}
-                      disabled={busy} value={field.value} onChangeText={(value) => { field.onChange(value); setUnavailable(null); setLoginError(null); }} onFocus={() => setFocused("password")} onBlur={() => { setFocused(null); field.onBlur(); }} onSubmitEditing={() => void login()} returnKeyType="go"
-                      focusStyle={{ borderWidth: 0, outlineWidth: 0 }} />
-                    <AppIconButton
-                      selected={showPassword}
+                <YStack marginBottom="$sm">
+                  <AppField inputRef={field.ref} id="login-password" label={getMessage("vi", "loginPasswordLabel")}
+                    startIcon={<LockKeyhole size={20} color="$textSecondary" aria-hidden={true} />}
+                    placeholder={getMessage("vi", "loginPasswordPlaceholder")} secureTextEntry={!showPassword} type={showPassword ? "text" : "password"} autoComplete="current-password" textContentType="password" maxLength={128} autoCapitalize="none" autoCorrect={false}
+                    editable={!busy} value={field.value} error={fieldState.error?.message}
+                    onChangeText={(value) => { field.onChange(value); setUnavailable(null); setLoginError(null); }} onBlur={field.onBlur}
+                    onSubmitEditing={() => void login()} submitBehavior="submit" returnKeyType="go" endAction={<AppIconButton tone="plain" disabled={busy} selected={showPassword}
                       accessibilityLabel={getMessage("vi", showPassword ? "loginHidePassword" : "loginShowPassword")}
                       icon={showPassword ? <EyeOff size={20} color="$textSecondary" aria-hidden={true} /> : <Eye size={20} color="$textSecondary" aria-hidden={true} />}
-                      onPress={() => setShowPassword((value) => !value)}
-                    />
-                  </XStack>
-                  {fieldState.error && <Text id="login-password-error" role="alert" aria-live="polite" fontFamily="$body" fontSize="$bodyS" lineHeight="$bodyS" color="$error">{fieldState.error.message}</Text>}
+                      onPress={() => setShowPassword((value) => !value)} />} />
                 </YStack>
               )} />
             </LoginEntrance>

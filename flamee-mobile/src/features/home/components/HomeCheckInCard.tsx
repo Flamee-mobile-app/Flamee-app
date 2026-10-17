@@ -1,7 +1,7 @@
 import { ArrowUpRight } from "@tamagui/lucide-icons-2/icons/ArrowUpRight";
 import { Check } from "@tamagui/lucide-icons-2/icons/Check";
 import { Text, XStack, YStack } from "tamagui";
-import { AppButton } from "../../../shared/components";
+import { AppButton, AppIconButton } from "../../../shared/components";
 import { homeShadows, homeTokens } from "../../../shared/constants/tokens";
 import { getMessage, type MessageKey } from "../../../shared/localization/messages";
 import { MoodFace, type Mood } from "../../checkins";
@@ -34,24 +34,11 @@ export function HomeCheckInCard({ completed, compact = false, onCheckIn }: { com
       {!completed && !compact ? (
         <XStack justifyContent="space-between" role="group" aria-label={getMessage("vi", "checkInTitle")}>
           {moods.map(({ value, label, surface }) => (
-            <YStack
-              key={value}
-              flex={1}
-              minWidth="$control"
-              minHeight="$control"
-              borderRadius="$md"
-              alignItems="center"
-              justifyContent="center"
-              role="button"
-              aria-label={getMessage("vi", label)}
-              pressStyle={{ backgroundColor: "$supportPeach", opacity: 0.8 }}
-              focusStyle={{ outlineColor: "$primary", outlineWidth: 2, outlineStyle: "solid" }}
-              onPress={() => onCheckIn(value)}
-            >
+            <AppIconButton key={value} accessibilityLabel={getMessage("vi", label)} onPress={() => onCheckIn(value)} icon={<>
               <YStack width={homeTokens.moodTileSize} height={homeTokens.moodTileSize} borderRadius="$md" backgroundColor={surface} alignItems="center" justifyContent="center" aria-hidden={true}>
                 <MoodFace mood={value} size={homeTokens.moodIconSize} />
               </YStack>
-            </YStack>
+            </>} />
           ))}
         </XStack>
       ) : null}

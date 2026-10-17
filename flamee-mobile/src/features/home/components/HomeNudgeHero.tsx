@@ -1,7 +1,7 @@
 import { ArrowUpRight } from "@tamagui/lucide-icons-2/icons/ArrowUpRight";
 import { Sparkles } from "@tamagui/lucide-icons-2/icons/Sparkles";
 import { Text, XStack, YStack } from "tamagui";
-import { AppButton } from "../../../shared/components";
+import { AppButton, SectionCard } from "../../../shared/components";
 import { homeShadows } from "../../../shared/constants/tokens";
 import { getMessage } from "../../../shared/localization/messages";
 import type { Nudge } from "../../nudges";
@@ -31,10 +31,10 @@ export function HomeNudgeHero({ nudge, onDoNow, onViewDetails }: { nudge: Nudge;
         </Text>
       </YStack>
       {nudge.draft ? (
-        <YStack backgroundColor="$surface" borderRadius="$lg" padding="$md" gap="$xs">
+        <SectionCard>
           <Text fontFamily="$body" fontSize="$caption" color="$calmText">{getMessage("vi", "nudgeDraftLabel")}</Text>
           <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textPrimary" numberOfLines={3}>“{nudge.draft}”</Text>
-        </YStack>
+        </SectionCard>
       ) : null}
       <XStack alignItems="center" gap="$sm">
         <AppButton iconAfter={<ArrowUpRight size={18} />} onPress={onDoNow}>{getMessage("vi", "nudgeDoNow")}</AppButton>

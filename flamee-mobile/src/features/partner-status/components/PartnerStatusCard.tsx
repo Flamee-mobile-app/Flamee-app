@@ -2,8 +2,8 @@ import { Clock3 } from "@tamagui/lucide-icons-2/icons/Clock3";
 import { Heart } from "@tamagui/lucide-icons-2/icons/Heart";
 import { Image } from "react-native";
 import { Text, XStack, YStack } from "tamagui";
-import { AppButton } from "../../../shared/components";
-import { colors, homeShadows, homeTokens } from "../../../shared/constants/tokens";
+import { AppButton, SectionCard } from "../../../shared/components";
+import { colors, homeTokens } from "../../../shared/constants/tokens";
 import { formatMessage, getMessage, type MessageKey } from "../../../shared/localization/messages";
 import { MoodFace, type Mood } from "../../checkins";
 import type { PartnerStatusView } from "../types";
@@ -43,7 +43,7 @@ export function PartnerStatusCard({ status, onSignal }: { status: PartnerStatusV
   );
 
   return (
-    <YStack backgroundColor="$surface" borderRadius="$xl" padding="$lg" gap="$lg" {...homeShadows.card}>
+    <SectionCard>
       <XStack alignItems="center" gap="$md">
         <YStack width={homeTokens.avatarSize} height={homeTokens.avatarSize} borderRadius="$lg" backgroundColor="$surfaceMuted" alignItems="center" justifyContent="center" overflow="hidden">
           {status.partner.avatarUri ? (
@@ -86,6 +86,6 @@ export function PartnerStatusCard({ status, onSignal }: { status: PartnerStatusV
         <Text fontFamily="$body" fontSize="$caption" lineHeight="$caption" color="$textSecondary">{differenceText}</Text>
       </YStack>
       {status.kind === "no_update" ? <AppButton variant="secondary" icon={<Heart size={16} />} onPress={onSignal}>{getMessage("vi", "sendMissYou")}</AppButton> : null}
-    </YStack>
+    </SectionCard>
   );
 }

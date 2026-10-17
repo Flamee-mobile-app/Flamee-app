@@ -160,3 +160,15 @@ test("authenticated profile comes from the server without completing optional se
   assert.equal(account.setupStatus, "pending");
   assert.equal(account.consentedAt, null);
 });
+
+test("preserves a server nickname separately from the full name in the auth session", async () => {
+  await withServer((_req, res) => res.end(JSON.stringify({
+    success: true, data: { user: { ...user, username: "Bé Mây" }, access_token: "test-token" },
+  })), async (baseUrl) => {
+    const auth = createAuthService({ api: createAuthApi({ baseUrl }), credentials: credentials() });
+    const session = await auth.login("an@example.com", "Secret123");
+    assert.equal(session.user.username, "Bé Mây");
+    assert.equal(session.user.full_name, "An");
+    assert.equal((await auth.getCurrentSession())?.user.username, "Bé Mây");
+  });
+});

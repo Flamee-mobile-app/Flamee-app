@@ -1,10 +1,9 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { HeartHandshake } from "@tamagui/lucide-icons-2/icons/HeartHandshake";
-import { MapPin } from "@tamagui/lucide-icons-2/icons/MapPin";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { Text, YStack } from "tamagui";
+import { YStack } from "tamagui";
 import { useSessionStore } from "../../../shared/state/sessionStore";
 import { AppButton, AppField, AppHeader, AppScreen, AsyncStateView, SectionCard, StatusBanner } from "../../../shared/components";
 import { getMessage } from "../../../shared/localization/messages";
@@ -88,14 +87,10 @@ export function OnboardingScreen() {
       <AppButton disabled={busy} onPress={() => { void run(async () => { setAccount(await localOnboardingService.advanceSetup(accountId, "relation")); setStep("relation"); }); }}>{getMessage("vi", "pairNow")}</AppButton>
       <AppButton variant="secondary" disabled={busy} onPress={skip}>{getMessage("vi", "noPartnerYet")}</AppButton>
     </> : <>
-      <SectionCard tone={relation === "long_distance" ? "peach" : "default"}>
-        <AppButton variant="ghost" icon={<MapPin size={20} />} aria-pressed={relation === "long_distance"} disabled={busy} onPress={() => setRelation("long_distance")}>{getMessage("vi", "relationLongDistance")}</AppButton>
-        <Text color="$textSecondary">{getMessage("vi", "relationLongDistanceBody")}</Text>
-      </SectionCard>
-      <SectionCard tone={relation === "same_city" ? "peach" : "default"}>
-        <AppButton variant="ghost" icon={<MapPin size={20} />} aria-pressed={relation === "same_city"} disabled={busy} onPress={() => setRelation("same_city")}>{getMessage("vi", "relationNearby")}</AppButton>
-        <Text color="$textSecondary">{getMessage("vi", "relationSameCityBody")}</Text>
-      </SectionCard>
+      <SectionCard tone={relation === "long_distance" ? "peach" : "default"} selected={relation === "long_distance"} selectionMode="single" disabled={busy}
+        title={getMessage("vi", "relationLongDistance")} description={getMessage("vi", "relationLongDistanceBody")} accessibilityLabel={getMessage("vi", "relationLongDistance")} onPress={() => setRelation("long_distance")} />
+      <SectionCard tone={relation === "same_city" ? "peach" : "default"} selected={relation === "same_city"} selectionMode="single" disabled={busy}
+        title={getMessage("vi", "relationNearby")} description={getMessage("vi", "relationSameCityBody")} accessibilityLabel={getMessage("vi", "relationNearby")} onPress={() => setRelation("same_city")} />
       <AppButton disabled={!relation || busy} onPress={() => { void run(async () => {
         if (!relation) return;
         await localOnboardingService.saveRelationType(accountId, relation);

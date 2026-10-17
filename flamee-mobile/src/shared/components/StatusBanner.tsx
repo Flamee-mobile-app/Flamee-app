@@ -19,12 +19,13 @@ const iconByTone = {
 
 export function StatusBanner({ tone, title, description }: StatusBannerProps) {
   const Icon = iconByTone[tone];
-  const backgroundColor = tone === "success" ? "$success" : tone === "warning" ? "$supportPeach" : "$supportPeachLight";
+  const backgroundColor = tone === "warning" ? "$accentSoft" : "$glassCard";
+  const color = tone === "success" ? "$calmText" : tone === "warning" ? "$accentText" : "$textPrimary";
   return (
     <XStack aria-live="polite" role="alert" borderRadius="$md" backgroundColor={backgroundColor} padding="$md" gap="$sm" alignItems="flex-start">
-      <Icon size={20} color="$textPrimary" />
+      <Icon size={20} color={color} />
       <YStack flex={1} gap="$xs">
-        <Text fontFamily="$body" fontSize="$bodyM" fontWeight="$semibold" color="$textPrimary">
+        <Text fontFamily="$body" fontSize="$bodyM" fontWeight="$semibold" color={color}>
           {title}
         </Text>
         {description ? (

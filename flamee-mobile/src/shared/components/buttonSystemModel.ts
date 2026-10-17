@@ -138,9 +138,18 @@ export function getAppButtonPresentation(variant: AppButtonVariant): ButtonPrese
   return buttonPresentations[variant];
 }
 
-export type IconButtonTone = "neutral" | "accent" | "danger";
+export type IconButtonTone = "neutral" | "accent" | "danger" | "plain";
 
 export function getIconButtonPresentation(tone: IconButtonTone, selected: boolean) {
+  if (tone === "plain") {
+    return {
+      backgroundColor: "transparent",
+      color: "$textPrimary",
+      hoverBackgroundColor: "transparent",
+      pressBackgroundColor: "transparent",
+    } as const;
+  }
+
   if (tone === "accent") {
     return {
       backgroundColor: selected ? "$supportPeach" : "$accentSoft",

@@ -7,8 +7,8 @@ import { UserRound } from "@tamagui/lucide-icons-2/icons/UserRound";
 import { useRef, useState } from "react";
 import { Image, Keyboard, StyleSheet } from "react-native";
 import { Controller, useForm } from "react-hook-form";
-import { Input, Text, XStack, YStack } from "tamagui";
-import { AppButton, AppIconButton, AppTextButton, StatusBanner } from "../../../shared/components";
+import { Text, XStack, YStack } from "tamagui";
+import { AppButton, AppField, AppIconButton, AppTextButton, StatusBanner } from "../../../shared/components";
 import { loginTokens } from "../../../shared/constants/tokens";
 import { getMessage } from "../../../shared/localization/messages";
 import { registerSchema, type RegisterInput } from "../schemas";
@@ -28,7 +28,6 @@ const fields = [
 type RegisterFormProps = { visible: boolean; reducedMotion: boolean; onLogin: () => void; onAuthenticated: (session: AuthSession) => Promise<void> };
 
 export function RegisterForm({ visible, reducedMotion, onLogin, onAuthenticated }: RegisterFormProps) {
-  const [focused, setFocused] = useState<keyof RegisterInput | null>(null);
   const [shown, setShown] = useState({ password: false, confirmPassword: false });
   const [unavailable, setUnavailable] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -65,24 +64,19 @@ export function RegisterForm({ visible, reducedMotion, onLogin, onAuthenticated 
       const hidden = passwordKey !== null && !shown[passwordKey];
       const Icon = item.icon;
       return <LoginEntrance key={item.name} order={index + 1} {...motion}>
-        <Controller control={form.control} name={item.name} render={({ field, fieldState }) => <YStack gap="$xs" marginBottom="$sm">
-          <XStack minHeight={loginTokens.controlHeight} alignItems="center" borderRadius="$xl" paddingLeft="$md" paddingRight="$xs" borderWidth={1} borderColor={fieldState.error ? "$error" : focused === item.name ? "$primary" : "$supportPeachLight"} backgroundColor="$white">
-            <Icon size={18} color="$textSecondary" aria-hidden={true} />
-            <Input ref={field.ref} id={"register-" + item.name} flex={1} minWidth={0} height={loginTokens.controlHeight - 2} paddingHorizontal="$md" borderWidth={0} borderRadius="$xl" backgroundColor="transparent" fontFamily="$body" fontSize="$bodyM" color="$textPrimary" placeholderTextColor="$textSecondary"
-              placeholder={getMessage("vi", item.placeholder)} aria-label={getMessage("vi", item.label)} aria-invalid={!!fieldState.error} aria-describedby={fieldState.error ? "register-error-" + item.name : undefined}
-              keyboardType={item.name === "email" ? "email-address" : "default"} inputMode={item.name === "email" ? "email" : "text"} autoCapitalize={item.name === "fullName" ? "words" : "none"} autoCorrect={false}
-              autoComplete={passwordKey ? "new-password" : item.name === "email" ? "email" : "name"} textContentType={passwordKey ? "newPassword" : item.name === "email" ? "emailAddress" : "name"}
-              secureTextEntry={hidden} type={hidden ? "password" : "text"} maxLength={item.name === "fullName" ? 100 : item.name === "email" ? 254 : 128}
-              disabled={busy} value={field.value} onChangeText={(value) => { field.onChange(value); setUnavailable(false); setError(null); }} onFocus={() => setFocused(item.name)} onBlur={() => { field.onBlur(); setFocused(null); }}
-              returnKeyType={index === fields.length - 1 ? "go" : "next"} submitBehavior="submit" onSubmitEditing={() => { const next = fields[index + 1]; if (next) form.setFocus(next.name); else void submit(); }} focusStyle={{ borderWidth: 0, outlineWidth: 0 }} />
-            {passwordKey && <AppIconButton
-              selected={!hidden}
+        <Controller control={form.control} name={item.name} render={({ field, fieldState }) => <YStack marginBottom="$sm">
+          <AppField inputRef={field.ref} id={"register-" + item.name} label={getMessage("vi", item.label)}
+            startIcon={<Icon size={18} color="$textSecondary" aria-hidden={true} />}
+            placeholder={getMessage("vi", item.placeholder)} error={fieldState.error?.message}
+            keyboardType={item.name === "email" ? "email-address" : "default"} inputMode={item.name === "email" ? "email" : "text"} autoCapitalize={item.name === "fullName" ? "words" : "none"} autoCorrect={false}
+            autoComplete={passwordKey ? "new-password" : item.name === "email" ? "email" : "name"} textContentType={passwordKey ? "newPassword" : item.name === "email" ? "emailAddress" : "name"}
+            secureTextEntry={hidden} type={hidden ? "password" : "text"} maxLength={item.name === "fullName" ? 100 : item.name === "email" ? 254 : 128}
+            editable={!busy} value={field.value} onChangeText={(value) => { field.onChange(value); setUnavailable(false); setError(null); }} onBlur={field.onBlur}
+            returnKeyType={index === fields.length - 1 ? "go" : "next"} submitBehavior="submit" onSubmitEditing={() => { const next = fields[index + 1]; if (next) form.setFocus(next.name); else void submit(); }}
+            endAction={passwordKey ? <AppIconButton tone="plain" disabled={busy} selected={!hidden}
               accessibilityLabel={getMessage("vi", hidden ? "loginShowPassword" : "loginHidePassword")}
               icon={hidden ? <Eye size={18} color="$textSecondary" aria-hidden={true} /> : <EyeOff size={18} color="$textSecondary" aria-hidden={true} />}
-              onPress={() => setShown((value) => ({ ...value, [passwordKey]: !value[passwordKey] }))}
-            />}
-          </XStack>
-          {fieldState.error && <Text id={"register-error-" + item.name} role="alert" aria-live="polite" fontFamily="$body" fontSize="$bodyS" lineHeight="$bodyS" color="$error">{fieldState.error.message}</Text>}
+              onPress={() => setShown((value) => ({ ...value, [passwordKey]: !value[passwordKey] }))} /> : undefined} />
         </YStack>} />
       </LoginEntrance>;
     })}

@@ -2,7 +2,7 @@ import { BellRing } from "@tamagui/lucide-icons-2/icons/BellRing";
 import { useEffect, useState } from "react";
 import { Label, Text, XStack, YStack } from "tamagui";
 import { useSessionStore } from "../../../shared/state/sessionStore";
-import { AppButton, AppField, AppSwitch, SectionCard, StatusBanner } from "../../../shared/components";
+import { AppButton, AppField, AppSwitch, SectionCard, StatusBanner, appToast } from "../../../shared/components";
 import { getMessage } from "../../../shared/localization/messages";
 import { localNotificationAdapter } from "../../notifications";
 import type { NotificationSettings } from "../../notifications";
@@ -12,7 +12,6 @@ export function NotificationSettingsScreen() {
   const [draft, setDraft] = useState<NotificationSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [error, setError] = useState(false);
   const [needsFirstCheckIn, setNeedsFirstCheckIn] = useState(false);
 
@@ -37,7 +36,7 @@ export function NotificationSettingsScreen() {
     setDraft(result.settings);
     setError(result.kind === "invalid_time" || result.kind === "unavailable");
     setNeedsFirstCheckIn(result.kind === "permission_required" && !result.settings.firstCheckInCompleted);
-    setSaved(result.kind === "updated");
+    if (result.kind === "updated") appToast.success(getMessage("vi", "notificationReminderSaved"));
   };
   const requestPermission = async () => {
     if (!accountId || !draft) return;
@@ -45,7 +44,7 @@ export function NotificationSettingsScreen() {
     setDraft(result.settings);
     setNeedsFirstCheckIn(result.kind === "not_requested" && !result.settings.firstCheckInCompleted);
     setError(result.kind === "unavailable");
-    setSaved(result.kind === "granted");
+    if (result.kind === "granted") appToast.success(getMessage("vi", "permissionGranted"));
   };
 
   if (loading) return <YStack gap="$lg"><StatusBanner tone="info" title={getMessage("vi", "loadingTitle")} description={getMessage("vi", "loadingDescription")} /></YStack>;
@@ -69,7 +68,6 @@ export function NotificationSettingsScreen() {
         {needsFirstCheckIn ? <StatusBanner tone="info" title={getMessage("vi", "notificationFirstCheckInNeeded")} /> : null}
       </SectionCard>
       {error ? <StatusBanner tone="warning" title={getMessage("vi", "notificationReminderError")} /> : null}
-      {saved ? <StatusBanner tone="success" title={getMessage("vi", "notificationReminderSaved")} /> : null}
       <AppButton onPress={save}>{getMessage("vi", "save")}</AppButton>
     </YStack>
   );

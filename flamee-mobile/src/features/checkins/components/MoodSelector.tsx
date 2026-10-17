@@ -1,4 +1,5 @@
 import { Text, XStack, YStack } from "tamagui";
+import { AppChoiceTile } from "../../../shared/components";
 import type { Mood } from "../types";
 import { getMessage, type MessageKey } from "../../../shared/localization/messages";
 
@@ -16,35 +17,12 @@ type MoodSelectorProps = { value?: Mood; onChange: (value: Mood) => void };
 
 export function MoodSelector({ value, onChange }: MoodSelectorProps) {
   return (
-    <XStack flexWrap="wrap" justifyContent="center" gap="$sm">
+    <XStack flexWrap="wrap" justifyContent="center" gap="$sm" role="radiogroup">
       {moods.map((mood) => {
         const selected = mood.value === value;
         return (
-          <YStack
-            key={mood.value}
-            width="30%"
-            minWidth={96}
-            minHeight={104}
-            borderRadius="$lg"
-            borderWidth={selected ? 2 : 1}
-            borderColor={selected ? "$primary" : "$border"}
-            backgroundColor={selected ? "$supportPeachLight" : "$surface"}
-            alignItems="center"
-            justifyContent="center"
-            gap="$xs"
-            pressStyle={{ opacity: 0.82, scale: 0.98 }}
-            role="radio"
-            aria-checked={selected}
-            aria-label={getMessage("vi", mood.label)}
-            onPress={() => onChange(mood.value)}
-          >
-            <YStack width={46} height={46} borderRadius="$xl" backgroundColor={mood.color} alignItems="center" justifyContent="center">
-              <Text fontSize={24}>{mood.emoji}</Text>
-            </YStack>
-            <Text textAlign="center" fontFamily="$body" fontSize="$bodyS" fontWeight="$semibold" color="$textPrimary">
-              {getMessage("vi", mood.label)}
-            </Text>
-          </YStack>
+          <AppChoiceTile key={mood.value} label={getMessage("vi", mood.label)} selected={selected} onPress={() => onChange(mood.value)}
+            artwork={<YStack width={46} height={46} borderRadius="$xl" backgroundColor={mood.color} alignItems="center" justifyContent="center"><Text fontSize={24}>{mood.emoji}</Text></YStack>} />
         );
       })}
     </XStack>

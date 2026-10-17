@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { RefreshControl } from "react-native";
 import { Text, YStack } from "tamagui";
 import { useSessionStore } from "../../../shared/state/sessionStore";
-import { AppButton, AsyncStateView, FeatureScreen, SectionCard, StatusBanner } from "../../../shared/components";
+import { AppButton, AsyncStateView, FeatureScreen, SectionCard, StatusBanner, appToast } from "../../../shared/components";
 import { getMessage } from "../../../shared/localization/messages";
 import { localCoupleService } from "../../couple";
 import { localOnboardingService } from "../../onboarding";
@@ -95,6 +95,7 @@ export function MomentsScreen({ composerRequest, initialText = "", initialKind, 
     if (retried.kind === "created") {
       setMoments(await localMomentService.listForCouple(retried.moment.coupleId));
       setSubmissionState(retried.moment.status === "pending" ? "pending" : retried.moment.status === "failed" ? "failed" : "saved");
+      if (retried.moment.status === "saved_local") appToast.success(getMessage("vi", "momentSentTitle"), { description: getMessage("vi", "momentSentBody") });
       if (retried.moment.status !== "failed") await completeNudgeAction(retried.moment);
     }
   };
@@ -112,6 +113,7 @@ export function MomentsScreen({ composerRequest, initialText = "", initialKind, 
       setMoments(await localMomentService.listForCouple(coupleId));
       setComposerOpen(false);
       setSubmissionState(moment.status === "pending" ? "pending" : moment.status === "failed" ? "failed" : "saved");
+      if (moment.status === "saved_local") appToast.success(getMessage("vi", "momentSentTitle"), { description: getMessage("vi", "momentSentBody") });
       if (moment.status !== "failed") await completeNudgeAction(moment);
       router.setParams({ composeRequest: undefined, draft: undefined, nudgeId: undefined, kind: undefined });
     } catch {
@@ -143,7 +145,6 @@ export function MomentsScreen({ composerRequest, initialText = "", initialKind, 
       {loadFailed ? <AsyncStateView variant="error" title="localMomentUnavailableTitle" description="localMomentUnavailableBody" actionLabel="retry" onAction={() => void load()} /> : null}
       {!loading && !loadFailed && !coupleId ? <AsyncStateView variant="empty" title="momentsNeedPartnerTitle" description="momentsNeedPartnerBody" actionLabel="fabConnection" onAction={() => router.push("/connection")} /> : null}
       <StatusBanner tone="info" title={getMessage("vi", "momentLocalOnlyTitle")} description={getMessage("vi", "momentLocalOnlyBody")} />
-      {submissionState === "saved" ? <StatusBanner tone="success" title={getMessage("vi", "momentSentTitle")} description={getMessage("vi", "momentSentBody")} /> : null}
       {submissionState === "pending" ? <StatusBanner tone="offline" title={getMessage("vi", "momentQueuedTitle")} description={getMessage("vi", "momentQueuedBody")} /> : null}
       {submissionState === "failed" ? <StatusBanner tone="warning" title={getMessage("vi", "momentCreateFailedTitle")} description={getMessage("vi", "momentCreateFailedBody")} /> : null}
       {nudgeActionFailed ? <StatusBanner tone="warning" title={getMessage("vi", "nudgeActionErrorTitle")} description={getMessage("vi", "nudgeActionErrorBody")} /> : null}

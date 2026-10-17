@@ -44,7 +44,7 @@ export function AppIconButton({
       height={buttonTokens.iconButtonSize}
       minWidth={buttonTokens.iconButtonSize}
       minHeight={buttonTokens.iconButtonSize}
-      borderRadius={buttonTokens.iconButtonRadius}
+      borderRadius={tone === "plain" ? 0 : buttonTokens.iconButtonRadius}
       borderWidth={0}
       backgroundColor={presentation.backgroundColor}
       color={presentation.color}

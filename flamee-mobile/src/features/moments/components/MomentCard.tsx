@@ -4,7 +4,6 @@ import { Mic } from "@tamagui/lucide-icons-2/icons/Mic";
 import { Radio } from "@tamagui/lucide-icons-2/icons/Radio";
 import { RotateCcw } from "@tamagui/lucide-icons-2/icons/RotateCcw";
 import { useAudioPlayer } from "expo-audio";
-import { Pressable } from "react-native";
 import { Image, Text, XStack, YStack } from "tamagui";
 import type { Moment } from "../types";
 import { AppButton, SectionCard, StatusBanner } from "../../../shared/components";
@@ -29,8 +28,9 @@ export function MomentCard({ moment, own, partnerName, viewerTimezone, onOpen, o
   const body = moment.text || moment.caption || getMessage("vi", moment.kind === "photo" ? "photoMoment" : moment.kind === "voice" ? "voiceMoment" : "momentSignal");
   const time = new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit", timeZone: viewerTimezone }).format(new Date(moment.createdAt));
   return (
-    <SectionCard tone={own ? "peach" : "lavender"}>
-      <Pressable onPress={onOpen} accessibilityRole="button">
+    <YStack gap="$md">
+      <SectionCard tone={own ? "peach" : "lavender"} onPress={onOpen} accessibilityLabel={body}>
+
         <YStack gap="$sm">
         <XStack gap="$sm" alignItems="center">
           <YStack width={40} height={40} borderRadius="$xl" backgroundColor="$surface" alignItems="center" justifyContent="center">
@@ -46,7 +46,7 @@ export function MomentCard({ moment, own, partnerName, viewerTimezone, onOpen, o
           <Image source={{ uri: moment.mediaUri }} width="100%" height={220} borderRadius="$lg" resizeMode="cover" accessibilityLabel={body} />
         ) : null}
         </YStack>
-      </Pressable>
+      </SectionCard>
         {moment.kind === "voice" && moment.mediaUri && !mediaUnavailable ? (
           <AppButton variant="secondary" icon={<Mic size={18} />} onPress={() => player.play()}>
             {getMessage("vi", "playRecording")}{moment.durationSeconds ? ` · ${moment.durationSeconds}s` : ""}
@@ -63,6 +63,6 @@ export function MomentCard({ moment, own, partnerName, viewerTimezone, onOpen, o
           </YStack>
         ) : null}
         {moment.reactions.length ? <Text fontSize="$bodyS" color="$textSecondary">{formatMessage("vi", "reactionCount", { count: moment.reactions.length })} {moment.reactions.map((item) => item.emoji).join(" ")}</Text> : null}
-    </SectionCard>
+    </YStack>
   );
 }

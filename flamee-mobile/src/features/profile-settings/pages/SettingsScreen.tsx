@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Text, XStack, YStack } from "tamagui";
 import { useSessionStore } from "../../../shared/state/sessionStore";
-import { AppButton, AppField, AppFilterChip, AppHeader, AppScreen, SectionCard, StatusBanner } from "../../../shared/components";
+import { AppButton, AppField, AppFilterChip, AppHeader, AppScreen, SectionCard, StatusBanner, appToast } from "../../../shared/components";
 import { getMessage } from "../../../shared/localization/messages";
 import { carePreferenceIds } from "../../onboarding";
 import { AccountLifecycleScreen } from "../../account-lifecycle";
@@ -21,7 +21,6 @@ export function SettingsScreen({ initialSection = "menu" }: { initialSection?: s
   const [timezone, setTimezone] = useState("Asia/Ho_Chi_Minh");
   const [care, setCare] = useState<string[]>([]);
   const [careNote, setCareNote] = useState("");
-  const [saved, setSaved] = useState(false);
   const [error, setError] = useState(false);
   const loadSettings = async () => {
     if (!accountId) { setLoading(false); setLoadFailed(true); return; }
@@ -48,16 +47,16 @@ export function SettingsScreen({ initialSection = "menu" }: { initialSection?: s
 
   const saveProfile = async () => {
     if (!accountId) { setError(true); return; }
-    setBusy(true); setSaved(false);
+    setBusy(true); 
     const result = await localSettingsService.updateProfile(accountId, { displayName, partnerNickname, timezone });
-    setBusy(false); setError(result.kind !== "updated"); setSaved(result.kind === "updated");
+    setBusy(false); setError(result.kind !== "updated"); if (result.kind === "updated") appToast.success(getMessage("vi", "settingsSaved"));
     if (result.kind === "updated") setSettings(result.settings);
   };
   const saveCare = async () => {
     if (!accountId) { setError(true); return; }
-    setBusy(true); setSaved(false);
+    setBusy(true); 
     const result = await localSettingsService.updateCarePreferences(accountId, care, careNote);
-    setBusy(false); setError(result.kind !== "updated"); setSaved(result.kind === "updated");
+    setBusy(false); setError(result.kind !== "updated"); if (result.kind === "updated") appToast.success(getMessage("vi", "settingsSaved"));
     if (result.kind === "updated") setSettings(result.settings);
   };
   const toggleCare = (id: string) => setCare((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
@@ -80,7 +79,6 @@ export function SettingsScreen({ initialSection = "menu" }: { initialSection?: s
       {section === "account" ? <AccountLifecycleScreen mode="account" /> : null}
       {section === "menu" ? <SectionCard title={getMessage("vi", "settingsChooseTitle")} description={getMessage("vi", "settingsChooseBody")} /> : null}
       {error ? <StatusBanner tone="warning" title={getMessage("vi", "settingsValidationError")} /> : null}
-      {saved ? <StatusBanner tone="success" title={getMessage("vi", "settingsSaved")} /> : null}
     </AppScreen>
   );
 }

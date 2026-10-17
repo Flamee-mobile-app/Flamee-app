@@ -82,13 +82,15 @@ navigation gradient. Apricot highlights check-in; sage highlights care suggestio
 All values live in shared tokens and are exposed by the Tamagui theme.
 Ordinary actions use the shared semantic button system: `AppButton`,
 `AppFilterChip`, `AppIconButton`, or `AppTextButton`. Their 48 px touch targets,
-warm depth, focus/disabled/loading states and 160 ms press feedback are owned by
+warm depth, focus/disabled/loading states and 80/140 ms press/release feedback are owned by
 shared tokens; feature callers cannot override color, radius, border, shadow or
-motion. `MomentReactionButton`, Bottom Navigation, FAB, Radial Menu, checkbox and
-gesture surfaces remain explicit specialized controls.
+motion. Reaction buttons reuse `AppIconButton`; Bottom Navigation, FAB and Radial
+Menu keep their specialized motion contract. Auth and all other forms use `AppField`;
+cards, dialogs and sheets use `SectionCard`, `AppDialog` and `AppSheet`. Image choices
+use `AppChoiceTile`, with the same borderless material and selection feedback as filters.
 Tamagui keeps its platform-aware default animation driver so web uses CSS
 transitions and native uses the React Native timing driver; button transitions
-override the shared timing preset to 160 ms.
+override the shared timing preset to 80 ms on contact and 140 ms on release.
 The body and heading font scales include `$true` and `$control` aliases to the
 button typography (16/24), because Tamagui Button looks up font size from its
 control size even when `fontSize` is supplied.
@@ -105,6 +107,16 @@ Follow [the local setup guide](../.doc/MOBILE-AUTH-LOCAL-SETUP.md) to run FastAP
 prepare a development Supabase database, and set `EXPO_PUBLIC_API_URL` with the
 `/api/v1` suffix. On a real phone, use the computer's LAN address and restart Metro
 after editing `.env.local`. No mock-login switch or local credential bypass remains.
+
+If login in Expo Go waits and then reports a connection timeout, compare the
+host in `.env.local` with the computer's current Wi-Fi IPv4 address (`ipconfig`).
+The LAN address can change when switching networks. Keep `/api/v1` in the API
+URL, restart Metro after correcting it, and reload the project in Expo Go.
+On the phone, `http://<current-computer-LAN-IP>:8000/health` should return
+`{"status":"ok","version":"0.1.0"}` while both devices are on the same network.
+This health check verifies backend reachability; it does not verify database
+access or successful authentication.
+
 Auth owns API requests, session validation and secure credential storage; the root
 provider hydrates local onboarding with the actual server user name/avatar.
 Feature records and setup progress remain process-local, independently of the
@@ -209,6 +221,19 @@ there is no page subtitle or eyebrow. Controls, forms, loading/error/empty state
 and content live within the surface. `featureTokens` owns its width, navigation
 clearance and warm shadow. The revised emotion/Moment composers, Tasks, Connection
 and Timeline use this convention.
+
+The Profile tab is a grouped Menu with a title-only header. Each group has its
+title outside a separate shared `SectionCard`, with no page-wide content card.
+Menu cards use balanced 16 px horizontal/8 px vertical padding and centered
+52 px rows with 16 px labels, with inset dividers between items.
+Account, Connection, and Support & data retain all six settings destinations
+through `AppMenuRow`; account lifecycle actions remain under Connection & account.
+Inline Premium sample plans switch between illustrative monthly/yearly prices;
+there is no checkout or premium entitlement. Also in Flamee offers four compact
+quick actions as the same divided menu rows through the existing navigation hook.
+Account includes a Dark mode placeholder row with no action or state; the app
+continues to use the approved light theme. The menu does not wait
+for profile or membership data to render its static navigation.
 
 Timeline groups original Moments by the viewer's local date, newest first.
 Memories shows the real connection date and successfully saved photo/voice Moments.

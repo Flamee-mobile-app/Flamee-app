@@ -37,14 +37,14 @@ export const designSystemCatalog: readonly DesignSystemCatalogEntry[] = [
   {
     id: "dialog",
     title: "Dialog",
-    implementation: "AppDialogContent → Tamagui.Dialog",
-    importPath: "src/shared/components/AppDialogContent",
+    implementation: "AppDialog → Tamagui.Dialog",
+    importPath: "src/shared/components/AppDialog",
   },
   {
     id: "sheet",
     title: "Sheet",
-    implementation: "Tamagui.Sheet",
-    importPath: "tamagui",
+    implementation: "AppSheet → Tamagui.Sheet",
+    importPath: "src/shared/components/AppSheet",
   },
   {
     id: "toast",

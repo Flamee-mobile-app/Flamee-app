@@ -6,8 +6,8 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState, Image } from "react-native";
 import { Text, XStack, YStack } from "tamagui";
-import { AppButton, AppHeader, AppScreen, AsyncStateView, StatusBanner } from "../../../shared/components";
-import { homeShadows, homeTokens } from "../../../shared/constants/tokens";
+import { AppButton, AppIconButton, SectionCard, AppHeader, AppScreen, AsyncStateView, StatusBanner, appToast } from "../../../shared/components";
+import { homeTokens } from "../../../shared/constants/tokens";
 import { localDateKey } from "../../../shared/datetime/localDate";
 import { formatMessage, getMessage } from "../../../shared/localization/messages";
 import { useSessionStore } from "../../../shared/state/sessionStore";
@@ -176,6 +176,7 @@ export function HomeScreen({ checkInRequest, momentRequest, momentKind }: HomeSc
         return;
       }
       setMomentFeedback(result.moment.status === "pending" ? "pending" : result.moment.status === "failed" ? "failed" : "saved");
+      if (result.moment.status === "saved_local") appToast.success(getMessage("vi", "momentSentTitle"), { description: getMessage("vi", "momentSentBody") });
       if (result.moment.status !== "failed") {
         closeFabComposer();
         await load();
@@ -267,12 +268,11 @@ export function HomeScreen({ checkInRequest, momentRequest, momentKind }: HomeSc
             {formatMessage("vi", "todayGreeting", { name: profileName || getMessage("vi", "defaultUserName") })}
           </Text>
         </YStack>
-        <YStack width={homeTokens.avatarSize} height={homeTokens.avatarSize} backgroundColor="$surfaceMuted" borderRadius="$xl" alignItems="center" justifyContent="center" overflow="hidden" role="button" aria-label={getMessage("vi", "profileTitle")} pressStyle={{ opacity: 0.7 }} onPress={() => router.push("/(main)/profile")}>
+        <AppIconButton accessibilityLabel={getMessage("vi", "profileTitle")} onPress={() => router.push("/(main)/profile")} icon={<YStack width="100%" height="100%" borderRadius="$md" alignItems="center" justifyContent="center" overflow="hidden" backgroundColor="$surfaceMuted">
           {avatarUri ? <Image source={{ uri: avatarUri }} style={{ width: homeTokens.avatarSize, height: homeTokens.avatarSize }} accessible={false} /> : <Text fontFamily="$heading" fontSize="$h5" fontWeight="$semibold" color="$textSecondary">{(profileName || getMessage("vi", "defaultUserName")).trim().charAt(0).toLocaleUpperCase("vi")}</Text>}
-        </YStack>
+        </YStack>} />
       </XStack>
 
-      {momentFeedback === "saved" ? <StatusBanner tone="success" title={getMessage("vi", "momentSentTitle")} description={getMessage("vi", "momentSentBody")} /> : null}
       {momentFeedback === "pending" ? <StatusBanner tone="offline" title={getMessage("vi", "momentQueuedTitle")} description={getMessage("vi", "momentQueuedBody")} /> : null}
 
       <HomeEmotionHero
@@ -293,7 +293,7 @@ export function HomeScreen({ checkInRequest, momentRequest, momentKind }: HomeSc
       ) : (
         <YStack gap="$md">
           <Text role="heading" aria-level={2} fontFamily="$heading" fontSize="$h5" fontWeight="$semibold" color="$textPrimary">{getMessage("vi", "homeConnectionTitle")}</Text>
-          <YStack borderRadius="$xl" backgroundColor="$surface" padding="$lg" gap="$md" {...homeShadows.card}>
+          <SectionCard>
             <XStack alignItems="center" justifyContent="center" gap="$md" aria-hidden={true}>
               <YStack width={34} height={34} borderRadius="$xl" backgroundColor="$secondary" opacity={0.9} />
               <Heart size={22} color="$supportCoral" />
@@ -306,7 +306,7 @@ export function HomeScreen({ checkInRequest, momentRequest, momentKind }: HomeSc
               <AppButton variant="ghost" onPress={() => { localPairingReminderService.snooze(activeAccountId); setReminderVisible(false); }}>{getMessage("vi", "pairingSnoozeDay")}</AppButton>
               <AppButton variant="ghost" onPress={() => { localPairingReminderService.muteSession(activeAccountId, sessionId); setReminderVisible(false); }}>{getMessage("vi", "pairingMuteSession")}</AppButton>
             </XStack> : null}
-          </YStack>
+          </SectionCard>
         </YStack>
       )}
 
@@ -314,19 +314,18 @@ export function HomeScreen({ checkInRequest, momentRequest, momentKind }: HomeSc
         <YStack gap="$md">
           <Text role="heading" aria-level={2} fontFamily="$heading" fontSize="$h5" fontWeight="$semibold" color="$textPrimary">{getMessage("vi", "recentMoments")}</Text>
           {latestMoment ? (
-            <YStack backgroundColor="$surface" borderRadius="$lg" padding="$lg" gap="$sm" role="button" aria-label={getMessage("vi", "viewRecentMoment")} pressStyle={{ opacity: 0.75 }} onPress={() => router.push({ pathname: "/moment/[momentId]", params: { momentId: latestMoment.id } })} {...homeShadows.card}>
+            <SectionCard accessibilityLabel={getMessage("vi", "viewRecentMoment")} onPress={() => router.push({ pathname: "/moment/[momentId]", params: { momentId: latestMoment.id } })}>
               <XStack gap="$sm" alignItems="center">
                 <MessageCircle size={16} color="$accentText" />
                 <Text flex={1} fontFamily="$body" fontSize="$bodyS" color="$textSecondary">{formatMessage("vi", latestMoment.authorId === activeAccountId ? "homeMomentFromYou" : "homeMomentFromPartner", { name: partnerName, time: formatMomentTime(latestMoment) })}</Text>
-                <ArrowUpRight size={16} color="$textSecondary" />
               </XStack>
               <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textPrimary" numberOfLines={2}>{latestMoment.text || latestMoment.caption || getMessage("vi", latestMoment.kind === "photo" ? "photoMoment" : latestMoment.kind === "voice" ? "voiceMoment" : "momentSignal")}</Text>
-            </YStack>
+            </SectionCard>
           ) : (
-            <YStack backgroundColor="$surface" borderRadius="$lg" padding="$lg" gap="$sm" {...homeShadows.card}>
+            <SectionCard>
               <Text fontFamily="$heading" fontSize="$bodyL" fontWeight="$medium" color="$textPrimary">{getMessage("vi", "homeNoMomentTitle")}</Text>
               <Text fontFamily="$body" fontSize="$bodyS" lineHeight="$bodyS" color="$textSecondary">{getMessage("vi", "homeNoMomentBody")}</Text>
-            </YStack>
+            </SectionCard>
           )}
         </YStack>
       ) : null}

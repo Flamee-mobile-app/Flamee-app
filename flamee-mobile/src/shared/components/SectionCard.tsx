@@ -4,25 +4,29 @@ import { Platform } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
 import { Card, Text, XStack, YStack } from "tamagui";
 import { buttonTokens, cardTokens, glassTokens } from "../constants/tokens";
-import { resolvePlatformAccessibilityProps } from "./buttonSystemModel";
+import { resolveFilterSemantics, resolvePlatformAccessibilityProps, type FilterSelectionMode } from "./buttonSystemModel";
 import { useButtonInteraction } from "./useButtonInteraction";
 
 type SectionCardProps = PropsWithChildren<{
   title?: string;
   description?: string;
   tone?: "default" | "peach" | "lavender";
+  density?: "default" | "compact";
   testID?: string;
 }> & ({
   onPress: () => void;
   accessibilityLabel: string;
   disabled?: boolean;
+  selected?: boolean;
+  selectionMode?: FilterSelectionMode;
 } | {
   onPress?: undefined;
   accessibilityLabel?: undefined;
   disabled?: undefined;
 });
 
-export function SectionCard({ title, description, tone = "default", children, onPress, accessibilityLabel, disabled = false, testID }: SectionCardProps) {
+export function SectionCard({ title, description, tone = "default", density = "default", children, onPress, accessibilityLabel, disabled = false, testID, ...selection }: SectionCardProps) {
+  const radius = density === "compact" ? cardTokens.compactRadius : cardTokens.radius;
   const interactive = !!onPress;
   const interaction = useButtonInteraction(!interactive || disabled);
   const [pressed, setPressed] = useState(false);
@@ -40,10 +44,11 @@ export function SectionCard({ title, description, tone = "default", children, on
       borderColor="transparent"
       outlineWidth={0}
       outlineStyle="none"
-      borderRadius={cardTokens.radius}
+      borderRadius={radius}
       backgroundColor={backgroundColor}
       backdropFilter={Platform.OS === "web" ? glassTokens.cardBackdrop : undefined}
-      padding={cardTokens.padding}
+      paddingHorizontal={density === "compact" ? cardTokens.compactPaddingHorizontal : cardTokens.padding}
+      paddingVertical={density === "compact" ? cardTokens.compactPaddingVertical : cardTokens.padding}
       minHeight={buttonTokens.height}
       opacity={disabled ? buttonTokens.disabledOpacity : 1}
       position="relative"
@@ -80,10 +85,11 @@ export function SectionCard({ title, description, tone = "default", children, on
           onTouchCancel: () => { interaction.onPressOut(); setPressed(false); },
           onPointerCancel: () => { interaction.onPressOut(); setPressed(false); },
         } : {}),
-        role: "button" as const,
+        role: "selectionMode" in selection && selection.selectionMode ? resolveFilterSemantics(selection.selectionMode, !!selection.selected).role : "button" as const,
+        ...("selectionMode" in selection && selection.selectionMode ? { "aria-checked": !!selection.selected } : {}),
         "aria-label": accessibilityLabel,
         "aria-disabled": disabled,
-        ...resolvePlatformAccessibilityProps(Platform.OS, { disabled }),
+        ...resolvePlatformAccessibilityProps(Platform.OS, { disabled, selected: "selected" in selection && !!selection.selected }),
         disabled,
         cursor: disabled ? "default" : "pointer",
         disableClassName: interaction.disableClassName,
@@ -98,8 +104,8 @@ export function SectionCard({ title, description, tone = "default", children, on
     >
       {Platform.OS === "web" ? (
         <>
-          <YStack position="absolute" top={0} right={0} bottom={0} left={0} borderRadius={cardTokens.radius} pointerEvents="none" boxShadow={cardTokens.shadow} opacity={activePress ? 0 : 1} transition={interactive ? transition : undefined} animateOnly={["opacity"]} />
-          <YStack position="absolute" top={0} right={0} bottom={0} left={0} borderRadius={cardTokens.radius} pointerEvents="none" boxShadow={cardTokens.pressedShadow} opacity={activePress ? 1 : 0} transition={interactive ? transition : undefined} animateOnly={["opacity"]} />
+          <YStack position="absolute" top={0} right={0} bottom={0} left={0} borderRadius={radius} pointerEvents="none" boxShadow={cardTokens.shadow} opacity={activePress ? 0 : 1} transition={interactive ? transition : undefined} animateOnly={["opacity"]} />
+          <YStack position="absolute" top={0} right={0} bottom={0} left={0} borderRadius={radius} pointerEvents="none" boxShadow={cardTokens.pressedShadow} opacity={activePress ? 1 : 0} transition={interactive ? transition : undefined} animateOnly={["opacity"]} />
         </>
       ) : null}
       <XStack alignItems="center" gap="$md" position="relative" zIndex={1}>
@@ -116,7 +122,7 @@ export function SectionCard({ title, description, tone = "default", children, on
           ) : null}
           {children}
         </YStack>
-        {interactive ? <ChevronRight size={18} color="$textSecondary" aria-hidden={true} /> : null}
+        {interactive && !("selectionMode" in selection && selection.selectionMode) ? <ChevronRight size={18} color="$textSecondary" aria-hidden={true} /> : null}
       </XStack>
     </Card>
   );

@@ -73,6 +73,16 @@ export const toastTokens = {
   duration: 3000,
 } as const;
 
+export const sheetTokens = { snapPoint: 55, overlayOpacity: 0.45, zIndex: 100_000 } as const;
+
+export const menuTokens = {
+  rowMinHeight: 52,
+  iconSize: 20,
+  chevronSize: 18,
+  pressOffset: 1,
+  separatorInset: 32,
+} as const;
+
 export const fieldTokens = {
   minHeight: 52,
   multilineMinHeight: 112,
@@ -119,6 +129,9 @@ export const glassTokens = {
 export const cardTokens = {
   radius: 22,
   padding: 20,
+  compactRadius: 18,
+  compactPaddingHorizontal: 16,
+  compactPaddingVertical: 8,
   pressOffset: 1,
   shadow: "0 2px 8px rgba(48,41,36,0.06)",
   pressedShadow: "0 1px 2px rgba(48,41,36,0.04)",
@@ -137,6 +150,8 @@ export const cardTokens = {
     elevation: 0,
   },
 } as const;
+
+export const choiceTokens = { width: 72, height: 108, artworkSize: 56 } as const;
 
 export const navigationTokens = {
   badgeBackground: "#FFF1E8",

@@ -15,6 +15,7 @@ const userSchema = z.object({
   id: z.string().min(1),
   email: z.string().email(),
   full_name: z.string(),
+  username: z.string().max(40).nullable().optional(),
   avatar_url: z.string().nullable().optional(),
   couple_id: z.string().nullable().optional(),
   created_at: z.string(),

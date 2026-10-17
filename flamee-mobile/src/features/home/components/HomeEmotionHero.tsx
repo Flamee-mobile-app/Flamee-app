@@ -2,7 +2,7 @@ import { ArrowUpRight } from "@tamagui/lucide-icons-2/icons/ArrowUpRight";
 import { Check } from "@tamagui/lucide-icons-2/icons/Check";
 import { Sparkles } from "@tamagui/lucide-icons-2/icons/Sparkles";
 import { Text, XStack, YStack } from "tamagui";
-import { AppButton } from "../../../shared/components";
+import { AppButton, SectionCard } from "../../../shared/components";
 import { homeShadows } from "../../../shared/constants/tokens";
 import { getMessage } from "../../../shared/localization/messages";
 import type { Nudge } from "../../nudges";
@@ -46,9 +46,9 @@ export function HomeEmotionHero({ presentation, nudge, onOpenComposer, onDoNudge
             <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textSecondary">{nudge.reason}</Text>
           </YStack>
           {nudge.draft ? (
-            <YStack backgroundColor="$surface" borderRadius="$lg" padding="$md">
+            <SectionCard>
               <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textPrimary" numberOfLines={2}>“{nudge.draft}”</Text>
-            </YStack>
+            </SectionCard>
           ) : null}
           <XStack alignItems="center" gap="$sm" flexWrap="wrap">
             <AppButton iconAfter={<ArrowUpRight size={18} />} onPress={onDoNudge}>
