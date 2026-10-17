@@ -8,13 +8,17 @@ from typing import Any
 class User:
     id: str
     email: str
-    password_hash: str
     full_name: str
+    password_hash: str | None = None
+    auth_provider: str = "email"
+    google_id: str | None = None
+    nickname: str | None = None
     avatar_url: str | None = None
     birth_date: str | None = None
     gender: str | None = None
     couple_id: str | None = None
     fcm_token: str | None = None
+    timezone: str = "Asia/Ho_Chi_Minh"
     created_at: str = ""
     updated_at: str = ""
     username: str | None = None

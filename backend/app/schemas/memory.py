@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -9,7 +9,6 @@ from app.models.memory import Memory, MemoryImage
 
 
 def _normalize_category(value: str) -> str:
-    """Accept lowercase / Title-Case / UPPER and return the canonical lowercase value."""
     if value is None:
         raise ValueError("category is required")
     cleaned = value.strip().lower().replace("-", "_").replace(" ", "_")
@@ -57,6 +56,8 @@ class MemoryImageResponse(BaseModel):
     height: int | None
     uploaded_by: str
     created_at: str
+    # M-06: signed URL hết hạn (epoch seconds)
+    url_expires_at: Optional[int] = None
 
     @classmethod
     def from_model(cls, img: MemoryImage) -> "MemoryImageResponse":
@@ -68,6 +69,7 @@ class MemoryImageResponse(BaseModel):
             height=img.height,
             uploaded_by=img.uploaded_by,
             created_at=img.created_at,
+            url_expires_at=_parse_exp_to_epoch(img.url_expires_at),
         )
 
 
@@ -114,12 +116,14 @@ class MemoryListItem(BaseModel):
     is_pinned: bool
     thumbnail_url: str | None
     image_count: int
+    url_expires_at: Optional[int] = None
 
     @classmethod
     def from_memory(
         cls, memory: Memory, images: list[MemoryImage]
     ) -> "MemoryListItem":
         thumb = images[0].thumbnail_url or images[0].url if images else None
+        exp = images[0].url_expires_at if images else None
         return cls(
             id=memory.id,
             title=memory.title,
@@ -129,14 +133,32 @@ class MemoryListItem(BaseModel):
             is_pinned=memory.is_pinned,
             thumbnail_url=thumb,
             image_count=len(images),
+            url_expires_at=_parse_exp_to_epoch(exp),
         )
 
 
 class MemoryListResponse(BaseModel):
     items: list[MemoryListItem]
     total: int
+    limit: int = 50
+    offset: int = 0
+    has_more: bool = False  # M-03: cursor hint cho FE
 
 
 def memory_to_response_dict(memory: Memory, images: list[MemoryImage]) -> dict[str, Any]:
-    """Return a plain dict matching `MemoryResponse` for envelope-based responses."""
     return MemoryResponse.build(memory, images).model_dump()
+
+
+def _parse_exp_to_epoch(exp: str | None) -> int | None:
+    if not exp:
+        return None
+    try:
+        from datetime import datetime, timezone
+
+        # Accept ISO format with/without tz
+        e = datetime.fromisoformat(exp.replace("Z", "+00:00"))
+        if e.tzinfo is None:
+            e = e.replace(tzinfo=timezone.utc)
+        return int(e.timestamp())
+    except (ValueError, TypeError):
+        return None

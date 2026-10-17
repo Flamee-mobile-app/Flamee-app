@@ -12,6 +12,7 @@ class CreateInviteResponse(BaseModel):
     expires_at: str
     status: str
     is_pending: bool = True
+    created_at: str | None = None
 
     @classmethod
     def from_model(cls, ic: InviteCode) -> "CreateInviteResponse":
@@ -20,6 +21,7 @@ class CreateInviteResponse(BaseModel):
             expires_at=ic.expires_at,
             status=ic.status,
             is_pending=ic.status == "pending",
+            created_at=getattr(ic, "created_at", None),
         )
 
 
@@ -28,6 +30,7 @@ class GetInviteResponse(BaseModel):
     expires_at: str
     status: str
     is_pending: bool
+    created_at: str | None = None
 
     @classmethod
     def from_model(cls, ic: InviteCode) -> "GetInviteResponse":
@@ -36,6 +39,7 @@ class GetInviteResponse(BaseModel):
             expires_at=ic.expires_at,
             status=ic.status,
             is_pending=ic.status == "pending",
+            created_at=getattr(ic, "created_at", None),
         )
 
 
