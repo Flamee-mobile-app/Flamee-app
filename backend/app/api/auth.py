@@ -10,6 +10,7 @@ from app.models.user import User
 from app.repositories.user_repo import UserRepository
 from app.schemas.auth import (
     AuthResponse,
+    RefreshRequest,
     ChangePasswordRequest,
     ForgotPasswordRequest,
     LoginRequest,
@@ -43,7 +44,7 @@ def register(
     return ok(
         AuthResponse(
             user=UserResponse.from_model(_present_user(db, user)),
-            access_token=token,
+            **token,
         ).model_dump()
     )
 
@@ -54,9 +55,21 @@ def login(payload: LoginRequest, db: Client = Depends(get_db)):
     return ok(
         AuthResponse(
             user=UserResponse.from_model(_present_user(db, user)),
-            access_token=token,
+            **token,
         ).model_dump()
     )
+
+
+@router.post("/refresh")
+def refresh(payload: RefreshRequest, db: Client = Depends(get_db)):
+    user, tokens = _auth_service(db).refresh(payload.refresh_token)
+    return ok(AuthResponse(user=UserResponse.from_model(_present_user(db, user)), **tokens).model_dump())
+
+
+@router.post("/logout")
+def logout(current: dict = Depends(get_current_user), db: Client = Depends(get_db)):
+    _auth_service(db).logout(current["id"], current["__jti__"])
+    return ok({"logged_out": True})
 
 
 @router.get("/me")
@@ -106,6 +119,8 @@ def update_profile(
         birth_date=payload.birth_date,
         gender=payload.gender,
         username=payload.username,
+        nickname=payload.nickname,
+        timezone=payload.timezone,
     )
     return ok(UserResponse.from_model(_present_user(db, user)).model_dump())
 
