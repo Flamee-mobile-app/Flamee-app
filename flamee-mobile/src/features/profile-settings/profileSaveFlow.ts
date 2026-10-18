@@ -26,6 +26,10 @@ export function hasProfileTextChanged(
     || draft.username.trim() !== saved.username.trim();
 }
 
+function hasRenderableRemoteAvatar(session: AuthSession) {
+  return /^https?:\/\//i.test(session.user.avatar_url?.trim() ?? "");
+}
+
 export async function saveProfileChanges(input: ProfileSaveInput, dependencies: ProfileSaveDependencies): Promise<ProfileSaveResult> {
   let session = input.currentSession;
   if (input.profileChanged) {
@@ -38,6 +42,7 @@ export async function saveProfileChanges(input: ProfileSaveInput, dependencies: 
   if (!input.avatarUri) return { kind: "saved", session };
   try {
     const avatarSession = await dependencies.updateAvatar({ uri: input.avatarUri, name: "avatar.jpg", type: "image/jpeg" });
+    if (!hasRenderableRemoteAvatar(avatarSession)) return { kind: "avatar_error", session };
     return { kind: "saved", session: avatarSession };
   } catch {
     return { kind: "avatar_error", session };

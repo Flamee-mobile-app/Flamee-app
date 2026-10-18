@@ -34,9 +34,19 @@ Ngày: 2026-10-18. Đây là thiết kế được chốt để thay luồng URL
 - Cleanup Storage và cập nhật Postgres không phải một transaction phân tán. Pipeline dùng compensation cho upload; thao tác xóa ưu tiên idempotent nhưng vẫn cần job quét orphan khi vận hành thực tế.
 - Mobile profile picker đã nối `POST /auth/me/avatar` bằng multipart ngày
   2026-10-18. Picker chỉ tạo draft/preview; nút Lưu mới upload. Draft được giữ
-  để retry nếu upload lỗi và chỉ dọn sau response hợp lệ cùng owner. Session và
-  avatar bottom nav chỉ đổi sau response này. Nút Đăng kỷ niệm vẫn chưa được mở
-  khóa chỉ dựa trên test giả.
+  để retry nếu upload lỗi và chỉ dọn sau response hợp lệ cùng owner có signed
+  `avatar_url` HTTP(S). Mobile coi cả response 2xx thiếu URL ảnh là lỗi contract,
+  giữ session/avatar cũ và không báo lưu thành công. Session và avatar bottom
+  nav chỉ đổi sau response hợp lệ. Nút Đăng kỷ niệm vẫn chưa được mở khóa chỉ
+  dựa trên test giả.
+- Auth session phát URL avatar đã xác nhận tới navigation ngay khi upload hoặc
+  refresh thành công, kể cả khi đã rời form. Một request refresh bắt đầu trước
+  lần lưu thành công không được ghi đè session mới bằng ảnh cũ hoặc `null`.
+- Expo 57 cài `expo/fetch` thành global fetch mặc định. Multipart native phải
+  nhận `File` từ `expo-file-system` (hoặc Blob có nội dung byte); không append
+  trực tiếp descriptor `{ uri, name, type }` của RN vì encoder Expo từ chối
+  trước khi gửi mạng. Auth runtime cung cấp adapter URI → File cho auth API;
+  không đổi fetch toàn app hoặc thêm dependency để né lỗi.
 - PostgREST `PGRST204` do database chưa áp dụng migration được đổi thành response
   503 `database_migration_required`, không còn rò stack trace 500. Response này
   chỉ chẩn đoán đúng cấu hình; không thay thế việc áp dụng migration thật.
@@ -48,3 +58,13 @@ Ngày: 2026-10-18. Đây là thiết kế được chốt để thay luồng URL
 - Mobile profile-avatar contract đã có test multipart/session; evidence cuối của
   lượt triển khai được ghi trong `.doc/DESIGN-SYSTEM-ROLLOUT.md`.
 - Chưa chạy migration, chưa upload Supabase thật, chưa E2E Expo Go/iOS/Android và chưa benchmark. Các kết quả trên không chứng minh RLS, native picker hoặc hiệu năng production.
+
+## Kiểm tra runtime tiếp theo trên iPhone Expo Go
+
+- Người dùng thực hiện chọn ảnh và Lưu trên thiết bị thật. Trước sửa, log client
+  xác nhận draft hợp lệ và request avatar bắt đầu nhưng trả `network`; backend
+  không nhận POST. Source Expo xác nhận encoder không hỗ trợ URI descriptor.
+- Sau adapter URI → File, terminal backend ghi `POST /api/v1/auth/me/avatar`
+  trả 200; client nhận signed URL và kết quả `saved`. Agent chỉ đọc log, không
+  tự upload ảnh hoặc thao tác ghi tài khoản thật. Đây là evidence một luồng
+  avatar; không chứng minh toàn bộ RLS, Android hoặc pipeline kỷ niệm.

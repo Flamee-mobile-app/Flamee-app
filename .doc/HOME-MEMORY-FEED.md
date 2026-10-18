@@ -5,7 +5,7 @@ Ngày: 2026-10-18. Yêu cầu trực tiếp: thay toàn bộ Home cũ bằng fee
 ## Bố cục
 
 - Header là một lớp kính trắng ấm mờ đục phủ lên nội dung cuộn, có blur, shadow nông và line tối mảnh ở đáy để tách rõ khỏi nền feed. Nút `+`, selector `Dòng thời gian` và chuông không có viền/mặt nút riêng như ảnh tham chiếu; hierarchy đến từ title đậm, khoảng cách và toàn bộ vật liệu header. Mọi action giữ target 48 px. Khi đang xem lưới, title đổi thành `Kỷ niệm`; không badge/unread giả.
-- Bấm title mở rộng **chính header** thành bảng bo góc dưới; chỉ một mục Kỷ niệm với icon đào và chevron, cùng nút đóng không viền. Không sao chép các quick-action/icon trong ảnh mẫu. Chọn Kỷ niệm mở lưới rồi thu header; bấm Dòng thời gian trong bảng quay lại feed. Khi cuộn feed xuống, header trượt ẩn; cuộn lên hoặc về đầu danh sách thì hiện lại. Bỏ hai filter chip khỏi Home.
+- Bấm title mở rộng **chính header** thành bảng bo góc dưới; chỉ một mục Kỷ niệm với icon đào và chevron, cùng nút đóng không viền. Không sao chép các quick-action/icon trong ảnh mẫu. Chọn Kỷ niệm mở lưới rồi thu header; bấm Dòng thời gian trong bảng quay lại feed. Theo review mới nhất, cuộn xuống đủ ngưỡng chỉ thu nhẹ hàng header còn 48 px, cuộn lên hoặc về đầu danh sách thì mở lại 60 px; giữ title/action nhìn thấy. Bỏ hai filter chip khỏi Home.
 - Post có nhãn `Kỷ niệm chung`, ngày kỷ niệm, title, ảnh 4:3 bo 18 px và địa điểm nếu có. Tim là biểu tượng album chung, không giả avatar/tác giả. API chưa trả author/comment nên không tự gán tên, giờ đăng hoặc số bình luận.
 - Dấu ba chấm mở thông tin thực của record (title, ngày, địa điểm, số ảnh). Chưa có sửa/xóa hoặc gallery đầy đủ mọi ảnh trong record.
 - Bỏ greeting/ngày hiện tại, avatar hồ sơ, hero cảm xúc, card kết nối/recent Moment. Xóa sáu component Home cũ không còn caller; giữ domain utilities/test thuần riêng.
@@ -18,7 +18,7 @@ Ngày: 2026-10-18. Yêu cầu trực tiếp: thay toàn bộ Home cũ bằng fee
 - Home refresh `/auth/me` trước khi lấy album. Chưa có couple thì hiển thị kết nối theo kết quả thật; lỗi server không biến thành chưa ghép đôi hoặc feed rỗng thành công.
 - Snapshot scope theo account/couple, revision guard bỏ kết quả cũ sau chuyển account/rời màn. Không persist hoặc log bài/URL media; không đặt nội dung riêng tư vào route params.
 - Sắp theo `memory_date` mới nhất; date-only giữ đúng ngày lịch khi format. Lưới chỉ chứa record có URL ảnh và image count > 0.
-- Empty chỉ sau response rỗng hợp lệ. Mạng/timeout/schema/HTTP/auth lỗi thì error + retry. Loading là skeleton post; ảnh lỗi có tải lại.
+- Empty chỉ sau response rỗng hợp lệ. Mạng/timeout/schema/HTTP/auth lỗi thì error + retry. Theo yêu cầu mới nhất, giữ skeleton post cho lần tải đầu chưa có snapshot đúng account/couple; khung/header có ngay. Khi quay lại tab hoặc refresh, giữ feed/empty state đã được xác nhận, không thay bằng skeleton hoặc khối “Đang chuẩn bị”. Ảnh lỗi có tải lại.
 - `FlatList` virtualize post/grid, không lồng ScrollView; kéo để tải lại. Header selector vẫn có ở loading/error/unpaired.
 - Route Timeline cũ chuyển về Home mới. Tiny Moment vẫn là contract khác, không được tự đổi field thành album.
 
@@ -63,6 +63,12 @@ Kiểm tra sau bổ sung popup: typecheck đạt; domain tests 94/94 đạt. And
 - Header chỉ phủ nội dung, không đẩy feed xuống khi mở. Chiều cao 60 → 136 px (cộng top inset), bo góc dưới 0 → 28 px, fade/translate nội dung 200 ms bằng Reanimated. Reduced Motion chuyển tức thì.
 - Nút X, Android Back và Escape đóng bảng mà không đổi view. Chọn view đóng bảng và đưa focus về trigger; mở bảng đưa focus vào heading. Các nút thu gọn bị vô hiệu và ẩn accessibility khi bảng mở; option panel unmount khi đóng để tránh tab vào nội dung ẩn.
 - Đây là disclosure ngay trên Home, không điều hướng sang trang hay mở thêm modal. Không thay logic tải album, đăng ảnh hoặc thông báo.
+- Review tiếp theo thay hành vi trượt ẩn khi cuộn: header chỉ thu nhẹ hàng
+  control từ 60 xuống 48 px, giữ status-bar safe area, title và các action. Chuyển
+  trong 300 ms bằng easing in-out, không dịch cả header khỏi màn hình. Chỉ thu
+  sau offset 96 px và đủ 56 px cuộn xuống; mở lại sau 48 px cuộn lên hoặc về
+  vùng đầu 16 px. Clamp offset theo chiều cao nội dung để bounce đầu/cuối và
+  feed ngắn không gây nhấp nháy. Reduced Motion đổi trực tiếp không animation.
 - Typecheck và 94 domain tests hiện có đạt; chưa kiểm tra thao tác/focus/blur trực tiếp trên browser hoặc điện thoại.
 - Android export sau sửa header đạt: 4413 modules, HBC khoảng 8.6 MB, output `C:/Users/Huy/AppData/Local/Temp/flamee-glass-header-android-222450adbb4a48e3bd900e90eda72bcb`. Đây là JS/assets bundle; warning môi trường NO_COLOR/FORCE_COLOR vẫn được giữ. Không phải chứng nhận UI/native hoạt động trên thiết bị.
 

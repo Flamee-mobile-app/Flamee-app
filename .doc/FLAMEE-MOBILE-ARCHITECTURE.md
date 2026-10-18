@@ -163,6 +163,14 @@ Zod schemas cover form input, API response decoding, and SQLite payload versions
 - recoverable error with retry or another clear route;
 - permission-denied and expired-session/invite states where relevant.
 
+The current navigation contract keeps loading as an internal state: render the
+screen shell immediately and retain confirmed data within its account/couple
+scope during refresh. Do not replace a page with a loading card. Layout skeletons
+remain available for the first read when there is no confirmed scoped snapshot.
+Never infer empty/unpaired data while the first read is pending. Mutation controls
+and pull-to-refresh keep their own progress feedback; the startup splash remains
+a separate launch lifecycle.
+
 Use specific, non-technical errors for expired/revoked invites, existing couple membership, validation, network loss, rate limits, expired upload URLs, and media failures. Never surface stack traces, raw provider errors, or AI failures. The server must return a template Smart Nudge when AI is slow/fails, so mobile screens handle one consistent Nudge response (§4.3 requirements 3.9–3.10; flow 6). A root React error boundary offers a recovery screen for unexpected render failures.
 
 ## 8. Notifications and background boundary

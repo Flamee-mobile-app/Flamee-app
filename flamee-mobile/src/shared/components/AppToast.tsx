@@ -2,6 +2,7 @@ import { Toast, toast, type ToastT } from "@tamagui/toast/v2";
 import type { PropsWithChildren, ReactNode } from "react";
 import { Platform, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { FullWindowOverlay } from "react-native-screens";
 import { YStack } from "tamagui";
 import { spacing, toastTokens } from "../constants/tokens";
 import { getMessage } from "../localization/messages";
@@ -84,16 +85,27 @@ export function AppToastProvider({ children }: PropsWithChildren) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
 
+  const viewport = (
+    <Toast.Viewport
+      portalToRoot={Platform.OS !== "ios"}
+      width={Math.max(0, Math.min(toastTokens.maxWidth, width - spacing.lg * 2))}
+      offset={{ top: insets.top + spacing.md, left: spacing.lg, right: spacing.lg }}
+      label={getMessage("vi", "notificationsLabel")}
+    >
+      <Toast.List renderItem={({ toast: item, index }) => <AppToastItem key={item.id} item={item} index={index} />} />
+    </Toast.Viewport>
+  );
+
   return (
     <Toast position="top-center" duration={toastTokens.duration} gap={0} visibleToasts={1} swipeDirection="up" toastHeight={toastTokens.minHeight}>
       {children}
-      <Toast.Viewport
-        width={Math.max(0, Math.min(toastTokens.maxWidth, width - spacing.lg * 2))}
-        offset={{ top: insets.top + spacing.md, left: spacing.lg, right: spacing.lg }}
-        label={getMessage("vi", "notificationsLabel")}
-      >
-        <Toast.List renderItem={({ toast: item, index }) => <AppToastItem key={item.id} item={item} index={index} />} />
-      </Toast.Viewport>
+      {Platform.OS === "ios" ? (
+        <FullWindowOverlay>
+          <YStack position="absolute" top={0} right={0} bottom={0} left={0} pointerEvents="box-none">
+            {viewport}
+          </YStack>
+        </FullWindowOverlay>
+      ) : viewport}
     </Toast>
   );
 }

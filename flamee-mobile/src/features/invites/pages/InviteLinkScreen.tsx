@@ -21,7 +21,7 @@ export function InviteLinkScreen() {
     router.replace("/(invite)");
   }, [bootstrapped, accountId, code, router, attempt]);
   return <AppScreen>
-    <AsyncStateView variant={failed ? "error" : "loading"} title={failed ? "inviteNotFoundTitle" : "loadingTitle"} description={failed ? "inviteNotFoundBody" : "loadingDescription"} actionLabel={failed ? "retry" : undefined} onAction={failed ? () => setAttempt((value) => value + 1) : undefined} />
+    {failed ? <AsyncStateView variant="error" title="inviteNotFoundTitle" description="inviteNotFoundBody" actionLabel="retry" onAction={() => setAttempt((value) => value + 1)} /> : null}
     {failed ? <AppButton variant="ghost" onPress={() => { inviteIntent.clear(); router.replace(accountId ? "/(main)" : "/(auth)"); }}>{getMessage("vi", "skipForNow")}</AppButton> : null}
   </AppScreen>;
 }

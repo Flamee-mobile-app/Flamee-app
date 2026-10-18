@@ -13,18 +13,18 @@ import { memoryFeedTokens } from "../../../shared/constants/tokens";
 import { getMessage } from "../../../shared/localization/messages";
 import type { MemoryFeedView } from "../memoryFeedModel";
 
-export function MemoryFeedHeader({ blurTarget, view, onViewChange, onAdd, onNotifications, topInset, hidden }: {
+export function MemoryFeedHeader({ blurTarget, view, onViewChange, onAdd, onNotifications, topInset, compact }: {
   blurTarget: RefObject<AppBlurTargetView | null>;
   view: MemoryFeedView;
   onViewChange: (view: MemoryFeedView) => void;
   onAdd: () => void;
   onNotifications: () => void;
   topInset: number;
-  hidden: boolean;
+  compact: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const progress = useSharedValue(0);
-  const visibility = useSharedValue(0);
+  const collapse = useSharedValue(0);
   const reducedMotion = useReducedMotion();
   const trigger = useRef<TamaguiElement | null>(null);
   const menuHeading = useRef<TamaguiElement | null>(null);
@@ -36,9 +36,9 @@ export function MemoryFeedHeader({ blurTarget, view, onViewChange, onAdd, onNoti
     progress.value = reducedMotion ? Number(expanded) : withTiming(Number(expanded), { duration: memoryFeedTokens.headerTransition, easing: Easing.out(Easing.cubic) });
   }, [expanded, reducedMotion, progress]);
   useEffect(() => {
-    const offset = hidden && !expanded ? -(topInset + memoryFeedTokens.headerHeight + 8) : 0;
-    visibility.value = reducedMotion ? offset : withTiming(offset, { duration: 180, easing: Easing.out(Easing.cubic) });
-  }, [expanded, hidden, reducedMotion, topInset, visibility]);
+    const target = Number(compact && !expanded);
+    collapse.value = reducedMotion ? target : withTiming(target, { duration: memoryFeedTokens.headerScrollTransition, easing: Easing.inOut(Easing.cubic) });
+  }, [expanded, compact, reducedMotion, collapse]);
   useFocusEffect(useCallback(() => () => setExpanded(false), []));
   useEffect(() => {
     if (!expanded) return;
@@ -48,7 +48,7 @@ export function MemoryFeedHeader({ blurTarget, view, onViewChange, onAdd, onNoti
   }, [expanded, close]);
 
   const shape = useAnimatedStyle(() => ({
-    height: topInset + memoryFeedTokens.headerHeight + (memoryFeedTokens.expandedHeaderHeight - memoryFeedTokens.headerHeight) * progress.value,
+    height: topInset + memoryFeedTokens.headerHeight - (memoryFeedTokens.headerHeight - memoryFeedTokens.compactHeaderHeight) * collapse.value + (memoryFeedTokens.expandedHeaderHeight - memoryFeedTokens.headerHeight) * progress.value,
     borderBottomLeftRadius: memoryFeedTokens.expandedHeaderRadius * progress.value,
     borderBottomRightRadius: memoryFeedTokens.expandedHeaderRadius * progress.value,
   }));
@@ -56,17 +56,17 @@ export function MemoryFeedHeader({ blurTarget, view, onViewChange, onAdd, onNoti
     borderBottomLeftRadius: memoryFeedTokens.expandedHeaderRadius * progress.value,
     borderBottomRightRadius: memoryFeedTokens.expandedHeaderRadius * progress.value,
   }));
-  const visibilityStyle = useAnimatedStyle(() => ({ transform: [{ translateY: visibility.value }] }));
+  const rowShape = useAnimatedStyle(() => ({ height: memoryFeedTokens.headerHeight - (memoryFeedTokens.headerHeight - memoryFeedTokens.compactHeaderHeight) * collapse.value }));
   const compactStyle = useAnimatedStyle(() => ({ opacity: 1 - progress.value, transform: [{ translateY: -6 * progress.value }] }));
   const menuStyle = useAnimatedStyle(() => ({ opacity: progress.value, transform: [{ translateY: -6 * (1 - progress.value) }] }));
 
-  return <Animated.View style={[styles.shell, shape, visibilityStyle]}>
+  return <Animated.View style={[styles.shell, shape]}>
     <Animated.View style={[StyleSheet.absoluteFill, styles.surface, surfaceShape]}>
       <AppGlassBackdrop blurTarget={blurTarget} tone="header" />
       <YStack position="absolute" left={0} right={0} bottom={0} height={1} backgroundColor="$textPrimary" opacity={0.14} pointerEvents="none" />
       <YStack paddingTop={topInset} onKeyDown={(event) => { if (event.key === "Escape" && expanded) { event.preventDefault(); close(); } }}>
-      <Animated.View pointerEvents={expanded ? "none" : "auto"} aria-hidden={expanded} {...(Platform.OS !== "web" ? { accessibilityElementsHidden: expanded, importantForAccessibility: expanded ? "no-hide-descendants" as const : "auto" as const } : {})} style={[{ height: memoryFeedTokens.headerHeight }, compactStyle]}>
-        <XStack height={memoryFeedTokens.headerHeight} alignItems="center" paddingHorizontal="$sm">
+      <Animated.View pointerEvents={expanded ? "none" : "auto"} aria-hidden={expanded} {...(Platform.OS !== "web" ? { accessibilityElementsHidden: expanded, importantForAccessibility: expanded ? "no-hide-descendants" as const : "auto" as const } : {})} style={[rowShape, compactStyle]}>
+        <XStack height="100%" alignItems="center" paddingHorizontal="$sm">
           <AppIconButton testID="home-add-memory" tone="plain" disabled={expanded} accessibilityLabel={getMessage("vi", "memoryFeedAdd")} icon={<Plus size={memoryFeedTokens.iconSize} strokeWidth={2} color="$textPrimary" />} onPress={onAdd} />
           <YStack flex={1} minWidth={0} alignItems="center">
             <AppTextButton testID="home-view-selector" buttonRef={trigger} disabled={expanded} expanded={expanded} controls="home-view-menu" accessibilityLabel={getMessage("vi", "memoryFeedViewMenu")} onPress={() => setExpanded(true)} iconAfter={<ChevronDown size={15} strokeWidth={2} color="$textSecondary" />}>

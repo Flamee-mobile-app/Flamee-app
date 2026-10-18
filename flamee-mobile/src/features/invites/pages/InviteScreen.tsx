@@ -44,7 +44,7 @@ export function InviteScreen({ initialMode = "choose" }: { initialMode?: "choose
   const accountId = useSessionStore((state) => state.activeAccountId);
   const activeCoupleId = useSessionStore((state) => state.activeCoupleId);
   const setActiveCouple = useSessionStore((state) => state.setActiveCouple);
-  const [mode, setMode] = useState<InviteMode>("choose");
+  const [mode, setMode] = useState<InviteMode>(initialMode);
   const [code, setCode] = useState("");
   const [fieldError, setFieldError] = useState<string>();
   const [failure, setFailure] = useState<InviteFailure>();
@@ -143,7 +143,7 @@ export function InviteScreen({ initialMode = "choose" }: { initialMode?: "choose
   };
 
   const createInvite = async (announce = false) => {
-    if (!accountId || pending.current) return;
+    if (!accountId || pending.current || loading) return;
     pending.current = true;
     setBusy(true);
     if (announce) setInviteAction("recreate");
@@ -169,7 +169,7 @@ export function InviteScreen({ initialMode = "choose" }: { initialMode?: "choose
   };
 
   const checkCode = async () => {
-    if (!accountId || pending.current) return;
+    if (!accountId || pending.current || loading) return;
     const parsed = inviteCodeSchema.safeParse({ code });
     if (!parsed.success) {
       setFieldError(parsed.error.issues[0]?.message);
@@ -194,7 +194,7 @@ export function InviteScreen({ initialMode = "choose" }: { initialMode?: "choose
   };
 
   const accept = async () => {
-    if (!accountId || pending.current) return;
+    if (!accountId || pending.current || loading) return;
     pending.current = true;
     setBusy(true);
     try {
@@ -228,7 +228,6 @@ export function InviteScreen({ initialMode = "choose" }: { initialMode?: "choose
     return <AppScreen><AsyncStateView variant="error" title="localInviteUnavailableTitle" description="localInviteUnavailableBody" actionLabel="retry" onAction={() => router.replace("/(auth)")} /></AppScreen>;
   }
 
-  if (loading) return <AppScreen><AsyncStateView variant="loading" title="loadingTitle" description="loadingDescription" /></AppScreen>;
   if (loadFailed) {
     return <AppScreen><AsyncStateView variant="error" title="localInviteUnavailableTitle" description="localInviteUnavailableBody" actionLabel="retry" onAction={() => void load()} />{skipButton}</AppScreen>;
   }
@@ -342,10 +341,10 @@ export function InviteScreen({ initialMode = "choose" }: { initialMode?: "choose
             </Text>
 
             <YStack width="100%" gap="$md" paddingTop="$sm">
-              <AppButton fill loading={busy} icon={<Send size={19} />} onPress={() => void createInvite()}>
+              <AppButton fill loading={busy} disabled={loading} icon={<Send size={19} />} onPress={() => void createInvite()}>
                 {getMessage("vi", "createInvite")}
               </AppButton>
-              <AppButton fill variant="secondary" disabled={busy} icon={<KeyRound size={19} />} onPress={() => setMode("join")}>
+              <AppButton fill variant="secondary" disabled={busy || loading} icon={<KeyRound size={19} />} onPress={() => setMode("join")}>
                 {getMessage("vi", "enterInviteCode")}
               </AppButton>
             </YStack>
@@ -394,7 +393,7 @@ export function InviteScreen({ initialMode = "choose" }: { initialMode?: "choose
             <Text fontFamily="$heading" fontSize="$h4" fontWeight="$bold">{confirmedInvite?.inviter.full_name || getMessage("vi", "partnerGenericName")}</Text>
           </YStack>
         </SectionCard>
-        <AppButton disabled={busy} onPress={() => void accept()}>{formatMessage("vi", "connectNow", { name: confirmedInvite?.inviter.full_name || getMessage("vi", "partnerGenericName") })}</AppButton>
+        <AppButton disabled={busy || loading} onPress={() => void accept()}>{formatMessage("vi", "connectNow", { name: confirmedInvite?.inviter.full_name || getMessage("vi", "partnerGenericName") })}</AppButton>
         {skipButton}
       </AppScreen>
     );
@@ -409,10 +408,11 @@ export function InviteScreen({ initialMode = "choose" }: { initialMode?: "choose
         autoCapitalize="characters"
         maxLength={6}
         value={code}
+        editable={!busy && !loading}
         onChangeText={(value) => { setCode(value); setFieldError(undefined); }}
         error={fieldError}
       />
-      <AppButton disabled={busy} onPress={() => void checkCode()}>{getMessage("vi", "checkInvite")}</AppButton>
+      <AppButton disabled={busy || loading} onPress={() => void checkCode()}>{getMessage("vi", "checkInvite")}</AppButton>
       {skipButton}
     </AppScreen>
   );

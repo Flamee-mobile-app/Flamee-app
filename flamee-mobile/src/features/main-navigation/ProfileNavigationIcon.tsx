@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Image, StyleSheet, View } from "react-native";
 import { BottomNavigationIcon } from "../../shared/components";
-import { colors } from "../../shared/constants/tokens";
+import { colors, navigationTokens } from "../../shared/constants/tokens";
 import { useSessionStore } from "../../shared/state/sessionStore";
 
 type ProfileNavigationIconProps = {
@@ -19,7 +19,7 @@ export function ProfileNavigationIcon({ focused, size }: ProfileNavigationIconPr
     return <BottomNavigationIcon name="profile" focused={focused} size={size} />;
   }
 
-  const avatarSize = Math.max(24, Math.min(size, 32));
+  const avatarSize = navigationTokens.profileAvatarSize * size / navigationTokens.tabIconSize;
   return (
     <View pointerEvents="none" style={[styles.frame, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}>
       <Image

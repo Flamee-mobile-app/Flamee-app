@@ -1,6 +1,5 @@
 import { Redirect } from "expo-router";
 import { useSessionStore } from "../src/shared/state/sessionStore";
-import { FoundationScreen } from "../src/shared/components/FoundationScreen";
 import { AppScreen } from "../src/shared/components";
 import { inviteIntent, useInviteIntentRevision } from "../src/features/invites";
 import { resolveEntryRoute } from "../src/shared/navigation/entryRoute";
@@ -21,5 +20,5 @@ export default function IndexRoute() {
   });
 
   if (route && canNavigate) return <Redirect href={route} />;
-  return <AppScreen scroll={false} padded={false}><FoundationScreen title="loadingTitle" description="loadingDescription" /></AppScreen>;
+  return <AppScreen scroll={false} padded={false} />;
 }

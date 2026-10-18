@@ -10,11 +10,12 @@ import { formatMessage, getMessage } from "../../../shared/localization/messages
 import { useSessionStore } from "../../../shared/state/sessionStore";
 import { authService } from "../../auth";
 import { memoryService, type MemorySummary } from "../../moments";
-import { HomeLoadingView } from "../components/HomeLoadingView";
 import { MemoryFeedPost, MemoryGalleryTile } from "../components/MemoryFeedPost";
 import { MemoryComposerDialog } from "../components/MemoryComposerDialog";
 import { MemoryFeedHeader } from "../components/MemoryFeedHeader";
+import { HomeLoadingView } from "../components/HomeLoadingView";
 import { formatMemoryDate, selectMemoryFeed, type MemoryFeedView } from "../memoryFeedModel";
+import { advanceHeaderScroll, type HeaderScrollState } from "../headerScrollModel";
 
 type HomeScreenProps = { checkInRequest?: string; momentRequest?: string; momentKind?: "text" | "photo" | "voice" | "signal" };
 type FeedSnapshot = { accountId: string; coupleId: string | null; records: MemorySummary[] };
@@ -33,16 +34,15 @@ export function HomeScreen({ checkInRequest, momentRequest }: HomeScreenProps) {
   const [panel, setPanel] = useState<Panel>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [width, setWidth] = useState(320);
-  const [headerHidden, setHeaderHidden] = useState(false);
+  const [headerCompact, setHeaderCompact] = useState(false);
   const revision = useRef(0);
   const blurTarget = useRef<AppBlurTargetView | null>(null);
-  const lastScrollOffset = useRef(0);
-  const directionalTravel = useRef(0);
+  const headerScroll = useRef<HeaderScrollState>({ offset: 0, travel: 0, compact: false });
 
   const load = useCallback(async (refresh = false) => {
     const request = ++revision.current;
     if (refresh) setRefreshing(true);
-    else { setLoading(true); setSnapshot(null); }
+    else setLoading(true);
     setFailed(false);
     const current = () => request === revision.current && useSessionStore.getState().activeAccountId === accountId;
     try {
@@ -72,29 +72,15 @@ export function HomeScreen({ checkInRequest, momentRequest }: HomeScreenProps) {
   }, [load]));
 
   useEffect(() => {
-    lastScrollOffset.current = 0;
-    directionalTravel.current = 0;
-    setHeaderHidden(false);
+    headerScroll.current = { offset: 0, travel: 0, compact: false };
+    setHeaderCompact(false);
   }, [view]);
 
   const handleFeedScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const offset = Math.max(0, event.nativeEvent.contentOffset.y);
-    const delta = offset - lastScrollOffset.current;
-    if (offset <= 8) {
-      directionalTravel.current = 0;
-      setHeaderHidden(false);
-    } else if (Math.abs(delta) >= 1) {
-      const changedDirection = Math.sign(delta) !== Math.sign(directionalTravel.current);
-      directionalTravel.current = changedDirection ? delta : directionalTravel.current + delta;
-      if (directionalTravel.current >= 18) {
-        setHeaderHidden(true);
-        directionalTravel.current = 0;
-      } else if (directionalTravel.current <= -12) {
-        setHeaderHidden(false);
-        directionalTravel.current = 0;
-      }
-    }
-    lastScrollOffset.current = offset;
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    const next = advanceHeaderScroll(headerScroll.current, contentOffset.y, contentSize.height - layoutMeasurement.height);
+    if (next.compact !== headerScroll.current.compact) setHeaderCompact(next.compact);
+    headerScroll.current = next;
   }, []);
 
   const scoped = snapshot?.accountId === accountId && snapshot.coupleId === coupleId ? snapshot : null;
@@ -108,7 +94,7 @@ export function HomeScreen({ checkInRequest, momentRequest }: HomeScreenProps) {
   const grid = view === "memories";
   const columnWidth = Math.max(0, (width - memoryFeedTokens.gutter * 2 - memoryFeedTokens.gridGap) / 2);
 
-  const empty = loading || (!failed && !scoped) ? <HomeLoadingView />
+  const empty = !scoped && (loading || !failed) ? <HomeLoadingView />
     : failed ? <AsyncStateView variant="error" title="memoryFeedLoadError" description="memoryFeedLoadErrorBody" actionLabel="retry" onAction={() => void load()} />
     : !scoped?.coupleId ? <AsyncStateView variant="empty" title="connectionEmptyTitle" description="connectionEmptyBody" actionLabel="fabConnection" onAction={() => router.push("/connection")} />
     : <YStack alignItems="center" justifyContent="center" gap="$md" paddingVertical="$xxl" paddingHorizontal="$lg" minHeight={320}>
@@ -123,7 +109,7 @@ export function HomeScreen({ checkInRequest, momentRequest }: HomeScreenProps) {
       <AppBlurTarget ref={blurTarget} style={{ flex: 1, width: "100%" }}>
       <FlatList
         key={view}
-        data={loading || failed || !scoped ? [] : records}
+        data={failed || !scoped ? [] : records}
         keyExtractor={(record) => record.id}
         numColumns={grid ? 2 : 1}
         columnWrapperStyle={grid ? { gap: memoryFeedTokens.gridGap } : undefined}
@@ -141,7 +127,7 @@ export function HomeScreen({ checkInRequest, momentRequest }: HomeScreenProps) {
         showsVerticalScrollIndicator={false}
       />
       </AppBlurTarget>
-      <MemoryFeedHeader key={accountId} topInset={insets.top} blurTarget={blurTarget} view={view} hidden={headerHidden} onViewChange={setView} onAdd={() => setPanel("create")} onNotifications={() => setPanel("notifications")} />
+      <MemoryFeedHeader key={accountId} topInset={insets.top} blurTarget={blurTarget} view={view} compact={headerCompact} onViewChange={setView} onAdd={() => setPanel("create")} onNotifications={() => setPanel("notifications")} />
     </YStack>
     {panelOpen && activePanel === "create" ? <MemoryComposerDialog key={accountId} blurTarget={blurTarget} onClose={closePanel} /> : null}
     <AppSheet open={panelOpen && activePanel !== "create"} onOpenChange={(open) => { if (!open) closePanel(); }}

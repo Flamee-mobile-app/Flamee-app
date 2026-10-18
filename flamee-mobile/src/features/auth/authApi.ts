@@ -21,6 +21,10 @@ const userSchema = z.object({
   created_at: z.string(),
 });
 
+const avatarUserSchema = userSchema.extend({
+  avatar_url: z.string().regex(/^https?:\/\//i),
+});
+
 export type AuthUser = z.infer<typeof userSchema>;
 export type AuthApi = ReturnType<typeof createAuthApi>;
 export type AuthAvatarFile = Blob | { uri: string; name: string; type: string };
@@ -29,10 +33,12 @@ export function createAuthApi({
   baseUrl,
   fetcher = fetch,
   timeoutMs = 12000,
+  avatarFileFromUri,
 }: {
   baseUrl: string;
   fetcher?: typeof fetch;
   timeoutMs?: number;
+  avatarFileFromUri?: (file: { uri: string; name: string; type: string }) => Blob;
 }) {
   const request = async (path: string, options: { body?: unknown; formData?: FormData; token?: string; method?: "PUT" }) => {
     const root = baseUrl.trim().replace(/\/+$/, "");
@@ -90,9 +96,14 @@ export function createAuthApi({
     },
     async uploadAvatar(token: string, file: AuthAvatarFile): Promise<AuthUser> {
       const formData = new FormData();
-      if (typeof Blob !== "undefined" && file instanceof Blob) formData.append("file", file, "avatar.jpg");
-      else formData.append("file", file as unknown as Blob);
-      const parsed = userSchema.safeParse(await request("/auth/me/avatar", { token, formData }));
+      if ("uri" in file) {
+        // Expo's default fetch encodes Blob/File bytes, not RN URI descriptors.
+        if (!avatarFileFromUri) throw new AuthError("configuration");
+        formData.append("file", avatarFileFromUri(file), file.name);
+      } else {
+        formData.append("file", file, "avatar.jpg");
+      }
+      const parsed = avatarUserSchema.safeParse(await request("/auth/me/avatar", { token, formData }));
       if (!parsed.success) throw new AuthError("response");
       return parsed.data;
     },

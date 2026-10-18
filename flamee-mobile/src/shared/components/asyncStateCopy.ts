@@ -1,7 +1,6 @@
 import type { MessageKey } from "../localization/messages.ts";
 
 export type AsyncStateVariant =
-  | "loading"
   | "empty"
   | "error"
   | "offline"
@@ -17,7 +16,6 @@ export type AsyncStateCopy = {
 };
 
 const copyByVariant: Record<AsyncStateVariant, AsyncStateCopy> = {
-  loading: { title: "loadingTitle", description: "loadingDescription", actionLabel: null },
   empty: { title: "emptyTitle", description: "emptyDescription", actionLabel: null },
   error: { title: "errorTitle", description: "errorDescription", actionLabel: "retry" },
   offline: { title: "offlineTitle", description: "offlineDescription", actionLabel: "retry" },

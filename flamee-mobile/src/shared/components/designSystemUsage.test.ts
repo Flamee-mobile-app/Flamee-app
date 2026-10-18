@@ -12,6 +12,27 @@ function sources(directory: string): string[] {
   });
 }
 
+test("routes and feature pages do not replace content with a loading card", () => {
+  const violations: string[] = [];
+  for (const path of [...sources(root), ...sources(join(process.cwd(), "app"))]) {
+    const file = ts.createSourceFile(path, readFileSync(path, "utf8"), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+    function visit(node: ts.Node) {
+      if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
+        const tag = node.tagName.getText(file);
+        if (node.attributes.properties.some((prop) =>
+          ts.isJsxAttribute(prop) && Boolean(prop.initializer) && (
+            tag === "AsyncStateView" && prop.name.getText(file) === "variant" && /["']loading["']/.test(prop.initializer!.getText(file))
+            || tag === "FoundationScreen" && prop.name.getText(file) === "title" && /["']loadingTitle["']/.test(prop.initializer!.getText(file))
+          )
+        )) violations.push(relative(process.cwd(), path));
+      }
+      ts.forEachChild(node, visit);
+    }
+    visit(file);
+  }
+  assert.deepEqual(violations, [], "Allow first-load skeletons; keep the screen shell and confirmed data visible instead of a loading card.");
+});
+
 test("feature UI imports the approved controls instead of styling raw primitives", () => {
   const violations: string[] = [];
   for (const path of sources(root)) {

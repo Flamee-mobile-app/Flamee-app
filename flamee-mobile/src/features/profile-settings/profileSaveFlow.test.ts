@@ -49,6 +49,17 @@ test("retains the confirmed text session when avatar upload fails so the draft c
   if (result.kind === "avatar_error") assert.deepEqual(result.session, profileSession);
 });
 
+test("does not report success when the avatar response has no renderable URL", async () => {
+  const profileSession = { ...baseSession, user: { ...baseSession.user, full_name: "An mới" } };
+  const result = await saveProfileChanges({ currentSession: baseSession, profileChanged: true, fullName: "An mới", username: "", avatarUri: "file:///retry.jpg" }, {
+    updateProfile: async () => profileSession,
+    updateAvatar: async () => ({ ...profileSession, user: { ...profileSession.user, avatar_url: null } }),
+  });
+
+  assert.equal(result.kind, "avatar_error");
+  if (result.kind === "avatar_error") assert.deepEqual(result.session, profileSession);
+});
+
 test("an avatar-only Save skips the unchanged profile request", async () => {
   const calls: string[] = [];
   const result = await saveProfileChanges({ currentSession: baseSession, profileChanged: false, fullName: "An", username: "", avatarUri: "file:///avatar-only.jpg" }, {

@@ -168,6 +168,16 @@ ghi dữ liệu lên dịch vụ thật. Không thêm dependency hoặc sửa no
 - Phản hồi refresh/lưu/upload thất bại của form hồ sơ dùng `appToast.error`;
   bỏ các banner làm dịch chuyển form. Validation tên/biệt danh nằm tại đúng
   `AppField`, còn draft và dữ liệu hiện có vẫn được giữ để người dùng thử lại.
+- Lưu hồ sơ hiện mở loading toast ngay khi bắt đầu và hiện success toast/trạng
+  thái CTA ngay sau xác nhận. Response upload 2xx nhưng thiếu `avatar_url`
+  HTTP(S) bị coi là lỗi contract: không xóa draft, không ghi `null` vào session
+  hoặc pill nav và không phát thông báo thành công giả.
+- Sửa race đã tái hiện bằng test: `/auth/me` chạy nền trả về sau upload từng
+  ghi đè avatar mới bằng `null`. Session nay giữ kết quả lưu mới hơn và phát
+  URL ảnh tới navigation ở tầng auth runtime, kể cả khi form đã mất focus.
+- Nút Lưu lấy ảnh từ cùng state dùng để preview. Cleanup effect không xóa ref
+  ngay và được hoãn một nhịp có thể hủy, tránh Fast Refresh/Strict Mode giữ
+  ảnh trên form nhưng làm mất draft hoặc xóa file trước lúc upload.
 - Chuẩn hóa toàn bộ feature: lỗi/kết quả thao tác ở auth, invite, account và
   media dùng `appToast`; trạng thái bài đăng cần tồn tại dùng dòng chữ gọn cạnh
   bản ghi. Thêm guard cấm `StatusBanner` trong feature để tránh banner chen form.
@@ -177,3 +187,41 @@ ghi dữ liệu lên dịch vụ thật. Không thêm dependency hoặc sửa no
   `flamee-profile-draft-android-qa`. Không chạy browser agent theo yêu cầu.
   Chưa E2E Expo Go hoặc Storage/Supabase thật; migration media vẫn cần được
   người vận hành review và áp dụng.
+- Kiểm tra sau sửa đồng bộ avatar/draft và feedback: `npm run typecheck` đạt,
+  `npm run test:domain` đạt 112/112. Test tái hiện refresh cũ ghi đè avatar đã
+  được quan sát fail trước sửa và pass sau sửa; có kiểm tra hủy cleanup khi
+  effect khởi tạo lại, dọn draft khi rời trang, multipart và URL được phát khi
+  upload/refresh. Backend avatar tests đạt 5/5 bằng FakeSupabase trong lượt này.
+  Log thiết bị người dùng cung cấp chỉ có GET/PUT, chưa có POST avatar; chưa
+  xác nhận lại upload thật trên Expo Go sau bản sửa. Không chạy browser agent.
+- Kiểm tra tiếp bằng log iPhone Expo Go: encoder `expo/fetch` mặc định không
+  nhận RN URI descriptor; auth runtime nay chuyển URI thành Expo `File` trước
+  khi append multipart. Người dùng upload lại, backend ghi POST avatar 200,
+  client nhận URL và `saved`; người dùng xác nhận hoạt động. Toast iOS dùng
+  `FullWindowOverlay` để hiện trên native screens. Log chẩn đoán đã được gỡ.
+- Theo feedback sau khi upload hoạt động, avatar pill nav tăng từ kích thước
+  glyph 30 px lên token gốc 40 px, vẫn scale và căn giữa theo navigation.
+- Kiểm tra cuối sau sửa runtime/upload, iOS toast và tăng avatar: typecheck đạt,
+  domain tests 113/113 đạt. Kích thước avatar nằm trong ô chọn ở các viewport
+  320/390/430/768 px; không khẳng định đã kiểm thử hiển thị trên Android.
+
+## Bỏ loader trang và giảm chuyển động header Home — 2026-10-18
+
+- Rà toàn bộ route/feature TSX, bỏ sáu nơi render loader trang/skeleton: entry,
+  Home, Kết nối, Chờ ghép đôi, Lời mời và link mời. Hồ sơ đã dùng form trực tiếp.
+  `AsyncStateView` không còn variant loading. Không biến pending read thành
+  empty/unpaired giả; giữ lỗi/retry và nội dung chức năng chưa tích hợp.
+- Home giữ snapshot đúng account/couple khi quay lại tab; Connection dùng
+  session đã được server xác nhận để render trước khi refresh nền. Invite
+  render bố cục lựa chọn/nhập mã ngay và khóa thao tác server đến khi read xong.
+- Header Home thu 60 → 48 px trong 300 ms thay vì trượt mất hoàn toàn trong
+  180 ms. Có ngưỡng/hysteresis và clamp overscroll; giữ safe area, title/action
+  và Reduced Motion. Test model kiểm tra kéo nhẹ, đổi hướng nhỏ và bounce.
+- Kiểm tra sau thay đổi: `npm run typecheck` đạt; `npm run test:domain` đạt
+  117/117, gồm guard rà route/features không render loader trang và ba test
+  hành vi cuộn header. Chưa đánh giá trực tiếp độ mượt của bản thu gọn mới
+  trên thiết bị; không chạy browser agent hoặc thao tác backend.
+- Người dùng làm rõ tiếp: giữ skeleton, chỉ bỏ loader card kiểu “Đang chuẩn
+  bị”. Home khôi phục skeleton cho lần tải đầu chưa có snapshot đúng scope;
+  refresh/quay lại tab giữ cả feed hoặc empty state đã được xác nhận. Guard
+  tiếp tục cấm loading card nhưng cho phép skeleton.

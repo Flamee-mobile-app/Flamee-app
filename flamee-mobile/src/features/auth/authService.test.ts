@@ -203,9 +203,16 @@ test("profile update arriving after logout cannot restore an account", async () 
 
 test("avatar upload uses authenticated multipart and updates only the active session", async () => {
   const avatarUrl = "https://storage.example/avatar-signed.jpg";
+  const renewedAvatarUrl = "https://storage.example/avatar-signed.jpg?token=renewed";
+  const publishedAvatars: (string | null)[] = [];
   await withServer((req, res, body) => {
     if (req.url === "/api/v1/auth/login") {
       res.end(JSON.stringify({ success: true, data: { user, access_token: "avatar-token" } }));
+      return;
+    }
+    if (req.method === "GET") {
+      assert.equal(req.url, "/api/v1/auth/me");
+      res.end(JSON.stringify({ success: true, data: { ...user, avatar_url: renewedAvatarUrl } }));
       return;
     }
     assert.equal(req.url, "/api/v1/auth/me/avatar");
@@ -215,12 +222,89 @@ test("avatar upload uses authenticated multipart and updates only the active ses
     assert.match(String(body), /name="file"/);
     res.end(JSON.stringify({ success: true, data: { ...user, avatar_url: avatarUrl } }));
   }, async (baseUrl) => {
-    const auth = createAuthService({ api: createAuthApi({ baseUrl }), credentials: credentials() });
+    const auth = createAuthService({
+      api: createAuthApi({ baseUrl }),
+      credentials: credentials(),
+      onSessionChanged: (session) => { publishedAvatars.push(session?.user.avatar_url ?? null); },
+    });
     await auth.login(user.email, "Secret123");
 
     const updated = await auth.updateAvatar(new Blob(["avatar-bytes"], { type: "image/jpeg" }));
 
     assert.equal(updated.user.avatar_url, avatarUrl);
+    assert.equal(auth.getSessionSnapshot()?.user.avatar_url, avatarUrl);
+    assert.equal(publishedAvatars.at(-1), avatarUrl, "navigation must receive the server-confirmed URL without waiting for the edit screen");
+    assert.equal((await auth.refreshCurrentSession())?.user.avatar_url, renewedAvatarUrl);
+    assert.equal(publishedAvatars.at(-1), renewedAvatarUrl, "navigation must receive renewed signed URLs when the profile refreshes");
+    await auth.signOut();
+    assert.equal(publishedAvatars.at(-1), null);
+  });
+});
+
+test("avatar upload rejects a response without a remote URL and preserves the active session", async () => {
+  await withServer((req, res) => {
+    if (req.url === "/api/v1/auth/login") {
+      res.end(JSON.stringify({ success: true, data: { user, access_token: "avatar-token" } }));
+      return;
+    }
+    res.end(JSON.stringify({ success: true, data: { ...user, avatar_url: null } }));
+  }, async (baseUrl) => {
+    const auth = createAuthService({ api: createAuthApi({ baseUrl }), credentials: credentials() });
+    await auth.login(user.email, "Secret123");
+
+    await assert.rejects(
+      auth.updateAvatar(new Blob(["avatar-bytes"], { type: "image/jpeg" })),
+      (error) => error instanceof AuthError && error.code === "response",
+    );
+    assert.equal(auth.getSessionSnapshot()?.user.avatar_url, null);
+  });
+});
+
+test("local avatar uploads send file bytes instead of the React Native URI descriptor", async () => {
+  const readFiles: string[] = [];
+  let uploadedBody = "";
+  await withServer((_req, res, body) => {
+    uploadedBody = String(body);
+    res.end(JSON.stringify({ success: true, data: { ...user, avatar_url: "https://storage.example/avatar.jpg" } }));
+  }, async (baseUrl) => {
+    const api = createAuthApi({
+      baseUrl,
+      avatarFileFromUri: (file) => {
+        readFiles.push(file.uri);
+        return new Blob(["actual-avatar-file-bytes"], { type: file.type });
+      },
+    });
+    await api.uploadAvatar("token", { uri: "file:///selected-avatar.jpg", name: "avatar.jpg", type: "image/jpeg" });
+    assert.deepEqual(readFiles, ["file:///selected-avatar.jpg"]);
+    assert.match(uploadedBody, /actual-avatar-file-bytes/);
+    assert.doesNotMatch(uploadedBody, /\[object Object\]/);
+  });
+});
+
+test("a profile refresh started before avatar save cannot replace the confirmed avatar", async () => {
+  let release: () => void = () => undefined;
+  let arrived: () => void = () => undefined;
+  const ready = new Promise<void>((resolve) => { arrived = resolve; });
+  const held = new Promise<void>((resolve) => { release = resolve; });
+  const avatarUrl = "https://storage.example/new-avatar.jpg";
+  await withServer(async (req, res) => {
+    if (req.url === "/api/v1/auth/login") {
+      res.end(JSON.stringify({ success: true, data: { user, access_token: "avatar-token" } }));
+    } else if (req.method === "GET") {
+      arrived();
+      await held;
+      res.end(JSON.stringify({ success: true, data: user }));
+    } else {
+      res.end(JSON.stringify({ success: true, data: { ...user, avatar_url: avatarUrl } }));
+    }
+  }, async (baseUrl) => {
+    const auth = createAuthService({ api: createAuthApi({ baseUrl }), credentials: credentials() });
+    await auth.login(user.email, "Secret123");
+    const refresh = auth.refreshCurrentSession();
+    await ready;
+    await auth.updateAvatar(new Blob(["avatar-bytes"], { type: "image/jpeg" }));
+    release();
+    assert.equal((await refresh)?.user.avatar_url, avatarUrl);
     assert.equal(auth.getSessionSnapshot()?.user.avatar_url, avatarUrl);
   });
 });

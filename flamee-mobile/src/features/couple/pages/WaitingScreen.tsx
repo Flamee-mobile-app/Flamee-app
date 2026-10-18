@@ -66,7 +66,7 @@ export function WaitingScreen() {
   const homeButton = <AppButton variant="ghost" onPress={() => router.replace("/(main)")}>{getMessage("vi", "continueHome")}</AppButton>;
 
   if (!accountId) return <AppScreen><AsyncStateView variant="error" title="localInviteUnavailableTitle" description="localInviteUnavailableBody" actionLabel="retry" onAction={() => router.replace("/(auth)")} /></AppScreen>;
-  if (loading) return <AppScreen><AsyncStateView variant="loading" title="loadingTitle" description="loadingDescription" /></AppScreen>;
+  if (loading && !invite) return <AppScreen><AppHeader title={getMessage("vi", "waitingTitle")} />{homeButton}</AppScreen>;
   if (loadFailed) return <AppScreen><AsyncStateView variant="error" title="localInviteUnavailableTitle" description="localInviteUnavailableBody" actionLabel="retry" onAction={() => void load()} />{homeButton}</AppScreen>;
   if (activeCoupleId) return <Redirect href="/(main)" />;
 

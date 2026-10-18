@@ -9,13 +9,16 @@ import { authService, type AuthSession } from "../../auth";
 export function ConnectionScreen() {
   const router = useRouter();
   const accountId = useSessionStore((state) => state.activeAccountId);
-  const [snapshot, setSnapshot] = useState<AuthSession | null>(null);
+  const [snapshot, setSnapshot] = useState<AuthSession | null>(() => {
+    const cached = authService.getSessionSnapshot();
+    return cached?.accountId === accountId ? cached : null;
+  });
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const revision = useRef(0);
   const load = useCallback(async () => {
     const request = ++revision.current;
-    setLoading(true); setFailed(false); setSnapshot(null);
+    setLoading(true); setFailed(false);
     try {
       const session = await authService.refreshCurrentSession();
       if (request !== revision.current || useSessionStore.getState().activeAccountId !== accountId) return;
@@ -27,7 +30,7 @@ export function ConnectionScreen() {
   }, [accountId]);
   useFocusEffect(useCallback(() => { void load(); return () => { revision.current += 1; }; }, [load]));
   return <FeatureScreen title={getMessage("vi", "connectionTitle")} showBack withBottomNavigation={false}>
-    {loading ? <AsyncStateView variant="loading" /> : failed || snapshot?.accountId !== accountId ? <AsyncStateView variant="error" actionLabel="retry" onAction={() => void load()} /> : <YStack gap="$lg">
+    {failed || (!loading && snapshot?.accountId !== accountId) ? <AsyncStateView variant="error" actionLabel="retry" onAction={() => void load()} /> : snapshot?.accountId === accountId ? <YStack gap="$lg">
       <SectionCard title={getMessage("vi", snapshot.user.couple_id ? "connectionPairedTitle" : "connectionEmptyTitle")}>
         {snapshot.user.couple_id ? <AppButton variant="secondary" onPress={() => router.push({ pathname: "/settings", params: { section: "account" } })}>{getMessage("vi", "connectionManage")}</AppButton> : <>
           <AppButton onPress={() => router.push("/(invite)")}>{getMessage("vi", "pairNow")}</AppButton>
@@ -35,6 +38,6 @@ export function ConnectionScreen() {
           <AppButton variant="ghost" onPress={() => router.push("/(waiting)")}>{getMessage("vi", "viewWaitingInvite")}</AppButton>
         </>}
       </SectionCard>
-    </YStack>}
+    </YStack> : null}
   </FeatureScreen>;
 }

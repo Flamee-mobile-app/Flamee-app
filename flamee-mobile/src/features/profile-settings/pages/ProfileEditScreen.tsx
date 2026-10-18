@@ -1,4 +1,5 @@
 import { ArrowLeft } from "@tamagui/lucide-icons-2/icons/ArrowLeft";
+import { Check } from "@tamagui/lucide-icons-2/icons/Check";
 import { Pencil } from "@tamagui/lucide-icons-2/icons/Pencil";
 import { UserRound } from "@tamagui/lucide-icons-2/icons/UserRound";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -12,6 +13,7 @@ import { useSessionStore } from "../../../shared/state/sessionStore";
 import { authService, type AuthSession } from "../../auth";
 import { localMediaAdapter, type LocalMediaResult } from "../../media";
 import { hasProfileTextChanged, saveProfileChanges } from "../profileSaveFlow";
+import { createProfileDraftCleanup } from "../profileDraftCleanup";
 
 const avatarSize = 104;
 const fullNameLimit = 120;
@@ -34,20 +36,27 @@ export function ProfileEditScreen() {
   const [avatarDraft, setAvatarDraft] = useState<AvatarDraft | null>(null);
   const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [avatarBusy, setAvatarBusy] = useState(false);
   const revision = useRef(0);
   const editRevision = useRef(0);
   const savePending = useRef(false);
   const avatarPending = useRef(false);
   const avatarDraftRef = useRef<AvatarDraft | null>(null);
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [draftCleanup] = useState(() => createProfileDraftCleanup(localMediaAdapter.cleanup));
   const avatarPreview = avatarDraft?.uri ?? profile?.user.avatar_url ?? null;
 
+  useEffect(() => { avatarDraftRef.current = avatarDraft; }, [avatarDraft]);
   useEffect(() => setAvatarLoadFailed(false), [avatarPreview]);
-  useEffect(() => () => {
-    const draft = avatarDraftRef.current;
-    avatarDraftRef.current = null;
-    if (draft && !savePending.current) void localMediaAdapter.cleanup(draft.uri);
-  }, []);
+  useEffect(() => {
+    draftCleanup.cancel();
+    return () => {
+      if (savedTimer.current) clearTimeout(savedTimer.current);
+      const draft = avatarDraftRef.current;
+      if (draft && !savePending.current) draftCleanup.schedule(draft.uri);
+    };
+  }, [draftCleanup]);
 
   const applySession = useCallback((session: AuthSession, applyFields: boolean) => {
     setProfile(session);
@@ -92,13 +101,31 @@ export function ProfileEditScreen() {
     { fullName: displayName, username },
     { fullName: profile.user.full_name, username: profile.user.username ?? "" },
   ) : false;
+  const hasChanges = profileChanged || Boolean(avatarDraft);
+
+  const clearSavedState = () => {
+    if (savedTimer.current) clearTimeout(savedTimer.current);
+    savedTimer.current = null;
+    setSaved(false);
+  };
+
+  const showSavedState = () => {
+    clearSavedState();
+    setSaved(true);
+    savedTimer.current = setTimeout(() => {
+      savedTimer.current = null;
+      setSaved(false);
+    }, 1600);
+  };
 
   const save = async () => {
-    if (savePending.current || avatarPending.current || invalid || unavailable) return;
+    if (savePending.current || avatarPending.current || invalid || unavailable || !hasChanges) return;
     savePending.current = true;
+    clearSavedState();
     setSaving(true);
+    const loadingToastId = appToast.loading(getMessage("vi", "profileSaving"));
     const request = revision.current;
-    const draft = avatarDraftRef.current;
+    const draft = avatarDraft;
     try {
       const result = await saveProfileChanges({
         currentSession: profile!,
@@ -112,22 +139,32 @@ export function ProfileEditScreen() {
       });
       if (request !== revision.current || useSessionStore.getState().activeAccountId !== accountId) return;
       if (result.kind === "profile_error") {
+        appToast.dismiss(loadingToastId);
         appToast.error(getMessage("vi", "profileSaveFailed"));
         return;
       }
       applySession(result.session, true);
       if (result.kind === "avatar_error") {
-        appToast.error(getMessage("vi", "profileAvatarUploadFailed"));
+        appToast.dismiss(loadingToastId);
+        appToast.error(getMessage("vi", "profileAvatarUploadFailed"), { description: getMessage("vi", "profileTextSavedAvatarFailed") });
         return;
       }
-      if (draft && avatarDraftRef.current?.uri === draft.uri) {
-        avatarDraftRef.current = null;
-        setAvatarDraft(null);
-        await localMediaAdapter.cleanup(draft.uri);
+      if (draft) {
+        if (avatarDraftRef.current?.uri === draft.uri) avatarDraftRef.current = null;
+        setAvatarDraft((current) => current?.uri === draft.uri ? null : current);
       }
+      appToast.dismiss(loadingToastId);
       appToast.success(getMessage("vi", "settingsSaved"));
+      showSavedState();
+      if (draft) void localMediaAdapter.cleanup(draft.uri);
+    } catch {
+      if (request === revision.current) {
+        appToast.dismiss(loadingToastId);
+        appToast.error(getMessage("vi", "profileSaveFailed"));
+      }
     } finally {
-      if (request !== revision.current && draft) await localMediaAdapter.cleanup(draft.uri);
+      appToast.dismiss(loadingToastId);
+      if (request !== revision.current && draft) void localMediaAdapter.cleanup(draft.uri);
       savePending.current = false;
       if (request === revision.current) setSaving(false);
     }
@@ -154,6 +191,7 @@ export function ProfileEditScreen() {
     const previous = avatarDraftRef.current;
     avatarDraftRef.current = selected;
     setAvatarDraft(selected);
+    clearSavedState();
     if (previous && previous.uri !== selected.uri) await localMediaAdapter.cleanup(previous.uri);
     avatarPending.current = false;
     setAvatarBusy(false);
@@ -202,19 +240,21 @@ export function ProfileEditScreen() {
                   <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" fontWeight="$semibold" color="$textPrimary">{getMessage("vi", "displayNameLabel")}</Text>
                   <Text fontFamily="$body" fontSize="$bodyS" lineHeight="$bodyS" color="$textSecondary">{displayNameCount}/{fullNameLimit}</Text>
                 </XStack>
-                <AppField showLabel={false} label={getMessage("vi", "displayNameLabel")} value={displayName} error={displayNameError} onChangeText={(value) => { editRevision.current += 1; setDisplayName(value); }} maxLength={fullNameLimit * 2} editable={!saving && !avatarBusy && !unavailable} />
+                <AppField showLabel={false} label={getMessage("vi", "displayNameLabel")} value={displayName} error={displayNameError} onChangeText={(value) => { editRevision.current += 1; clearSavedState(); setDisplayName(value); }} maxLength={fullNameLimit * 2} editable={!saving && !avatarBusy && !unavailable} />
               </YStack>
               <YStack gap="$sm">
                 <XStack justifyContent="space-between" alignItems="center" paddingHorizontal="$xs">
                   <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" fontWeight="$semibold" color="$textPrimary">{getMessage("vi", "profileUsernameLabel")}</Text>
                   <Text fontFamily="$body" fontSize="$bodyS" lineHeight="$bodyS" color="$textSecondary">{usernameCount}/{usernameLimit}</Text>
                 </XStack>
-                <AppField showLabel={false} label={getMessage("vi", "profileUsernameLabel")} value={username} error={usernameError} onChangeText={(value) => { editRevision.current += 1; setUsername(value); }} maxLength={usernameLimit * 2} autoCapitalize="none" editable={!saving && !avatarBusy && !unavailable} />
+                <AppField showLabel={false} label={getMessage("vi", "profileUsernameLabel")} value={username} error={usernameError} onChangeText={(value) => { editRevision.current += 1; clearSavedState(); setUsername(value); }} maxLength={usernameLimit * 2} autoCapitalize="none" editable={!saving && !avatarBusy && !unavailable} />
               </YStack>
             </YStack>
           </YStack>
         </ScrollView>
-        <AppButton disabled={invalid || unavailable || avatarBusy} loading={saving} onPress={() => void save()}>{getMessage("vi", "save")}</AppButton>
+        <AppButton disabled={invalid || unavailable || avatarBusy || !hasChanges} loading={saving} icon={saved ? <Check size={18} aria-hidden={true} /> : undefined} onPress={() => void save()}>
+          {getMessage("vi", saving ? "profileSaving" : saved ? "profileSavedAction" : "save")}
+        </AppButton>
       </AppScreen>
     </KeyboardAvoidingView>
   );

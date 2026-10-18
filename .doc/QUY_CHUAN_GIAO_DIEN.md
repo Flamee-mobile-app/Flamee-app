@@ -162,7 +162,16 @@ Giữ nguyên mã màu trong bảng khi tạo theme dùng chung. Gradient thươ
 ### Khung nội dung tính năng (quyết định ngày 2026-10-14)
 
 - Mỗi giao diện tính năng mới dùng `FeatureScreen`: chỉ có title ở ngoài vùng nội dung, không có subtitle hoặc eyebrow của trang.
-- Toàn bộ nội dung, bộ lọc, form, CTA và trạng thái loading/empty/error nằm trong một `ContentSurface` chung. Surface dùng `$surface`, bo góc `$xl`, padding `$lg`, không có viền đậm.
+- Toàn bộ nội dung, bộ lọc, form, CTA và trạng thái empty/error nằm trong một `ContentSurface` chung. Surface dùng `$surface`, bo góc `$xl`, padding `$lg`, không có viền đậm.
+- Theo yêu cầu rà soát ngày 2026-10-18, không thay nội dung trang/tab bằng khối
+  “Đang chuẩn bị”. Skeleton theo bố cục vẫn được giữ cho lần tải đầu chưa có
+  dữ liệu. Render khung trang ngay, giữ dữ liệu đã
+  được xác nhận khi refresh cùng account/couple; lần tải đầu chưa có dữ liệu
+  không được hiện empty hoặc kết luận chưa kết nối trước khi API trả về.
+  Control cần dữ liệu server bị khóa trong lúc đọc; thao tác lưu/gửi/upload và
+  kéo tải lại vẫn có phản hồi loading ngay trên control. Splash khởi động là
+  luồng riêng, không phải loader của tab. `AsyncStateView` không còn variant
+  loading; trạng thái lỗi/retry, empty thật và chưa tích hợp vẫn có nội dung rõ.
 - Shadow lấy từ `featureTokens.surfaceShadow`: nâu ấm `textPrimary`, offset 8 px, blur 24 px, opacity 0.12, elevation 4 trên Android. Không tạo shadow riêng trong từng screen.
 - Max-width 560 px; màn hình có bottom nav dùng clearance chung để nội dung cuối không bị che. Danh sách dài dùng SectionList/FlatList bên trong surface; tránh lồng nhiều card có shadow.
 - Title của trang không nằm trong surface. Nhãn form, tiêu đề nhóm ngày và trạng thái bên trong surface vẫn dùng typography chung.
@@ -237,6 +246,9 @@ Giữ nguyên mã màu trong bảng khi tạo theme dùng chung. Gradient thươ
 - Toast nằm giữa phía trên, tôn trọng safe area và chỉ hiện một toast tại một
   thời điểm, tránh lộ các lớp xếp chồng thành đường ở mép trên. Tự đóng sau 3 giây
   (loading theo vòng đời riêng), hỗ trợ vuốt lên, chạm hoặc phím Escape để đóng.
+- iOS đặt viewport trong `FullWindowOverlay` để toast nằm trên native navigation
+  screens. Viewport không portal lại xuống root trên nền tảng này; vùng bao
+  không chặn thao tác của phần màn hình nằm ngoài toast.
 - Web ánh xạ `accessibilityLabel` của `ToastPositionWrapper` sang `aria-label`
   qua `defaultProps.render` trong cấu hình Tamagui; không truyền native prop
   ra DOM. Khi chạm đóng, nhả focus của toast trước khi unmount để bộ đếm của
@@ -367,17 +379,24 @@ Giữ nguyên mã màu trong bảng khi tạo theme dùng chung. Gradient thươ
 - Avatar dùng `AppIconButton` chồng ở góc ảnh để mở thư viện. Ảnh chọn được giữ
   thành draft cục bộ và phải preview ngay trên form; chọn ảnh không gọi API.
   Nút Lưu mới gửi multipart đến `POST /auth/me/avatar`. Upload lỗi giữ draft để
-  người dùng thử lại; chỉ sau response đúng owner mới cập nhật avatar của tab
-  Hồ sơ trên bottom navigation và dọn file tạm.
+  người dùng thử lại; chỉ sau response đúng owner có `avatar_url` HTTP(S) dùng
+  được mới cập nhật avatar của tab Hồ sơ trên bottom navigation và dọn file
+  tạm. Response 2xx thiếu URL ảnh vẫn là lỗi upload, không được báo thành công.
+  Ảnh gửi đi phải lấy từ cùng draft đang preview; khởi tạo lại effect khi phát
+  triển không được làm mất draft hoặc xóa file đang hiển thị.
 - Nút Lưu chỉ gọi `PUT /auth/me` khi tên hoặc biệt danh thật sự thay đổi. Một
   lượt chỉ đổi avatar không được tạo request text profile thừa; nếu cả hai thay
   đổi thì text được server xác nhận trước, sau đó mới upload avatar.
-- Refresh, lưu text hoặc upload avatar thất bại phải gọi `appToast.error` và giữ
+- Khi bấm Lưu, trạng thái đang lưu phải xuất hiện ngay; sau response thành công
+  phải có `appToast.success` và trạng thái xác nhận ngắn trên CTA. Refresh, lưu
+  text hoặc upload avatar thất bại phải gọi `appToast.error` và giữ
   nguyên dữ liệu/draft để thử lại; không render banner cảnh báo trong form. Tên
   trống hoặc vượt giới hạn và biệt danh vượt giới hạn hiển thị lỗi tại đúng ô.
 - Bottom navigation hiển thị ảnh tròn thay glyph Hồ sơ khi có signed
   `avatar_url`; URL lỗi hoặc hết hạn rơi về glyph, không lưu ảnh/URL giả và không
   coi preview cục bộ là cập nhật thành công.
+  Theo review tiếp theo, avatar dùng token gốc 40 px và scale cùng pill nav,
+  thay kích thước glyph 30 px để khuôn mặt dễ nhận diện hơn.
 
 ## Switch và checkbox (thiết kế đã duyệt)
 
@@ -428,7 +447,7 @@ Giữ nguyên mã màu trong bảng khi tạo theme dùng chung. Gradient thươ
 - Thẻ người ấy chỉ preview note tối đa hai dòng, không hiện emotion, tone hoặc mascot. Chạm note mở detail bằng check-in ID; detail mới hiển thị mascot nếu có. Legacy `full`/`mood_only`/`private_only` vẫn được lọc trước khi render.
 - Home paired chỉ giữ một Moment gần nhất hoặc empty state nhỏ sau khi backend tương ứng được tích hợp. FAB hiện chỉ mở Timeline; các lối tắt sản phẩm còn nằm trong trang Hồ sơ, không mở lại radial menu. Bốn định dạng Tiny Moment nằm trong composer Khoảnh khắc khi tính năng khả dụng.
 - Smart Nudge local chỉ nhận `emotionTone` có cấu trúc, không đọc note và không gọi AI bên ngoài.
-- Dùng skeleton theo bố cục khi tải; lỗi có đường thử lại. Layout co giãn trên điện thoại, giới hạn 560 px trên màn hình lớn; hỗ trợ text scaling và touch target tối thiểu 48 px.
+- Lần tải đầu dùng skeleton theo bố cục; khi refresh giữ khung trang/dữ liệu đã xác nhận, không thay nội dung bằng loader. Lỗi có đường thử lại. Layout co giãn trên điện thoại, giới hạn 560 px trên màn hình lớn; hỗ trợ text scaling và touch target tối thiểu 48 px.
 
 ## Dòng thời gian & kỷ niệm — bản local
 

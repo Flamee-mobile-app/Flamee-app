@@ -3,7 +3,6 @@ import { BellOff } from "@tamagui/lucide-icons-2/icons/BellOff";
 import { CircleCheck } from "@tamagui/lucide-icons-2/icons/CircleCheck";
 import { Clock } from "@tamagui/lucide-icons-2/icons/Clock";
 import { Inbox } from "@tamagui/lucide-icons-2/icons/Inbox";
-import { LoaderCircle } from "@tamagui/lucide-icons-2/icons/LoaderCircle";
 import { WifiOff } from "@tamagui/lucide-icons-2/icons/WifiOff";
 import { Text, YStack } from "tamagui";
 import { getMessage, type MessageKey } from "../localization/messages";
@@ -21,7 +20,6 @@ type AsyncStateViewProps = {
 };
 
 const icons = {
-  loading: LoaderCircle,
   empty: Inbox,
   error: AlertCircle,
   offline: WifiOff,

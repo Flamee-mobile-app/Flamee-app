@@ -9,10 +9,15 @@ export type AuthCredentialStore = {
 
 export type AuthService = ReturnType<typeof createAuthService>;
 
-export function createAuthService({ api, credentials }: { api: AuthApi; credentials: AuthCredentialStore }) {
+export function createAuthService({ api, credentials, onSessionChanged }: {
+  api: AuthApi;
+  credentials: AuthCredentialStore;
+  onSessionChanged?: (session: AuthSession | null) => void;
+}) {
   let session: AuthSession | null = null;
   let accessToken: string | null = null;
   let generation = 0;
+  let profileRevision = 0;
   let storageQueue: Promise<void> = Promise.resolve();
   const store = (action: () => Promise<void>) => {
     const work = storageQueue.then(action);
@@ -20,6 +25,10 @@ export function createAuthService({ api, credentials }: { api: AuthApi; credenti
     return work;
   };
   const copy = (value: AuthSession): AuthSession => ({ accountId: value.accountId, user: { ...value.user } });
+  const publishSession = (value: AuthSession | null) => {
+    session = value;
+    onSessionChanged?.(value ? copy(value) : null);
+  };
   const begin = async (operation: () => ReturnType<AuthApi["login"]>, remember: boolean) => {
     const request = ++generation;
     const result = await operation();
@@ -36,8 +45,9 @@ export function createAuthService({ api, credentials }: { api: AuthApi; credenti
     }
     if (request !== generation) throw new AuthError("cancelled");
     accessToken = result.access_token;
-    session = { accountId: result.user.id, user: result.user };
-    return copy(session);
+    const next = { accountId: result.user.id, user: result.user };
+    publishSession(next);
+    return copy(next);
   };
 
   return {
@@ -55,8 +65,9 @@ export function createAuthService({ api, credentials }: { api: AuthApi; credenti
         const user = await api.me(token);
         if (request !== generation) return null;
         accessToken = token;
-        session = { accountId: user.id, user };
-        return copy(session);
+        const next = { accountId: user.id, user };
+        publishSession(next);
+        return copy(next);
       } catch (error) {
         if (error instanceof AuthError && error.code === "credentials") {
           await store(async () => { if (request === generation) await credentials.clear(); });
@@ -68,14 +79,17 @@ export function createAuthService({ api, credentials }: { api: AuthApi; credenti
     async refreshCurrentSession(): Promise<AuthSession | null> {
       if (!accessToken) return null;
       const request = generation;
+      const revision = profileRevision;
       const user = await api.me(accessToken);
       if (request !== generation) return null;
-      session = { accountId: user.id, user };
-      return copy(session);
+      if (revision !== profileRevision) return session ? copy(session) : null;
+      const next = { accountId: user.id, user };
+      publishSession(next);
+      return copy(next);
     },
     async signOut() {
       ++generation;
-      session = null;
+      publishSession(null);
       accessToken = null;
       try { await store(() => credentials.clear()); } catch { throw new AuthError("storage"); }
     },
@@ -86,8 +100,10 @@ export function createAuthService({ api, credentials }: { api: AuthApi; credenti
       const user = await api.updateProfile(accessToken, profile);
       if (request !== generation) throw new AuthError("cancelled");
       if (user.id !== accountId) throw new AuthError("response");
-      session = { accountId, user };
-      return copy(session);
+      profileRevision += 1;
+      const next = { accountId, user };
+      publishSession(next);
+      return copy(next);
     },
     async updateAvatar(file: AuthAvatarFile): Promise<AuthSession> {
       if (!accessToken || !session) throw new AuthError("credentials");
@@ -96,8 +112,10 @@ export function createAuthService({ api, credentials }: { api: AuthApi; credenti
       const user = await api.uploadAvatar(accessToken, file);
       if (request !== generation) throw new AuthError("cancelled");
       if (user.id !== accountId) throw new AuthError("response");
-      session = { accountId, user };
-      return copy(session);
+      profileRevision += 1;
+      const next = { accountId, user };
+      publishSession(next);
+      return copy(next);
     },
   };
 }
