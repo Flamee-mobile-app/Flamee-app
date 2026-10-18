@@ -38,21 +38,20 @@ def _load_user(db: Client, user_id: str) -> dict:
     return resp.data
 
 
-def _check_session_active(db: Client, jti: str | None) -> None:
+def _check_session_active(db: Client, jti: str | None, user_id: str) -> None:
     """Check jti có active trong auth_sessions không (revocation check)."""
     if not jti:
-        return  # Token không có jti (cũ) — back-compat
+        raise AuthError("Missing session; please log in again")
     try:
         session = AuthSessionRepository(db).get_by_jti(jti)
-        if session is None or session.is_revoked():
+        if session is None or session.user_id != user_id or session.is_revoked():
             raise AuthError("Session đã bị thu hồi, vui lòng đăng nhập lại")
         if session.is_access_expired():
             raise AuthError("Token đã hết hạn")
     except AuthError:
         raise
     except Exception:
-        # Không block khi store lỗi (best-effort)
-        return
+        raise AuthError("Unable to verify session") from None
 
 
 def get_current_user(
@@ -66,7 +65,7 @@ def get_current_user(
     if not user_id:
         raise AuthError("Token missing subject")
     jti = payload.get("jti")
-    _check_session_active(db, jti)
+    _check_session_active(db, jti, user_id)
     user = _load_user(db, user_id)
     # Stash jti để /auth/logout biết revoke session nào
     if jti:
@@ -86,13 +85,7 @@ def get_optional_user(
     if not user_id:
         return None
     jti = payload.get("jti")
-    if jti:
-        try:
-            session = AuthSessionRepository(db).get_by_jti(jti)
-            if session is None or session.is_revoked() or session.is_access_expired():
-                return None
-        except Exception:
-            pass
+    _check_session_active(db, jti, user_id)
     resp = db.table(USERS).select("*").eq("id", user_id).maybe_single().execute()
     if not resp.data:
         return None

@@ -1,5 +1,15 @@
 # Gỡ luồng mô phỏng và làm backend trước — 2026-10-17
 
+## Cập nhật sau backend alignment cùng ngày
+
+Xem [hướng dẫn database hiện tại](../backend/docs/DATABASE-SETUP.md).
+Auth đã bổ sung session thật, refresh rotation, logout và thu hồi session khi đổi
+mật khẩu. Schema/migration đã được chuẩn bị nhưng chưa chạy lên Supabase.
+Sau merge dev 2026-10-18, upload ảnh mới dùng pipeline private `flamee-media`
+(xem BACKEND-MEDIA-PIPELINE.md); không còn trả 501 hoặc public URL. Plans đọc database, không
+fallback giá mẫu; checkout/manual activation trả 501. Các ghi nhận upload và
+kết quả test cleanup bên dưới là lịch sử trước bản alignment này.
+
 > Cập nhật 2026-10-18: Home đã chuyển thành feed album kỷ niệm đọc thật `GET /memories` theo yêu cầu redesign; route Timeline cũ về Home. Hero cảm xúc cũ đã bỏ. Create/upload, notification và Tiny Moment vẫn chưa khả dụng, không khôi phục simulator. [Contract Home hiện tại](HOME-MEMORY-FEED.md).
 
 Quyết định trực tiếp: bỏ mock data và mock flow trong app trước khi tiếp tục phát triển backend. Tài liệu này cập nhật trạng thái thực tế, thay các mô tả local runtime trước đây; không tuyên bố backend media hoặc các feature chưa tích hợp đã hoàn tất.

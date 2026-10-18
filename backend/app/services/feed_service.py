@@ -72,7 +72,7 @@ class FeedService:
                 )
 
         # Chỉ lấy tối đa N memory từ DB (không load hết)
-        memories, _ = self.memory_service.list_memories(
+        memories, _, _ = self.memory_service.list_memories(
             couple.id, limit=DEFAULT_LIMIT_UPCOMING, offset=0
         )
 

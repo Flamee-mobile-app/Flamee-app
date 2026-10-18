@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import replace
+from datetime import timedelta
 
 from fastapi import UploadFile
 from supabase import Client
 
 from app.config import settings
 from app.core.constants import MemoryCategory
-from app.core.exceptions import NotFoundError, ValidationError
+from app.core.exceptions import FeatureUnavailableError, NotFoundError, ValidationError
 from app.models.memory import Memory, MemoryImage
 from app.repositories.memory_repo import (
     MemoryImageRepository,
@@ -22,7 +23,7 @@ from app.schemas.memory import (
 from app.utils.ids import generate_uuid
 from app.utils.time import now_utc, to_iso
 from app.services.media_processing import process_memory_image
-from app.services.media_storage import MediaStorage
+from app.services.media_storage import MediaStorage, SIGNED_URL_TTL_SECONDS
 
 
 class MemoryService:
@@ -67,7 +68,9 @@ class MemoryService:
         *,
         category: str | None = None,
         year: int | None = None,
-    ) -> tuple[list[MemoryListItem], int]:
+        limit: int = 50,
+        offset: int = 0,
+    ) -> tuple[list[MemoryListItem], int, bool]:
         if category:
             valid = {m.value for m in MemoryCategory}
             if category not in valid:
@@ -75,7 +78,7 @@ class MemoryService:
                     f"category must be one of: {sorted(valid)}"
                 )
         memories = self.memory_repo.find_by_couple(
-            couple_id, category=category, year=year
+            couple_id, category=category, year=year, limit=limit, offset=offset
         )
         images_by_memory: dict[str, list[MemoryImage]] = defaultdict(list)
         page_images = self._present_images(
@@ -87,7 +90,8 @@ class MemoryService:
         for memory in memories:
             images = images_by_memory[memory.id]
             items.append(MemoryListItem.from_memory(memory, images))
-        return items, len(items)
+        total = self.memory_repo.count_by_couple(couple_id, category=category, year=year)
+        return items, total, offset + len(items) < total
 
     def get_memory(
         self, couple_id: str, memory_id: str
@@ -186,6 +190,7 @@ class MemoryService:
         return self.image_repo.delete(image_id)
 
     def _present_images(self, images: list[MemoryImage]) -> list[MemoryImage]:
+        expires_at = to_iso(now_utc() + timedelta(seconds=SIGNED_URL_TTL_SECONDS))
         signed = self.storage.sign_many(
             path
             for image in images
@@ -199,5 +204,8 @@ class MemoryService:
                 if image.thumbnail_path
                 else image.thumbnail_url or url
             )
-            presented.append(replace(image, url=url, thumbnail_url=thumbnail_url))
+            presented.append(replace(
+                image, url=url, thumbnail_url=thumbnail_url,
+                url_expires_at=expires_at if image.storage_path else None,
+            ))
         return presented

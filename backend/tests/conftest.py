@@ -16,6 +16,7 @@ class FakeSupabaseTable:
         self._data: dict[str, dict] = {}
         self._query_filters: list = []
         self._limit_val: int | None = None
+        self._range_val: tuple[int, int] | None = None
         self._single: bool = False
         self._order_field: str | None = None
         self._order_desc: bool = False
@@ -26,6 +27,7 @@ class FakeSupabaseTable:
     def _reset_query(self) -> "FakeSupabaseTable":
         self._query_filters = []
         self._limit_val = None
+        self._range_val = None
         self._single = False
         self._order_field = None
         self._order_desc = False
@@ -42,6 +44,18 @@ class FakeSupabaseTable:
 
     def eq(self, field: str, value: Any) -> "FakeSupabaseTable":
         self._query_filters.append(("eq", field, value))
+        return self
+
+    def neq(self, field: str, value: Any) -> "FakeSupabaseTable":
+        self._query_filters.append(("neq", field, value))
+        return self
+
+    def like(self, field: str, pattern: str) -> "FakeSupabaseTable":
+        self._query_filters.append(("like", field, pattern))
+        return self
+
+    def range(self, start: int, end: int) -> "FakeSupabaseTable":
+        self._range_val = (start, end)
         return self
 
     def gt(self, field: str, value: Any) -> "FakeSupabaseTable":
@@ -82,6 +96,12 @@ class FakeSupabaseTable:
         for op, field, value in self._query_filters:
             if op == "eq":
                 results = [r for r in results if r.get(field) == value]
+            elif op == "neq":
+                results = [r for r in results if r.get(field) != value]
+            elif op == "like":
+                import re
+                pattern = re.escape(value).replace('%', '.*').replace('_', '.')
+                results = [r for r in results if re.fullmatch(pattern, str(r.get(field, '')))]
             elif op == "gt":
                 results = [r for r in results if r.get(field) is not None and r.get(field) > value]
             elif op == "gte":
@@ -96,6 +116,9 @@ class FakeSupabaseTable:
             results.sort(key=lambda r: r.get(self._order_field, ""), reverse=self._order_desc)
         if self._limit_val:
             results = results[: self._limit_val]
+        if self._range_val is not None:
+            start, end = self._range_val
+            results = results[start:end + 1]
         return results
 
     def execute(self) -> Any:
@@ -105,7 +128,7 @@ class FakeSupabaseTable:
             resp.data = results[0] if results else None
         else:
             resp.data = results
-        resp.count = len(list(self._data.values())) if self._count_mode else None
+        resp.count = len(results) if self._count_mode else None
         self._reset_query()
         return resp
 
@@ -191,6 +214,21 @@ class FakeSupabaseClient:
         class RpcResult:
             def execute(self_inner):
                 from datetime import datetime
+
+                if name == "rotate_auth_session":
+                    from app.utils.time import now_utc, to_iso
+                    rows = client.table("auth_sessions")._data
+                    row = rows.get(params["p_session_id"])
+                    valid = bool(row and row.get("revoked_at") is None
+                        and row.get("refresh_token") == params["p_old_hash"]
+                        and datetime.fromisoformat(row["refresh_expires_at"]) > now_utc())
+                    if valid:
+                        row.update(jti=params["p_jti"], expires_at=params["p_expires_at"],
+                            refresh_token=params["p_new_hash"],
+                            refresh_expires_at=params["p_refresh_expires_at"], updated_at=to_iso(now_utc()))
+                    response = MagicMock()
+                    response.data = valid
+                    return response
 
                 result = {"outcome": "invite_not_found"}
                 invites = client.table("invite_codes")._data
@@ -320,6 +358,32 @@ class FakeSupabaseClient:
 def fake_db():
     """A fresh, in-memory FakeSupabaseClient for each test."""
     return FakeSupabaseClient()
+
+
+@pytest.fixture(autouse=True)
+def no_external_network(monkeypatch, request):
+    """Unit tests must never use credentials from the developer's .env."""
+    import socket
+    from app.config import settings
+
+    if request.node.get_closest_marker("live_readonly") or (
+        request.node.get_closest_marker("live_workflow")
+        and __import__("os").environ.get("FLAMEE_TEST_LIVE_WORKFLOW") == "1"
+    ):
+        return
+
+    monkeypatch.setattr(settings, "openai_api_key", "")
+    monkeypatch.setattr(settings, "gemini_api_key", "")
+
+    original_connect = socket.socket.connect
+
+    def blocked(sock, address):
+        # Windows asyncio builds its internal socketpair over loopback TCP.
+        if isinstance(address, tuple) and address[0] in {"127.0.0.1", "::1"}:
+            return original_connect(sock, address)
+        raise RuntimeError("External network is disabled in unit tests")
+
+    monkeypatch.setattr(socket.socket, "connect", blocked)
 
 
 @pytest.fixture
