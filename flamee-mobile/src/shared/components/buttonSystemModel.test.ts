@@ -52,6 +52,17 @@ test("keeps glass action borders absent in every press state", async () => {
   assert.equal(glass.press.backgroundColor, glass.base.backgroundColor);
 });
 
+test("renders the avatar edit action as a circular translucent peach bubble", async () => {
+  const model = await import("./buttonSystemModel.ts");
+  const { buttonTokens } = await import("../constants/tokens.ts");
+  const avatar = model.getIconButtonPresentation("avatar", false);
+
+  assert.equal(avatar.backgroundColor, "$glassCardPeach");
+  assert.equal(avatar.hoverBackgroundColor, "$glassCardPeach");
+  assert.equal(avatar.pressBackgroundColor, "$glassCardPeach");
+  assert.equal(model.getIconButtonRadius("avatar"), buttonTokens.iconButtonSize / 2);
+});
+
 test("keeps loading content footprint while blocking interaction", async () => {
   const model = await import("./buttonSystemModel.ts");
 

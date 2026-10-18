@@ -5,7 +5,7 @@ import { Square } from "@tamagui/lucide-icons-2/icons/Square";
 import { RecordingPresets, setAudioModeAsync, useAudioPlayer, useAudioRecorder } from "expo-audio";
 import { useEffect, useRef, useState } from "react";
 import { Text, XStack, YStack } from "tamagui";
-import { AppButton, StatusBanner } from "../../../shared/components";
+import { AppButton, appToast } from "../../../shared/components";
 import { formatMessage, getMessage } from "../../../shared/localization/messages";
 import { localMediaAdapter } from "../../media/localMediaAdapter";
 
@@ -22,6 +22,14 @@ export function VoiceDraftControl({ onReady, onReset }: Props) {
   const operationGeneration = useRef(0);
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const player = useAudioPlayer(readyUri);
+  const reportMode = (nextMode: "unavailable" | "denied") => {
+    setMode(nextMode);
+    if (nextMode === "denied") {
+      appToast.warning(getMessage("vi", "voicePermissionDeniedTitle"), { description: getMessage("vi", "voicePermissionDeniedBody") });
+      return;
+    }
+    appToast.error(getMessage("vi", "voiceFallbackTitle"), { description: getMessage("vi", "voiceFallbackBody") });
+  };
 
   const stop = async (duration = seconds) => {
     if (timer.current) clearInterval(timer.current);
@@ -33,9 +41,7 @@ export function VoiceDraftControl({ onReady, onReset }: Props) {
       try {
         await recorder.stop();
         nativeUri = recorder.uri ?? null;
-      } catch {
-        if (mounted.current) setMode("unavailable");
-      }
+      } catch {}
     }
     await setAudioModeAsync({ allowsRecording: false }).catch(() => undefined);
     if (!mounted.current) {
@@ -62,12 +68,12 @@ export function VoiceDraftControl({ onReady, onReset }: Props) {
       } else {
         localMediaAdapter.prepareVoiceForReview(nativeUri, 1);
         await localMediaAdapter.cleanup(nativeUri);
-        setMode("unavailable");
+        reportMode("unavailable");
       }
       return;
     }
     setReadyUri(null);
-    setMode("unavailable");
+    reportMode("unavailable");
   };
 
   const start = async () => {
@@ -79,11 +85,11 @@ export function VoiceDraftControl({ onReady, onReset }: Props) {
     const permission = await localMediaAdapter.requestVoicePermission();
     if (!operationIsActive()) return;
     if (permission.kind === "denied") {
-      setMode("denied");
+      reportMode("denied");
       return;
     }
     if (permission.kind === "unavailable") {
-      setMode("unavailable");
+      reportMode("unavailable");
       return;
     }
     try {
@@ -107,7 +113,8 @@ export function VoiceDraftControl({ onReady, onReset }: Props) {
         return;
       }
       nativeRecording.current = false;
-      setMode("unavailable");
+      reportMode("unavailable");
+      return;
     }
     if (!operationIsActive()) return;
     setRecording(true);
@@ -153,11 +160,14 @@ export function VoiceDraftControl({ onReady, onReset }: Props) {
 
   return (
     <YStack gap="$sm">
-      <StatusBanner
-        tone={mode === "denied" ? "warning" : "info"}
-        title={getMessage("vi", mode === "denied" ? "voicePermissionDeniedTitle" : mode === "unavailable" ? "voiceFallbackTitle" : "voiceNativeTitle")}
-        description={getMessage("vi", mode === "denied" ? "voicePermissionDeniedBody" : mode === "unavailable" ? "voiceFallbackBody" : "voiceNativeBody")}
-      />
+      <YStack gap="$xs">
+        <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" fontWeight="$semibold" color="$textPrimary">
+          {getMessage("vi", mode === "denied" ? "voicePermissionDeniedTitle" : mode === "unavailable" ? "voiceFallbackTitle" : "voiceNativeTitle")}
+        </Text>
+        <Text fontFamily="$body" fontSize="$bodyS" lineHeight="$bodyS" color="$textSecondary">
+          {getMessage("vi", mode === "denied" ? "voicePermissionDeniedBody" : mode === "unavailable" ? "voiceFallbackBody" : "voiceNativeBody")}
+        </Text>
+      </YStack>
       <XStack alignItems="center" gap="$md">
         <YStack width={64} height={64} borderRadius="$xl" backgroundColor="$supportLavenderLight" alignItems="center" justifyContent="center">
           <Text fontSize="$h4" color="$primary">{seconds}s</Text>

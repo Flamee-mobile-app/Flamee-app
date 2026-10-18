@@ -1,5 +1,5 @@
-import { UnavailableFeature } from "../../../shared/components";
+import { Redirect } from "expo-router";
 
 export function TimelineScreen() {
-  return <UnavailableFeature title="timelineTitle" description="timelineNotConnectedBody" />;
+  return <Redirect href="/(main)" />;
 }

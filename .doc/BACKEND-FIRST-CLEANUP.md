@@ -1,5 +1,7 @@
 # Gỡ luồng mô phỏng và làm backend trước — 2026-10-17
 
+> Cập nhật 2026-10-18: Home đã chuyển thành feed album kỷ niệm đọc thật `GET /memories` theo yêu cầu redesign; route Timeline cũ về Home. Hero cảm xúc cũ đã bỏ. Create/upload, notification và Tiny Moment vẫn chưa khả dụng, không khôi phục simulator. [Contract Home hiện tại](HOME-MEMORY-FEED.md).
+
 Quyết định trực tiếp: bỏ mock data và mock flow trong app trước khi tiếp tục phát triển backend. Tài liệu này cập nhật trạng thái thực tế, thay các mô tả local runtime trước đây; không tuyên bố backend media hoặc các feature chưa tích hợp đã hoàn tất.
 
 ## Đã thay đổi trong source
@@ -15,7 +17,7 @@ Quyết định trực tiếp: bỏ mock data và mock flow trong app trước k
 | Lifecycle | Giữ logout thật, xóa credential/session/invite intent/query cache và dọn nhắc nhở native đã biết. Gỡ export preview, form support không gửi, unpair local và delete local. Backend unpair có endpoint thật nhưng chưa được tích hợp lại; app không giả lập nó. |
 | Menu | Giữ nhóm/card/divider/quick action. Gỡ gói Premium, giá và quyền lợi mẫu. Giữ mục Chế độ tối trống theo yêu cầu trước đó; không giả thay theme. |
 | Backend recovery | Gỡ OTP lưu trong dict và trả trực tiếp trong response. Payload hợp lệ tới forgot/reset-password nhận 501 `feature_unavailable`; không gửi mã hoặc đổi mật khẩu. |
-| Backend ảnh | Không còn gán URL gốc vào `thumbnail_url` khi upload mới; trả `null` đến khi có thumbnail thực. Không tự sửa/xóa ảnh hoặc metadata đã tồn tại. |
+| Backend ảnh | Pipeline private đã được triển khai trong source: decode/giới hạn ảnh thật, JPEG chuẩn hóa, thumbnail, signed URL và cleanup bù trừ. Migration chưa áp dụng và chưa E2E Supabase thật. |
 
 Đã xóa các service `localCheckInService`, `localMomentService`, `localNudgeService`, `localCoupleService`, `localInviteService`, `localOnboardingService`, `localSettingsService`, `localAccountLifecycleService` và reminder helper không còn caller. Gỡ UI gift/popup chỉ phục vụ engine local và `PremiumPreview`. Các test chỉ xác nhận simulator đã được bỏ cùng triển khai đó; test schema/catalog/presentation còn giữ.
 
@@ -42,25 +44,31 @@ Native `localMediaAdapter` và `localNotificationAdapter` là wrapper thực cho
 
 Nghiệm thu: response schema và error codes nhất quán; không đọc/sửa được tài khoản/couple khác; lỗi mạng không biến thành thành công, không tin owner/couple ID do client gửi.
 
-### 2. Hoàn thiện media dùng chung cho avatar và Timeline
+### 2. Media dùng chung cho avatar và Timeline — đã triển khai trong source
+
+Contract và tradeoff hiện tại nằm tại [BACKEND-MEDIA-PIPELINE.md](BACKEND-MEDIA-PIPELINE.md).
+Migration `backend/migrations/20261018_private_media_pipeline.sql` chỉ là artifact
+review, chưa được chạy.
 
 Đề xuất bản đầu dùng upload multipart qua API cho ảnh sau nén tối đa 2 MiB. Đổi lại API phải nhận và chuyển tiếp bytes; dễ đặt validation, quyền và rollback tập trung. Chỉ chuyển upload trực tiếp có signed permission khi đo được API băng thông/concurrency là điểm nghẽn. Không cần dựng resumable upload cho ảnh nhỏ ở bước đầu.
 
-- Chốt bucket private và object key do server sinh. Source hiện ghi vào `memory-images` trong khi schema cấu hình `memories`; không đổi tên tùy tiện để che sai lệch. Kiểm tra bucket/RLS/giới hạn MIME và kích thước trên môi trường đích trước upload. Bucket `memories` được kiểm tra read-only ở phiên trước là public; đó chưa phải cấu hình media riêng tư đạt yêu cầu.
-- Đề xuất metadata `media_assets`: owner, couple scope nếu có, original/thumbnail storage path, MIME thực, kích thước, byte size và trạng thái xử lý. App nhận media ID; không cho gán URL tùy ý rồi coi là asset đã xác minh.
-- Đọc stream có giới hạn, giải mã ảnh thực, giới hạn số pixel, chuẩn hóa orientation, bỏ EXIF, kiểm tra format. Header MIME và đuôi file không đủ. Giới hạn file phải được áp dụng trước khi đọc toàn bộ vào RAM.
-- Tạo thumbnail thật: avatar nhỏ theo kích thước hiển thị; Timeline thumbnail khoảng 480 px, bản lớn tối đa 1600 px. Các con số thumbnail là đề xuất cần đo chất lượng/bytes; không gắn nhãn tối ưu khi chưa đo. Voice cần contract/giới hạn và validation riêng.
-- Đề xuất `POST /users/me/avatar` và upload asset cho Moment; trả metadata chỉ khi asset sẵn sàng. Thay avatar cập nhật reference atomically, dọn bản cũ khi không còn dùng. Profile URL hiện chỉ là string, chưa có pipeline này.
+- Bucket private `flamee-media` và object key do server sinh; client không nhận quyền ghi trực tiếp.
+- `users.avatar_storage_path` và metadata/path trong `memory_images` lưu asset mới. Cột URL cũ chỉ còn phục vụ dữ liệu legacy.
+- Stream được đọc với hard limit trước khi decode; Pillow xác minh ảnh thật, giới hạn pixel, sửa orientation, bỏ EXIF và chuẩn hóa JPEG.
+- Ảnh kỷ niệm có bản lớn tối đa 1600 px và thumbnail tối đa 480 px; avatar center-crop tối đa 512 px. Các ngưỡng chưa được benchmark trên thiết bị/mạng thật.
+- `POST/DELETE /auth/me/avatar` quản lý avatar; PUT profile không nhận URL tùy ý. Upload ảnh memory giữ endpoint hiện có.
 - Tải ảnh riêng tư qua URL ký thời hạn ngắn (không quá 15 phút theo spec), sau khi kiểm tra quyền hiện tại. URL ký còn dùng được trong TTL sau unpair là tradeoff cần chấp nhận/giảm TTL hoặc dùng proxy kiểm quyền; không hứa thu hồi tức thì.
-- Storage và Postgres không có cùng transaction: phải có bù trừ khi ghi metadata thất bại, trạng thái pending/ready và cleanup orphan có retry. Xóa Moment/account phải dọn object thật, không chỉ xóa row.
+- Storage và Postgres không có cùng transaction: source đã bù trừ object mới khi ghi database lỗi và dọn object khi xóa. Việc dọn avatar cũ là best-effort sau commit; cần orphan sweep có retry cho vận hành dài hạn.
 - Giữ dữ liệu cũ: cần kế hoạch chuyển public URL/path trước khi thay quyền bucket, không làm hỏng ảnh hiện có hoặc chạy cleanup hàng loạt trong bước này.
 
-Nghiệm thu: upload thật trên môi trường kiểm thử được phép, từ chối file giả/quá lớn, user khác không đọc/xóa được, fail giữa Storage/DB không để rác vô hạn, thay/xóa ảnh hoạt động, thumbnail tải ít bytes hơn bản gốc. Chưa có bằng chứng này trong cleanup.
+Unit test đã bao phủ file giả/quá giới hạn, xử lý/thumbnail, phân quyền couple,
+cleanup khi lỗi và thay/xóa asset. Chưa có bằng chứng upload thật, RLS, signed URL,
+payload bytes hoặc hiệu năng trên Supabase/thiết bị nên không gọi pipeline là đã tối ưu.
 
 ### 3. Timeline và CRUD thực, có giới hạn chi phí
 
 - API Moment/Timeline dùng cursor `(created_at, id)`, limit có trần, index theo couple và thời gian; không tải toàn bộ rồi cắt 3 phần tử.
-- Lấy media theo batch/join cho một trang; loại vòng lặp query ảnh theo từng memory. Trả thumbnail/metadata cần cho list, tải bản lớn ở detail.
+- Source hiện lấy metadata ảnh bằng một query cho toàn bộ kết quả và ký URL Storage theo batch, loại N+1 ở phần ảnh. API vẫn chưa có cursor nên "một trang" hiện có thể là toàn bộ dữ liệu.
 - Tạo Moment có idempotency key; retry upload/create không nhân đôi. Chỉ báo đã gửi sau response canonical từ backend. Không có offline queue được xác minh thì không báo “đã xếp hàng”.
 - Reply/reaction/delete kiểm tra membership và owner server-side; quyền phải được đánh giá lại sau unpair. Chưa nối mobile cho đến khi backend và Storage vượt kiểm tra trên.
 
@@ -77,6 +85,10 @@ Nghiệm thu: restart app còn dữ liệu, account partner xem được trên m
 **Ưu tiên đề xuất:** profile + media → Moment/Timeline → check-in/privacy → gợi ý và settings/lifecycle. Không triển khai cả backend mới trong cleanup này và không tự chạy migration/dịch vụ thật.
 
 ## Kết quả kiểm tra source cleanup
+
+Media pipeline được kiểm tra lại ngày 2026-10-18: backend 55/55 test đạt,
+`pip check`/`compileall` đạt; mobile typecheck đạt và domain test 96/96. Đây là
+test source/FakeSupabase, không thay cho migration, Storage/RLS thật hoặc QA thiết bị.
 
 - `npm run typecheck`: đạt sau thay đổi cuối.
 - `npm run test:domain`: 82/82 đạt. Tổng số thay đổi vì bỏ test dành riêng cho engine mô phỏng đã xóa và thêm kiểm tra API/response thật, stale session và guard production source.

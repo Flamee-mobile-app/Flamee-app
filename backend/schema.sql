@@ -7,6 +7,7 @@ CREATE TABLE users (
     username TEXT CONSTRAINT users_username_length_check
         CHECK (username IS NULL OR (char_length(username) BETWEEN 1 AND 40 AND username = btrim(username))),
     avatar_url TEXT,
+    avatar_storage_path TEXT,
     birth_date TEXT,
     gender TEXT,
     couple_id TEXT,
@@ -64,30 +65,23 @@ CREATE TABLE memories (
 CREATE TABLE memory_images (
     id TEXT PRIMARY KEY,
     memory_id TEXT NOT NULL REFERENCES memories(id) ON DELETE CASCADE,
-    url TEXT NOT NULL,
+    url TEXT,
     thumbnail_url TEXT,
+    storage_path TEXT,
+    thumbnail_path TEXT,
+    mime_type TEXT,
+    size_bytes BIGINT,
     uploaded_by TEXT NOT NULL REFERENCES users(id),
     width INTEGER,
     height INTEGER,
     created_at TEXT NOT NULL
 );
 
--- Cấu hình Storage cho ảnh
+-- Bucket private cho media mới. Client không truy cập trực tiếp bằng policy;
+-- backend service role cấp signed URL ngắn hạn sau khi kiểm tra quyền.
 insert into storage.buckets (id, name, public) 
-values ('memories', 'memories', true) 
+values ('flamee-media', 'flamee-media', false) 
 on conflict (id) do nothing;
-
-create policy "Cho phép xem ảnh công khai"
-  on storage.objects for select
-  using ( bucket_id = 'memories' );
-
-create policy "Cho phép upload ảnh"
-  on storage.objects for insert
-  with check ( bucket_id = 'memories' );
-
-create policy "Cho phép xóa ảnh"
-  on storage.objects for delete
-  using ( bucket_id = 'memories' );
 
 -- ==========================================
 -- PHẦN DÀNH CHO AI (TRÍ NHỚ DÀI HẠN & LỊCH SỬ CHAT)

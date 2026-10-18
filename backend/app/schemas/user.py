@@ -32,7 +32,7 @@ class UserProfileResponse(BaseModel):
 class UpdateProfileRequest(BaseModel):
     username: Optional[Username] = None
     full_name: Optional[str] = Field(None, min_length=2)
-    avatar_url: Optional[str] = None
+    avatar_url: None = Field(default=None, description="Use POST /auth/me/avatar")
     birth_date: Optional[str] = None
     gender: Optional[str] = None
 

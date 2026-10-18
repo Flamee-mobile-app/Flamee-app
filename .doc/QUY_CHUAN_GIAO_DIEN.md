@@ -1,5 +1,9 @@
 # Quy chuẩn giao diện Flamee
 
+> Home ngày 2026-10-18 chuyển sang feed ảnh theo yêu cầu trực tiếp, giữ màu Flamee. Header dùng một lớp kính trắng ấm có blur/shadow/line đáy; `+`, title/chevron và chuông không có viền hoặc mặt nút riêng. Header mở rộng chỉ có lựa chọn Kỷ niệm và nút đóng, đồng thời tự ẩn/hiện theo hướng cuộn feed. Post không có card nền/shadow. Thay thiết kế Home hero cũ, là ngoại lệ với ContentSurface bao trang. Xem [HOME-MEMORY-FEED.md](HOME-MEMORY-FEED.md). Các trang/control khác giữ quy chuẩn bên dưới.
+
+> Nút `+` Home mở AppSheet kính mờ neo đáy, ban đầu cao 55%, mở rộng 85% khi chọn ảnh. Textarea và preview ảnh nguyên tỉ lệ nằm trong phần cuộn; Hủy/Đăng cố định ở chân sheet. Preview có nút X gỡ và Thay ảnh riêng, không crop hoặc phủ CTA lên ảnh. Dùng native Expo Blur với target thật trên Home; Android cũ fallback translucent, chưa device QA. Nội dung là draft và ảnh chọn thật; Đăng chưa khả dụng khi upload/create chưa nối. Chi tiết và giới hạn trong HOME-MEMORY-FEED.md.
+
 Tài liệu này định nghĩa màu sắc và kiểu chữ dùng chung cho **toàn bộ mobile app**. Các màn hình và component cần dùng chung bộ token giao diện, không tự đặt lại màu hoặc font riêng.
 
 Nguồn nhận diện ban đầu: `img/color.png` và `img/font.png`. Palette bề mặt và CTA dưới đây được cập nhật theo yêu cầu Home clean, minimalist, premium ngày 2026-10-14; hai màu thương hiệu và màu tâm trạng vẫn được giữ.
@@ -103,7 +107,9 @@ Giữ nguyên mã màu trong bảng khi tạo theme dùng chung. Gradient thươ
 - `AppIconButton` là squircle 44 px, radius 14 px, hit slop 2 px và bắt buộc có
   `accessibilityLabel`. Riêng icon phụ nằm trong ô nhập dùng `tone="plain"`:
   nền trong suốt ở cả hai trạng thái, không bo khối riêng, giữ vùng chạm và
-  semantics button. `AppTextButton` giữ touch target cao 48 px nhưng không
+  semantics button. Action sửa avatar dùng `tone="avatar"`: hình tròn 44 px,
+  nền đào `glassCardPeach` bán trong suốt, icon `accentText`, không border và
+  shadow nâu ấm nông để nổi trên ảnh. `AppTextButton` giữ touch target cao 48 px nhưng không
   có border hoặc shadow CTA.
 - Interaction dùng timing 80 ms khi nhấn và 140 ms khi thả; nút lún 3 px bằng
   `transform: [{ translateY: ... }]`, không dùng prop `translateY` trực tiếp vì
@@ -237,6 +243,11 @@ Giữ nguyên mã màu trong bảng khi tạo theme dùng chung. Gradient thươ
   thông báo tiếp theo tiếp tục hoạt động. Không sửa thư viện hoặc tắt cảnh báo.
 - Trạng thái đang chạy vẫn phải hiện ngay trên control bằng loading/disabled. Toast chỉ thông báo kết quả hoặc thay đổi trạng thái, không thay thế phản hồi trực tiếp của nút.
 - Nội dung toast mô tả đúng kết quả quan sát được. Ví dụ đóng share sheet là “Chưa chia sẻ lời mời”, không báo thành công.
+- Lỗi ngắn phát sinh từ thao tác hoặc request nền phải dùng toast; không chèn
+  `StatusBanner` vào giữa form làm dịch chuyển nội dung. Validation nhập liệu
+  vẫn đặt bằng trạng thái `error` của đúng `AppField`. Trạng thái dữ liệu cần tồn
+  tại lâu hoặc có CTA xử lý riêng vẫn được trình bày bằng chữ/control thường
+  trong nội dung màn hình. Feature không import hoặc render `StatusBanner`.
 
 ## Input và textarea (thiết kế đã duyệt)
 
@@ -346,6 +357,27 @@ Giữ nguyên mã màu trong bảng khi tạo theme dùng chung. Gradient thươ
   nhóm Tài khoản: icon, nhãn và chevron, chưa gắn hành động hoặc route.
   Không có Bật/Tắt, role switch, appearance store hoặc palette tối tự dựng.
   App tiếp tục dùng theme sáng đã duyệt.
+
+## Chỉnh sửa hồ sơ — bố cục duyệt ngày 2026-10-18
+
+- Màn chỉnh sửa hồ sơ là ngoại lệ trực tiếp của `ContentSurface`: dùng nền app,
+  header gọn với nút quay lại và title căn giữa, avatar thật ở giữa, hai trường
+  Tên hiển thị/Biệt danh và CTA Lưu cố định ở cuối vùng an toàn. Không dựng card
+  loading toàn trang; session đang có render ngay và `/auth/me` chỉ refresh nền.
+- Avatar dùng `AppIconButton` chồng ở góc ảnh để mở thư viện. Ảnh chọn được giữ
+  thành draft cục bộ và phải preview ngay trên form; chọn ảnh không gọi API.
+  Nút Lưu mới gửi multipart đến `POST /auth/me/avatar`. Upload lỗi giữ draft để
+  người dùng thử lại; chỉ sau response đúng owner mới cập nhật avatar của tab
+  Hồ sơ trên bottom navigation và dọn file tạm.
+- Nút Lưu chỉ gọi `PUT /auth/me` khi tên hoặc biệt danh thật sự thay đổi. Một
+  lượt chỉ đổi avatar không được tạo request text profile thừa; nếu cả hai thay
+  đổi thì text được server xác nhận trước, sau đó mới upload avatar.
+- Refresh, lưu text hoặc upload avatar thất bại phải gọi `appToast.error` và giữ
+  nguyên dữ liệu/draft để thử lại; không render banner cảnh báo trong form. Tên
+  trống hoặc vượt giới hạn và biệt danh vượt giới hạn hiển thị lỗi tại đúng ô.
+- Bottom navigation hiển thị ảnh tròn thay glyph Hồ sơ khi có signed
+  `avatar_url`; URL lỗi hoặc hết hạn rơi về glyph, không lưu ảnh/URL giả và không
+  coi preview cục bộ là cập nhật thành công.
 
 ## Switch và checkbox (thiết kế đã duyệt)
 

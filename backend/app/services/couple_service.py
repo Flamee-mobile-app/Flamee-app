@@ -14,6 +14,7 @@ from app.repositories.couple_repo import (
 )
 from app.repositories.user_repo import UserRepository
 from app.schemas.couple import MemberInfo
+from app.services.avatar_service import AvatarService
 from app.utils.ids import generate_invite_code, generate_uuid
 from app.utils.time import add_hours, now_utc, to_iso
 
@@ -43,6 +44,7 @@ class CoupleService:
         self.couple_repo = couple_repo
         self.invite_repo = invite_repo
         self.user_repo = user_repo
+        self.avatar_service = AvatarService(db, user_repo)
 
     def create_invite(self, user_id: str) -> InviteCode:
         """Deactivate prior PENDING codes for this user, then create a new one."""
@@ -88,6 +90,7 @@ class CoupleService:
         inviter = self.user_repo.get(invite.user_id)
         if inviter is None:
             raise InviteError("invite_not_found", "Mã mời không tồn tại")
+        inviter = self.avatar_service.present(inviter)
         return invite, MemberInfo(
             id=inviter.id,
             full_name=inviter.full_name,
@@ -187,6 +190,7 @@ class CoupleService:
         if couple.partner1_id:
             p1 = self.user_repo.get(couple.partner1_id)
             if p1:
+                p1 = self.avatar_service.present(p1)
                 partner1_info = MemberInfo(id=p1.id, full_name=p1.full_name, avatar_url=p1.avatar_url)
             if couple.partner1_id == user_id:
                 my_role = "partner1"
@@ -194,6 +198,7 @@ class CoupleService:
         if couple.partner2_id:
             p2 = self.user_repo.get(couple.partner2_id)
             if p2:
+                p2 = self.avatar_service.present(p2)
                 partner2_info = MemberInfo(id=p2.id, full_name=p2.full_name, avatar_url=p2.avatar_url)
             if couple.partner2_id == user_id:
                 my_role = "partner2"

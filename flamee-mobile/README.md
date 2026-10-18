@@ -32,9 +32,9 @@ uses a browser-compatible artwork renderer while native keeps the SVG animation.
 - Invite create/current/preview/revoke/accept use the server. Codes can be copied or shared through the actual OS APIs; no local gift, local membership or simulated acceptance remains.
 - Profile editing reads `/auth/me` and writes `PUT /auth/me` with `full_name` and the user's own `username`. Save feedback requires a validated response belonging to the same account. The pending username migration must be applied separately before using the new backend write contract; it has NOT been run by the agent.
 - Home and Connection refresh server identity/couple status. A failed read shows an error; it never falls back to an unpaired local membership or an empty server feed.
-- Timeline, Moment compose/detail/reply/reaction/delete, check-ins, Nudges/Tasks, care/notification settings, export, support submission, unpairing and account deletion are unavailable in the app until their API integrations are ready. No local success or generated domain records are supplied. Backend unpair exists but has not been connected here.
+- Home's album feed reads real `/memories` data; the old Timeline route forwards to Home. Moment compose/detail/reply/reaction/delete, check-ins, Nudges/Tasks, care/notification settings, export, support submission, unpairing and account deletion remain unavailable until their API integrations are ready. No local success or generated domain records are supplied. Backend unpair exists but has not been connected here.
 - Logout clears actual credentials, session metadata, invite intent and the query cache. It does not claim to delete a backend account.
-- Native image/audio/notification adapters and pure presentation/validation components remain as real device utilities, outside active unsupported flows. `/design-system` remains an isolated component review catalog; its interactive examples are not account data.
+- Native image/audio/notification adapters remain real device utilities. Home's composer uses the photo adapter only for a temporary preview; it never claims to upload or persist a post. Other unsupported flows remain unavailable. `/design-system` remains an isolated component review catalog; its interactive examples are not account data.
 
 See [cleanup and backend-first plan](../.doc/BACKEND-FIRST-CLEANUP.md) for removed modules, known backend blockers and acceptance criteria. Unit-test doubles are retained; they do not demonstrate a live Storage upload or cross-device behavior.
 
@@ -115,14 +115,26 @@ There is no exploration button or connecting-two-hearts subtitle on splash.
 Splash has a warm dark background (#24110F) with a restrained coral glow. The
 native splash is intentionally image-free and uses the same color so the brand
 does not flash before the ember sequence. Startup keeps that native surface in
-place until the custom splash has laid out and its brand/login assets are loaded,
-then starts the ember sequence after `hideAsync` completes. Rebuild the native
+place until the custom splash has laid out and its two directly rendered brand
+assets are loaded. Login hero assets load with the auth screen and do not block
+startup. Session restore settles one second before the 15-second splash deadline;
+if native storage or the network never settles, startup continues signed out while
+leaving the stored credential available for a later retry. The ember sequence
+starts after `hideAsync` completes. Rebuild the native
 app to apply the native splash config change.
 See [login and transition details](../.doc/LOGIN-SPLASH-TRANSITION.md).
 
 ## Home screen
 
-Home retains the approved warm header and emotion hero. Name/avatar and couple status come from authenticated server responses. The hero explains that check-in is unavailable; no local note, template Nudge, invented partner or recent Moment is inserted. FAB intents to unavailable features show the corresponding unavailable screen.
+Home now follows the reference photo-post feed while retaining Flamee's warm palette. An opaque warm-white glass header with blur, shallow depth and a clear bottom separator overlays scrolling content, including the status-bar inset, with borderless plus, centered `Dòng thời gian` title/chevron and bell. It hides while scrolling down and returns while scrolling up or reaching the top. Tapping the title expands the header itself into a rounded selector with only the Memories option and a close button. Selecting Memories opens the two-column photo grid; the expanded Timeline heading returns to the post feed. The old filter chips, greeting, profile avatar, emotion hero and connection/recent-Moment cards have been removed.
+
+Header height, corner radius and content crossfade animate for 200 ms with an immediate Reduced Motion path. Native uses the existing Expo Blur dependency and explicit feed target; web uses backdrop blur. Close, Android Back and Escape preserve the selected view. Native rendering, focus and keyboard behavior still need device/browser QA.
+
+Home validates the session and reads the existing authenticated `/memories` album API. No local posts are generated. The current summary contract has no author or comment data, so rows use a shared-album label and actual memory date, without invented people, avatars or comment counts. Read failures are distinct from a genuine empty album and an unpaired account. Plus opens a glass bottom `AppSheet` at 55%, moving programmatically to 85% after selecting a real library photo. The composer locks sheet drag and overscroll so its footer stays anchored; only text/photo content scrolls. The uncropped preview fits its aspect ratio and available body size, with separate remove/change actions. Photo preparation uses statically loaded native modules and at most two 1600 px compression passes. Post remains disabled until create/upload is integrated; closing or removing cleans adapter-owned temporary photos, including late picker results. The bell still opens an availability sheet.
+
+The composer adds SDK-compatible `expo-blur` for native glass with an explicit Android BlurTargetView. Android 12+ uses the efficient blur method; older Android versions use its translucent fallback. Web keeps CSS backdrop blur. Native blur, keyboard avoidance and picker behavior still need device QA.
+
+The feed uses FlatList virtualization and pull-to-refresh. The backend album API still has no pagination and may return original images in its thumbnail field; client virtualization does not resolve those costs. See [Home contract and remaining limitations](../.doc/HOME-MEMORY-FEED.md).
 
 The pill navigation shows centered icons without visible text labels. Official
 Ionicons outline/filled pairs scale from a 30 px baseline; inactive icons are white
@@ -164,7 +176,7 @@ Account includes a Dark mode placeholder row with no action or state; the app
 continues to use the approved light theme. The menu does not wait
 for profile or membership data to render its static navigation.
 
-Timeline and Moment routes currently show an unavailable state instead of loading session-only records. They must not be enabled by mapping the legacy memory API to a different Moment contract without backend work.
+The old Timeline route forwards to Home's album feed. Moment compose/detail routes remain unavailable; album memories and Tiny Moments are separate contracts.
 
 ## Startup diagnostics
 

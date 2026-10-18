@@ -1,4 +1,4 @@
-> **Tài liệu lịch sử — không dùng làm contract hiện tại.** Bản này mô tả kiến trúc mock/seed cũ không còn trong source. Theo quyết định 2026-10-17, OTP thử nghiệm đã bị gỡ, hai endpoint recovery trả 501; ảnh mới chưa có thumbnail trả `thumbnail_url: null`. Dùng source/OpenAPI và [kế hoạch backend](../../.doc/BACKEND-FIRST-CLEANUP.md), không chạy hướng dẫn seed/reset dưới đây.
+> **Tài liệu chuyển tiếp.** Các phần mock/seed ở cuối là lịch sử và không dùng làm contract. Media hiện dùng bucket private, thumbnail thật và signed URL theo [contract media](../../.doc/BACKEND-MEDIA-PIPELINE.md); migration chưa được áp dụng lên Supabase. Source/OpenAPI là nguồn xác nhận cuối cùng.
 
 # Flamee — API Reference
 
@@ -186,7 +186,7 @@ Helper: `to_iso(dt)` ở `app/utils/time.py` — trả về ISO chuẩn có `+00
 | `title`             | `1 ≤ len ≤ 200` (memory title)                               |
 | `description`       | `len ≤ 4000` (memory)                                        |
 | `location`          | `len ≤ 200`                                                  |
-| `avatar_url`        | `len ≤ 512` (trim whitespace, rỗng → null)                  |
+| `avatar_url`        | Chỉ output signed URL; input khác `null` bị từ chối         |
 | `memory_date`       | `4 ≤ len ≤ 32` (free-form string, không validate format)     |
 | `category`          | `1 trong 7 giá trị MemoryCategory enum` (xem §5.5)           |
 | `anniversary`       | `len ≤ 32` (string), format free                             |
@@ -387,16 +387,19 @@ Tất cả field **optional** (`exclude_unset` semantics: chỉ field nào gửi
 ```json
 {
   "id": "uuid",
-  "url": "data:image/png;base64,...",
-  "thumbnail_url": "data:image/png;base64,...",
-  "width": null,
-  "height": null,
+  "url": "https://...signed...",
+  "thumbnail_url": "https://...signed...",
+  "width": 1200,
+  "height": 900,
+  "mime_type": "image/jpeg",
+  "size_bytes": 183245,
   "uploaded_by": "uuid",
   "created_at": "ISO-8601 string"
 }
 ```
 
-Trong MVP, `width` / `height` luôn `null` và `url` = `thumbnail_url` = data URL base64 (chưa có resize pipeline).
+URL chỉ có hiệu lực tối đa 15 phút. Database lưu private storage paths, không lưu
+signed URL; response có URL legacy chỉ khi row cũ chưa được migrate.
 
 ### 5.9 MemoryListItem
 
@@ -525,7 +528,7 @@ Tất cả field optional (giống UpdateMemoryRequest, dùng `exclude_unset` se
 ```json
 {
   "full_name": "Alice B.",
-  "avatar_url": "https://...",
+  "username": "Ali",
   "birth_date": "1995-04-12",
   "gender": "female"
 }
@@ -630,7 +633,7 @@ Cập nhật profile. Tất cả field optional.
 ```json
 {
   "full_name": "Alice B.",
-  "avatar_url": "https://cdn.example.com/avatars/alice.png",
+  "username": "Ali",
   "birth_date": "1995-04-12",
   "gender": "female"
 }
@@ -638,7 +641,7 @@ Cập nhật profile. Tất cả field optional.
 
 **Validation**:
 
-- `avatar_url`: trim whitespace, chuỗi rỗng → null
+- `avatar_url`: chỉ chấp nhận `null`; dùng endpoint multipart riêng để thay ảnh
 - `full_name`: nếu gửi phải khác rỗng (1–120)
 
 **Success 200**: trả về `UserResponse` đã update.
@@ -647,7 +650,18 @@ Cập nhật profile. Tất cả field optional.
 
 **Service detail**: gọi `AuthService.update_profile()` — chỉ patch field nào không None, thêm `updated_at` mới (`to_iso(now_utc())`).
 
-#### 6.1.5 POST `/api/v1/auth/change-password`
+#### 6.1.5 POST `/api/v1/auth/me/avatar`
+
+Multipart field `file`. Server kiểm tra bytes thật, giới hạn stream/pixel,
+center-crop tối đa 512 px, bỏ metadata và lưu JPEG trong bucket private. Thành
+công trả `UserResponse` với `avatar_url` được ký tối đa 15 phút.
+
+#### 6.1.6 DELETE `/api/v1/auth/me/avatar`
+
+Xóa reference avatar của user hiện tại và dọn object private do pipeline quản lý.
+Hai endpoint này yêu cầu Bearer token.
+
+#### 6.1.7 POST `/api/v1/auth/change-password`
 
 **Request body**:
 
@@ -848,7 +862,9 @@ Update memory (partial). Field nào gửi mới update.
 
 **Success 204**: No Content.
 
-**Side effects**: xóa luôn tất cả `MemoryImage` của memory đó (`image_repo.delete_by_memory(memory_id)`).
+**Side effects**: xóa original/thumbnail private của mọi ảnh do pipeline quản lý,
+sau đó xóa metadata ảnh và memory. Storage và Postgres không có transaction chung;
+retry sẽ hoàn tất phần database nếu object đã được xóa ở lần trước.
 
 #### 6.3.6 POST `/api/v1/memories/{memory_id}/images`
 
@@ -875,15 +891,16 @@ Content-Type: image/jpeg
 
 | Code | Condition                                                       |
 |------|----------------------------------------------------------------|
-| 400  | File > `FLAMEE_MAX_UPLOAD_SIZE_MB` MB (`ValidationError`, "File vượt quá giới hạn N MB") |
+| 400  | File vượt giới hạn, không decode được, ảnh động hoặc quá giới hạn pixel |
 | 404  | Memory không tồn tại                                             |
 
 **Detail kỹ thuật**:
 
-- Content được đọc hết qua `file.file.read()` (`_read_within_limit`)
-- Encode base64 (chuẩn ASCII) + thêm prefix `data:<mime>;base64,` → lưu vào cả `url` và `thumbnail_url` (giống nhau trong MVP)
-- `width` / `height` chưa đọc → set `null`
-- Mime lấy từ `file.content_type`, default `"image/png"` nếu không có header
+- Stream chỉ đọc tối đa giới hạn cấu hình cộng một byte để phát hiện vượt ngưỡng.
+- Pillow decode dữ liệu thực, giới hạn 20 triệu pixel, sửa EXIF orientation, bỏ metadata và từ chối ảnh động.
+- Sinh JPEG lớn tối đa 1600 px và thumbnail tối đa 480 px; upload vào bucket private `flamee-media` bằng key do server sinh.
+- Database lưu storage paths, MIME, kích thước pixel và byte size. Nếu upload hoặc insert metadata lỗi, service dọn object mới theo cơ chế bù trừ.
+- List memory lấy metadata ảnh bằng một query và ký các path theo một batch; API chưa có pagination.
 
 #### 6.3.7 DELETE `/api/v1/memories/{memory_id}/images/{image_id}`
 
@@ -959,7 +976,8 @@ Dataclass models (Phase 0 foundation), xem `app/models/`:
 | email          | str    | Unique, lowercase canonical           |
 | password_hash  | str    | bcrypt hash                            |
 | full_name      | str    | 1–120 chars                            |
-| avatar_url     | str\|None | ≤ 512 chars                       |
+| avatar_url     | str\|None | URL legacy; response có thể là signed URL |
+| avatar_storage_path | str\|None | Path avatar mới trong private storage |
 | birth_date     | str\|None | Free-form, "YYYY-MM-DD"             |
 | gender         | str\|None | ≤ 20 chars                          |
 | couple_id      | str\|None | NULL khi chưa ghép đôi              |
@@ -1023,11 +1041,15 @@ Dataclass models (Phase 0 foundation), xem `app/models/`:
 |---------------|--------|-------------------------------------------------------|
 | id            | str    | UUID                                                   |
 | memory_id     | str    | FK                                                     |
-| url           | str    | "data:<mime>;base64,..." (MVP)                          |
-| thumbnail_url | str\|None | Same as `url` for now; null-able for future pipeline |
+| url           | str\|None | URL legacy; upload mới để null                       |
+| thumbnail_url | str\|None | URL legacy; upload mới để null                       |
+| storage_path  | str\|None | Private path bản lớn                                  |
+| thumbnail_path | str\|None | Private path thumbnail                               |
+| mime_type     | str\|None | MIME thực sau xử lý (`image/jpeg`)                    |
+| size_bytes    | int\|None | Byte size của bản lớn sau xử lý                       |
 | uploaded_by   | str    | FK to User                                             |
-| width         | int\|None | NULL until pipeline (Phase 2)                      |
-| height        | int\|None | NULL until pipeline (Phase 2)                      |
+| width         | int\|None | Kích thước bản lớn sau xử lý                         |
+| height        | int\|None | Kích thước bản lớn sau xử lý                         |
 | created_at    | str    | ISO-8601                                               |
 
 ---
@@ -1088,8 +1110,9 @@ Restart `python run.py` → seed chạy lại.
 - **Swap storage sang SQLite:** đổi `FLAMEE_STORAGE=sqlite`, tạo `app/storage/sqlite_storage.py` implement `Storage` ABC, đăng ký trong `app/storage/factory.py`.
 - **Swap storage sang Postgres:** tương tự với `FLAMEE_STORAGE=postgres`.
 - **Real OTP qua email:** thay trả OTP trong response bằng send email, lưu OTP cache qua Redis thay vì `dict` in-memory.
-- **Resize ảnh:** thêm pipeline trong `MemoryService.upload_image` — dùng `Pillow` hoặc gọi sang cloud function, set `thumbnail_url` riêng.
-- **Real file storage:** thay `data:base64` bằng URL trỏ về S3/R2 — chỉ cần đổi `_to_data_url()`.
+- **Media vận hành:** áp dụng migration private media trên môi trường phát triển,
+  E2E Storage/RLS và bổ sung orphan sweep có retry. Không gọi pipeline đã tối ưu
+  trước khi đo latency, memory, payload bytes và chất lượng ảnh thật.
 
 ### 10.2 Đường dẫn nhanh tới file nguồn
 

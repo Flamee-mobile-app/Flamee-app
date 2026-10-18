@@ -43,6 +43,7 @@ type ButtonColor =
   | "$supportPeachLight"
   | "$glassButton"
   | "$glassFilter"
+  | "$glassCardPeach"
   | "transparent";
 
 const buttonPresentations: Record<AppButtonVariant, ButtonPresentation> = {
@@ -138,7 +139,7 @@ export function getAppButtonPresentation(variant: AppButtonVariant): ButtonPrese
   return buttonPresentations[variant];
 }
 
-export type IconButtonTone = "neutral" | "accent" | "danger" | "plain";
+export type IconButtonTone = "neutral" | "accent" | "avatar" | "danger" | "plain";
 
 export function getIconButtonPresentation(tone: IconButtonTone, selected: boolean) {
   if (tone === "plain") {
@@ -159,6 +160,15 @@ export function getIconButtonPresentation(tone: IconButtonTone, selected: boolea
     } as const;
   }
 
+  if (tone === "avatar") {
+    return {
+      backgroundColor: "$glassCardPeach",
+      color: "$accentText",
+      hoverBackgroundColor: "$glassCardPeach",
+      pressBackgroundColor: "$glassCardPeach",
+    } as const;
+  }
+
   if (tone === "danger") {
     return {
       backgroundColor: selected ? "$error" : "$surface",
@@ -174,6 +184,12 @@ export function getIconButtonPresentation(tone: IconButtonTone, selected: boolea
     hoverBackgroundColor: selected ? "$accentSoft" : "$surface",
     pressBackgroundColor: selected ? "$accentSoft" : "$surface",
   } as const;
+}
+
+export function getIconButtonRadius(tone: IconButtonTone) {
+  if (tone === "plain") return 0;
+  if (tone === "avatar") return buttonTokens.iconButtonSize / 2;
+  return buttonTokens.iconButtonRadius;
 }
 
 export function getFilterChipPresentation(selected: boolean) {

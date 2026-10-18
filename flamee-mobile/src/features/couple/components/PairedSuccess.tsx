@@ -1,11 +1,15 @@
 import { HeartHandshake } from "@tamagui/lucide-icons-2/icons/HeartHandshake";
 import { useRouter } from "expo-router";
+import { useEffect } from "react";
 import { Text, YStack } from "tamagui";
-import { AppButton, AppScreen, StatusBanner } from "../../../shared/components";
+import { AppButton, AppScreen, appToast } from "../../../shared/components";
 import { getMessage } from "../../../shared/localization/messages";
 
 export function PairedSuccess() {
   const router = useRouter();
+  useEffect(() => {
+    appToast.info(getMessage("vi", "inviteLocalOnlyTitle"), { description: getMessage("vi", "inviteLocalOnlyBody") });
+  }, []);
   return (
     <AppScreen scroll={false} contentProps={{ justifyContent: "center", alignItems: "center", paddingBottom: "$xxl" }}>
       <Text fontFamily="$body" fontSize="$bodyS" fontWeight="$semibold" color="$primary">
@@ -20,7 +24,6 @@ export function PairedSuccess() {
       <Text textAlign="center" fontFamily="$body" fontSize="$bodyL" lineHeight="$bodyL" color="$textSecondary">
         {getMessage("vi", "pairedSuccessBody")}
       </Text>
-      <StatusBanner tone="info" title={getMessage("vi", "inviteLocalOnlyTitle")} description={getMessage("vi", "inviteLocalOnlyBody")} />
       <AppButton fill onPress={() => router.replace("/(main)")}>
         {getMessage("vi", "enterHome")}
       </AppButton>

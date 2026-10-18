@@ -145,3 +145,35 @@ ghi dữ liệu lên dịch vụ thật. Không thêm dependency hoặc sửa no
   căn giữa và divider đã sửa ở lượt trước.
 - Kiểm tra mới: typecheck đạt; domain tests 86/86 đạt; source không còn tham
   chiếu appearance store/darkColors. Không dùng browser agent/test thiết bị.
+
+## Chỉnh sửa hồ sơ và avatar bottom navigation — 2026-10-18
+
+- Bỏ nhánh `AsyncStateView` loading toàn trang của màn hồ sơ. Form lấy session
+  đã xác thực để render ngay, đồng bộ `/auth/me` ở nền và giữ dữ liệu hiện có
+  khi refresh lỗi.
+- Màn hồ sơ dùng header gọn căn giữa, avatar có action sửa, counter tên/biệt
+  danh và CTA Lưu cuối màn. Text profile tiếp tục dùng `PUT /auth/me`.
+- Picker avatar giữ ảnh thành draft để preview; chọn ảnh chưa gọi backend.
+  Nút Lưu mới gửi multipart thật đến `POST /auth/me/avatar`; upload lỗi giữ draft
+  để retry. Nếu text không đổi, app bỏ qua `PUT /auth/me`, tránh request thừa.
+  Chỉ response cùng account mới cập nhật session/store và cleanup file tạm.
+  Bottom nav dùng signed avatar URL và fallback về icon Hồ sơ khi ảnh lỗi.
+- Log thiết bị xác nhận database thật thiếu cột `users.username` (`PGRST204`).
+  Backend nay trả 503 `database_migration_required` thay vì 500; migration
+  username và private media vẫn phải được người vận hành áp dụng.
+- Nút sửa avatar dùng tone `avatar` của `AppIconButton`: bubble tròn 44 px,
+  nền đào bán trong suốt và shadow nông; không dựng control riêng trong feature.
+- So sánh text profile chuẩn hóa khoảng trắng ở cả draft và dữ liệu server, tránh
+  phát `PUT /auth/me` khi người dùng chỉ đổi avatar.
+- Phản hồi refresh/lưu/upload thất bại của form hồ sơ dùng `appToast.error`;
+  bỏ các banner làm dịch chuyển form. Validation tên/biệt danh nằm tại đúng
+  `AppField`, còn draft và dữ liệu hiện có vẫn được giữ để người dùng thử lại.
+- Chuẩn hóa toàn bộ feature: lỗi/kết quả thao tác ở auth, invite, account và
+  media dùng `appToast`; trạng thái bài đăng cần tồn tại dùng dòng chữ gọn cạnh
+  bản ghi. Thêm guard cấm `StatusBanner` trong feature để tránh banner chen form.
+- `npm run typecheck` đạt; `npm run test:domain` đạt 107/107; backend `pytest -q`
+  đạt 56/56, còn 7 cảnh báo `datetime.utcnow()` cũ. Android Expo
+  export đạt 4417 modules/8.6 MB tại thư mục tạm
+  `flamee-profile-draft-android-qa`. Không chạy browser agent theo yêu cầu.
+  Chưa E2E Expo Go hoặc Storage/Supabase thật; migration media vẫn cần được
+  người vận hành review và áp dụng.

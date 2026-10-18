@@ -51,7 +51,8 @@ CREATE TABLE users (
     password_hash TEXT NOT NULL,
     full_name TEXT NOT NULL,
     username TEXT, -- Biệt danh tùy chọn, không unique, tối đa 40 ký tự sau trim
-    avatar_url TEXT,
+    avatar_url TEXT, -- Chỉ đọc dữ liệu legacy; upload mới không ghi public URL
+    avatar_storage_path TEXT, -- Path private trong bucket flamee-media
     birth_date TEXT,
     gender TEXT,
     couple_id TEXT, -- Trỏ tới id của couples, null nếu chưa ghép đôi
@@ -131,15 +132,24 @@ CREATE TABLE memories (
 CREATE TABLE memory_images (
     id TEXT PRIMARY KEY,
     memory_id TEXT NOT NULL REFERENCES memories(id) ON DELETE CASCADE,
-    url TEXT NOT NULL, -- Đường dẫn file trên Supabase Storage
-    thumbnail_url TEXT,
+    url TEXT, -- URL legacy; upload mới để null
+    thumbnail_url TEXT, -- URL legacy; upload mới để null
+    storage_path TEXT, -- Bản lớn private, server sinh key
+    thumbnail_path TEXT, -- Thumbnail private, server sinh key
+    mime_type TEXT,
+    size_bytes INTEGER,
     uploaded_by TEXT NOT NULL REFERENCES users(id),
     width INTEGER,
     height INTEGER,
     created_at TEXT NOT NULL
 );
 ```
-*Ghi chú: Ảnh thực tế được lưu vào Bucket `memories` của Supabase Storage.*
+*Ghi chú:* asset mới được lưu trong bucket private `flamee-media`. Database chỉ lưu
+path ổn định; API kiểm tra quyền rồi tạo signed URL tối đa 15 phút. Bucket/URL công
+khai cũ được giữ cho dữ liệu legacy cho đến khi có migration dữ liệu riêng.
+
+Schema này cần migration `20261018_private_media_pipeline.sql`; file migration đã
+được viết nhưng chưa chạy trên Supabase.
 
 ---
 

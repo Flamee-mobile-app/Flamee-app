@@ -4,6 +4,7 @@ from supabase import Client
 from app.api.deps import get_current_user, get_db
 from app.api.response import ok
 from app.services.user_service import UserService
+from app.services.avatar_service import AvatarService
 from app.schemas.user import (
     UserProfileResponse,
     UpdateProfileRequest,
@@ -22,6 +23,7 @@ def get_my_profile(
     user_service: UserService = Depends(get_user_service)
 ):
     user = user_service.get_user(current["id"])
+    user = AvatarService(user_service.db).present(user)
     return ok(UserProfileResponse.from_model(user).model_dump())
 
 @router.put("/me")
@@ -33,11 +35,11 @@ def update_my_profile(
     user = user_service.update_profile(
         user_id=current["id"],
         full_name=payload.full_name,
-        avatar_url=payload.avatar_url,
         birth_date=payload.birth_date,
         gender=payload.gender,
         username=payload.username,
     )
+    user = AvatarService(user_service.db).present(user)
     return ok(UserProfileResponse.from_model(user).model_dump())
 
 @router.put("/me/password")
@@ -56,4 +58,5 @@ def update_device_token(
     user_service: UserService = Depends(get_user_service)
 ):
     user = user_service.update_fcm_token(current["id"], payload.fcm_token)
+    user = AvatarService(user_service.db).present(user)
     return ok(UserProfileResponse.from_model(user).model_dump())

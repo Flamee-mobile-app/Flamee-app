@@ -31,8 +31,7 @@ class Memory:
 class MemoryImage:
     id: str
     memory_id: str
-    # URL/signed URL trả về client (TTL-bound)
-    url: str
+    url: str | None
     thumbnail_url: str | None
     uploaded_by: str
     width: int | None
@@ -45,6 +44,10 @@ class MemoryImage:
     thumb_object_key: str | None = None
     # M-06: thời điểm hết hạn của signed_url
     url_expires_at: str | None = None
+    storage_path: str | None = None
+    thumbnail_path: str | None = None
+    mime_type: str | None = None
+    size_bytes: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

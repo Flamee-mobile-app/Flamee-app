@@ -22,6 +22,7 @@ class User:
     created_at: str = ""
     updated_at: str = ""
     username: str | None = None
+    avatar_storage_path: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

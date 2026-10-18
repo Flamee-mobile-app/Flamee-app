@@ -92,6 +92,18 @@ class MemoryImageRepository(BaseRepository[MemoryImage]):
         )
         return [self.model_cls.from_dict(r) for r in (resp.data or [])]
 
+    def find_by_memories(self, memory_ids: list[str]) -> list[MemoryImage]:
+        if not memory_ids:
+            return []
+        resp = (
+            self.db.table(self.table)
+            .select("*")
+            .in_("memory_id", memory_ids)
+            .order("created_at")
+            .execute()
+        )
+        return [self.model_cls.from_dict(r) for r in resp.data]
+
     def delete_by_memory(self, memory_id: str) -> int:
         resp = (
             self.db.table(self.table)

@@ -13,8 +13,6 @@ import { phase, StartupArtwork, StartupBackground } from "./StartupArtwork";
 const startupAssetModules = [
   require("../assets/flamee-symbol.png"),
   require("../assets/flamee-wordmark.png"),
-  require("../../../public/login-bg.png"),
-  require("../../../public/flamee-logo-slogan-tachnen.png"),
 ];
 
 let startupAssetsPromise: Promise<void> | null = null;

@@ -3,7 +3,7 @@ import { Platform } from "react-native";
 import { Button } from "tamagui";
 import { buttonTokens } from "../constants/tokens";
 import { useButtonInteraction } from "./useButtonInteraction";
-import { getIconButtonPresentation, resolvePlatformAccessibilityProps, type IconButtonTone } from "./buttonSystemModel";
+import { getIconButtonPresentation, getIconButtonRadius, resolvePlatformAccessibilityProps, type IconButtonTone } from "./buttonSystemModel";
 
 export type AppIconButtonProps = {
   icon: ReactNode;
@@ -44,9 +44,12 @@ export function AppIconButton({
       height={buttonTokens.iconButtonSize}
       minWidth={buttonTokens.iconButtonSize}
       minHeight={buttonTokens.iconButtonSize}
-      borderRadius={tone === "plain" ? 0 : buttonTokens.iconButtonRadius}
+      borderRadius={getIconButtonRadius(tone)}
       borderWidth={0}
       backgroundColor={presentation.backgroundColor}
+      {...(tone === "avatar" ? Platform.OS === "web"
+        ? { boxShadow: buttonTokens.avatarEditShadow }
+        : buttonTokens.avatarEditNativeShadow : {})}
       color={presentation.color}
       padding={0}
       hitSlop={buttonTokens.iconButtonHitSlop}

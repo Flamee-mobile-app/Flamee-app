@@ -2,6 +2,8 @@
 
 # Flamee mobile rebuild architecture
 
+Home hiện tại theo [HOME-MEMORY-FEED.md](HOME-MEMORY-FEED.md): feed album ảnh đọc `/memories`, header thêm/chuông, giữ màu Flamee. Các mô tả Home hero phía dưới là lịch sử; tạo/upload/thông báo chưa được mở lại.
+
 **Status:** proposed Phase 1 architecture for React Native + Expo + Tamagui  
 **Product source of truth:** [Tài liệu yêu cầu sản phẩm: App kết nối cho cặp đôi](Tài%20li%E1%BB%87u%20y%C3%AAu%20c%E1%BA%A7u%20s%E1%BA%A3n%20ph%E1%BA%A9m_%20App%20k%E1%BA%BFt%20n%E1%BB%91i%20cho%20c%E1%BA%B7p%20%C4%91%C3%B4i.md) and [Các luồng chính của app (bản đầu)](Các%20lu%E1%BB%93ng%20ch%C3%ADnh%20c%E1%BB%A7a%20app%20(b%E1%BA%A3n%20%C4%91%E1%BA%A7u).md). This document is a client architecture proposal; it does not define new product policy or backend contracts beyond those documents.
 

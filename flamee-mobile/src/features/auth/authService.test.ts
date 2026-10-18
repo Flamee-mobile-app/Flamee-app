@@ -22,7 +22,9 @@ async function withServer(handler: (req: IncomingMessage, res: ServerResponse, b
     for await (const chunk of req) chunks.push(Buffer.from(chunk));
     res.setHeader("Content-Type", "application/json");
     const raw = Buffer.concat(chunks).toString();
-    await handler(req, res, raw ? JSON.parse(raw) : null);
+    const contentType = req.headers["content-type"] ?? "";
+    const body = raw && contentType.includes("application/json") ? JSON.parse(raw) : raw || null;
+    await handler(req, res, body);
   });
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   try { await run(`http://127.0.0.1:${(server.address() as AddressInfo).port}/api/v1`); }
@@ -196,5 +198,29 @@ test("profile update arriving after logout cannot restore an account", async () 
     const rejection = assert.rejects(update, (error) => error instanceof AuthError && error.code === "cancelled");
     await ready; await auth.signOut(); release(); await rejection;
     assert.equal(await auth.getCurrentSession(), null);
+  });
+});
+
+test("avatar upload uses authenticated multipart and updates only the active session", async () => {
+  const avatarUrl = "https://storage.example/avatar-signed.jpg";
+  await withServer((req, res, body) => {
+    if (req.url === "/api/v1/auth/login") {
+      res.end(JSON.stringify({ success: true, data: { user, access_token: "avatar-token" } }));
+      return;
+    }
+    assert.equal(req.url, "/api/v1/auth/me/avatar");
+    assert.equal(req.method, "POST");
+    assert.equal(req.headers.authorization, "Bearer avatar-token");
+    assert.match(req.headers["content-type"] ?? "", /^multipart\/form-data; boundary=/);
+    assert.match(String(body), /name="file"/);
+    res.end(JSON.stringify({ success: true, data: { ...user, avatar_url: avatarUrl } }));
+  }, async (baseUrl) => {
+    const auth = createAuthService({ api: createAuthApi({ baseUrl }), credentials: credentials() });
+    await auth.login(user.email, "Secret123");
+
+    const updated = await auth.updateAvatar(new Blob(["avatar-bytes"], { type: "image/jpeg" }));
+
+    assert.equal(updated.user.avatar_url, avatarUrl);
+    assert.equal(auth.getSessionSnapshot()?.user.avatar_url, avatarUrl);
   });
 });

@@ -27,6 +27,7 @@ export const colors = {
   glassButton: "rgba(255, 255, 255, 0.14)",
   glassFilter: "rgba(255, 255, 255, 0.52)",
   glassDialog: "rgba(255, 252, 248, 0.48)",
+  glassHeader: "rgba(255, 252, 248, 0.88)",
   glassCard: "rgba(255, 252, 248, 0.66)",
   glassCardPeach: "rgba(247, 221, 204, 0.38)",
   glassCardLavender: "rgba(220, 206, 247, 0.20)",
@@ -107,6 +108,7 @@ export const glassTokens = {
   buttonBlur: 16,
   filterBlur: 6,
   dialogBlur: 28,
+  nativeDialogBlur: 48,
   cardBlur: 12,
   cardBackdrop: "blur(12px) saturate(115%)",
   buttonBackdrop: "blur(16px) saturate(160%)",
@@ -187,6 +189,14 @@ export const buttonTokens = {
   iconButtonSize: 44,
   iconButtonHitSlop: 2,
   iconButtonRadius: 14,
+  avatarEditShadow: "0 4px 12px rgba(48,41,36,0.14)",
+  avatarEditNativeShadow: {
+    shadowColor: colors.textPrimary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.14,
+    shadowRadius: 6,
+    elevation: 3,
+  },
   interactionDuration: 140,
   pressDuration: 80,
   pressOffset: 3,
@@ -227,6 +237,26 @@ export const homeTokens = {
   avatarSize: 48,
   navigationClearance: 116,
 } as const;
+
+export const memoryFeedTokens = {
+  maxWidth: 560,
+  headerHeight: 60,
+  expandedHeaderHeight: 136,
+  expandedHeaderRadius: 28,
+  headerTransition: 200,
+  gutter: 20,
+  postGap: 36,
+  gridGap: 12,
+  avatarSize: 34,
+  photoRadius: 18,
+  photoAspectRatio: 4 / 3,
+  iconSize: 24,
+  navigationClearance: 116,
+} as const;
+
+export const photoPickerTokens = { height: 156, radius: 18, iconSize: 24, pressOffset: 1, previewViewportRatio: 0.43 } as const;
+
+export const memoryComposerTokens = { snapPoints: [85, 55], initialPosition: 1 };
 
 export const featureTokens = {
   maxWidth: 560,

@@ -54,6 +54,8 @@ class MemoryImageResponse(BaseModel):
     thumbnail_url: str | None
     width: int | None
     height: int | None
+    mime_type: str | None
+    size_bytes: int | None
     uploaded_by: str
     created_at: str
     # M-06: signed URL hết hạn (epoch seconds)
@@ -61,12 +63,16 @@ class MemoryImageResponse(BaseModel):
 
     @classmethod
     def from_model(cls, img: MemoryImage) -> "MemoryImageResponse":
+        if not img.url:
+            raise RuntimeError("Memory image has no readable URL")
         return cls(
             id=img.id,
             url=img.url,
             thumbnail_url=img.thumbnail_url,
             width=img.width,
             height=img.height,
+            mime_type=img.mime_type,
+            size_bytes=img.size_bytes,
             uploaded_by=img.uploaded_by,
             created_at=img.created_at,
             url_expires_at=_parse_exp_to_epoch(img.url_expires_at),

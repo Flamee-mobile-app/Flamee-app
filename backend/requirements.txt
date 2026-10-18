@@ -23,7 +23,7 @@ langchain-core==0.3.13
 googlemaps==4.10.0
 
 # Image processing (M-02: thumbnail thật + M-05: validation thật)
-Pillow==10.4.0
+Pillow>=11.0,<13
 
 # Test
 pytest==8.3.3

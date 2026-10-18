@@ -6,7 +6,7 @@ import { RotateCcw } from "@tamagui/lucide-icons-2/icons/RotateCcw";
 import { useAudioPlayer } from "expo-audio";
 import { Image, Text, XStack, YStack } from "tamagui";
 import type { Moment } from "../types";
-import { AppButton, SectionCard, StatusBanner } from "../../../shared/components";
+import { AppButton, SectionCard } from "../../../shared/components";
 import { formatMessage, getMessage } from "../../../shared/localization/messages";
 
 const icons = { photo: Camera, voice: Mic, text: MessageCircle, signal: Radio };
@@ -52,13 +52,13 @@ export function MomentCard({ moment, own, partnerName, viewerTimezone, onOpen, o
             {getMessage("vi", "playRecording")}{moment.durationSeconds ? ` · ${moment.durationSeconds}s` : ""}
           </AppButton>
         ) : null}
-        {mediaUnavailable ? <StatusBanner tone="warning" title={getMessage("vi", "mediaUnavailableTitle")} description={getMessage("vi", "mediaUnavailableBody")} /> : null}
+        {mediaUnavailable ? <Text fontSize="$bodyS" color="$accentText">{getMessage("vi", "mediaUnavailableTitle")} · {getMessage("vi", "mediaUnavailableBody")}</Text> : null}
         {moment.status === "pending" ? (
-          <StatusBanner tone="offline" title={getMessage("vi", "momentPendingTitle")} />
+          <Text fontSize="$bodyS" color="$textSecondary">{getMessage("vi", "momentPendingTitle")}</Text>
         ) : null}
         {moment.status === "failed" ? (
           <YStack gap="$sm">
-            <StatusBanner tone="warning" title={getMessage("vi", "momentFailedTitle")} description={getMessage("vi", "momentFailedBody")} />
+            <Text fontSize="$bodyS" color="$accentText">{getMessage("vi", "momentFailedTitle")} · {getMessage("vi", "momentFailedBody")}</Text>
             {onRetry ? <AppButton variant="ghost" icon={<RotateCcw size={18} />} onPress={onRetry}>{getMessage("vi", "retryUpload")}</AppButton> : null}
           </YStack>
         ) : null}
