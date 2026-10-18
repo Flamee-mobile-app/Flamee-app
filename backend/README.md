@@ -1,5 +1,40 @@
 # Flamee backend local
 
+Kết quả hiện tại sau merge dev: [DEV-MERGE-2026-10-18.md](docs/DEV-MERGE-2026-10-18.md).
+Private media đã được tích hợp với auth session; các đoạn trạng thái cũ bên dưới
+không thay thế báo cáo này. Database thật vẫn cần migration invite/backend alignment.
+
+## Backend alignment — hướng dẫn hiện tại
+
+Xem [DATABASE-SETUP.md](docs/DATABASE-SETUP.md) để chọn bootstrap hoặc migration,
+cấu hình `.env` và hiểu các API còn chưa khả dụng. Bản sửa này đã xử lý lỗi tuple
+JWT, bổ sung session/refresh/logout và đồng bộ schema với các model hiện có.
+Các kết quả setup/cleanup cũ bên dưới là lịch sử, không thay thế hướng dẫn này.
+
+## Sửa lỗi khởi động Settings — 2026-10-17
+
+`create_app()` gọi `Settings.assert_production_safe()`, nhưng lớp cấu hình bị thiếu
+method này. Đã bổ sung guard: khi `FLAMEE_DEBUG=false`, JWT secret phải khác mặc
+định, dài ít nhất 32 ký tự sau trim và OAuth client ID không được để trống.
+Chế độ development vẫn khởi động với cấu hình mặc định.
+
+Đồng bộ các trường đang được code sử dụng: refresh TTL, OpenAI base URL, Gemini
+provider/model/key/base URL và payment webhook secret. `.env.example` dùng JSON
+array cho CORS theo kiểu `list[str]`; không thay `.env` riêng của người dùng.
+
+Kiểm tra trên Python 3.13 hiện có: 9 test cấu hình/startup đạt; Uvicorn khởi động
+thật trên cổng kiểm thử localhost, `/health` trả 200. `/docs` và `/openapi.json`
+được kiểm tra bằng TestClient. Chưa kiểm tra thiết bị hoặc dịch vụ Supabase/AI thật.
+Toàn bộ suite hiện có 15 passed, 25 failed, 45 errors: auth service đang truyền
+tuple `(token, jti, expires_at)` vào `AuthResponse.access_token` yêu cầu string;
+các test refresh/Google login cũng đòi endpoint chưa có trong router hiện tại.
+Các sai lệch nghiệp vụ này chưa được giải quyết trong bản sửa lỗi khởi động.
+
+Ba tài liệu `.doc/README.md`, `.doc/CODING-STANDARDS.md` và
+`.doc/CODEBASE-BASELINE.md` hiện thiếu trong checkout.
+
+## Trạng thái sau cleanup 2026-10-17
+
 ## Trạng thái backend 2026-10-18
 
 - Forgot/reset-password trả 501 `feature_unavailable`; đã gỡ OTP trả trong response và OTP store trong bộ nhớ. Chưa có email delivery thật.

@@ -25,6 +25,10 @@ class UserResponse(BaseModel):
     email: EmailStr
     full_name: str
     username: str | None = None
+    nickname: str | None = None
+    timezone: str = "Asia/Ho_Chi_Minh"
+    birth_date: str | None = None
+    gender: str | None = None
     avatar_url: str | None = None
     couple_id: str | None = None
     created_at: str
@@ -36,6 +40,10 @@ class UserResponse(BaseModel):
             email=user.email,
             full_name=user.full_name,
             username=user.username,
+            nickname=user.nickname,
+            timezone=user.timezone,
+            birth_date=user.birth_date,
+            gender=user.gender,
             avatar_url=user.avatar_url,
             couple_id=user.couple_id,
             created_at=user.created_at,
@@ -45,6 +53,12 @@ class UserResponse(BaseModel):
 class AuthResponse(BaseModel):
     user: UserResponse
     access_token: str
+    refresh_token: str
+    expires_at: str
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str = Field(min_length=1, max_length=512)
 
 
 class ChangePasswordRequest(BaseModel):
@@ -64,6 +78,8 @@ class ResetPasswordRequest(BaseModel):
 
 class UpdateProfileRequest(BaseModel):
     username: Username | None = None
+    nickname: str | None = Field(default=None, max_length=120)
+    timezone: str | None = Field(default=None, min_length=1, max_length=100)
     full_name: str | None = Field(default=None, min_length=1, max_length=120)
     avatar_url: None = Field(default=None, description="Use POST /auth/me/avatar")
     birth_date: str | None = None

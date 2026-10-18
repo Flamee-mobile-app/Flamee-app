@@ -11,6 +11,9 @@ class Mood:
     note: Optional[str]
     is_private: bool
     created_at: str
+    mood_score: int = 3
+    reasons: Optional[list[str]] = None
+    share_level: str = "all"
 
 @dataclass
 class MoodAlert:

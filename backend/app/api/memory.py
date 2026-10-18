@@ -40,15 +40,19 @@ def _ensure_couple_id(user: dict) -> str:
 def list_memories(
     category: str | None = Query(default=None),
     year: int | None = Query(default=None, ge=1900, le=2999),
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
     current: dict = Depends(get_current_user),
     db: Client = Depends(get_db),
 ):
     couple_id = _ensure_couple_id(current)
-    items, total = _service(db).list_memories(
-        couple_id, category=category, year=year
+    items, total, has_more = _service(db).list_memories(
+        couple_id, category=category, year=year, limit=limit, offset=offset
     )
     return ok(
-        MemoryListResponse(items=items, total=total).model_dump()
+        MemoryListResponse(
+            items=items, total=total, limit=limit, offset=offset, has_more=has_more
+        ).model_dump()
     )
 
 

@@ -1,5 +1,8 @@
 # Database Schema
 
+> Cập nhật 2026-10-17: xem [DATABASE-SETUP.md](DATABASE-SETUP.md) cho schema/migration
+> đang áp dụng, session auth và giới hạn tích hợp. Các mô tả MVP bên dưới là lịch sử.
+
 > Chuyển đổi toàn diện sang **Supabase PostgreSQL** và sử dụng trực tiếp **Supabase Client** (Thay thế hoàn toàn SQLAlchemy và SQLite).
 
 ---

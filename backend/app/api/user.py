@@ -38,6 +38,8 @@ def update_my_profile(
         birth_date=payload.birth_date,
         gender=payload.gender,
         username=payload.username,
+        nickname=payload.nickname,
+        timezone=payload.timezone,
     )
     user = AvatarService(user_service.db).present(user)
     return ok(UserProfileResponse.from_model(user).model_dump())
@@ -48,7 +50,7 @@ def update_my_password(
     current: dict = Depends(get_current_user),
     user_service: UserService = Depends(get_user_service)
 ):
-    user_service.update_password(current["id"], payload.new_password)
+    user_service.update_password(current["id"], payload.current_password, payload.new_password)
     return ok({"message": "Đổi mật khẩu thành công"})
 
 @router.post("/me/device-token")
