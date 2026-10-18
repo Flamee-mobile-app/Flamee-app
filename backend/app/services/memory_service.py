@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import base64
+from collections import defaultdict
+from dataclasses import replace
 
-from fastapi import UploadFile, BackgroundTasks
+from fastapi import UploadFile
 from supabase import Client
 
 from app.config import settings
-from app.ai.background_tasks import extract_and_save_fact_background
 from app.core.constants import MemoryCategory
 from app.core.exceptions import NotFoundError, ValidationError
 from app.models.memory import Memory, MemoryImage
@@ -21,6 +21,8 @@ from app.schemas.memory import (
 )
 from app.utils.ids import generate_uuid
 from app.utils.time import now_utc, to_iso
+from app.services.media_processing import process_memory_image
+from app.services.media_storage import MediaStorage
 
 
 class MemoryService:
@@ -35,13 +37,13 @@ class MemoryService:
         self.db = db
         self.memory_repo = memory_repo
         self.image_repo = image_repo
+        self.storage = MediaStorage(db)
 
     def create_memory(
         self,
         user_id: str,
         couple_id: str,
         payload: CreateMemoryRequest,
-        background_tasks: BackgroundTasks = None,
     ) -> Memory:
         now_iso = to_iso(now_utc())
         return self.memory_repo.create(
@@ -58,23 +60,6 @@ class MemoryService:
             created_at=now_iso,
             updated_at=now_iso,
         )
-        
-        # 🆕 Tầng 1: Event Hook - Trích xuất facts từ memory mới
-        if background_tasks:
-            text = f"Tiêu đề: {payload.title}. "
-            if payload.description:
-                text += f"Mô tả: {payload.description}. "
-            if payload.location:
-                text += f"Địa điểm: {payload.location}."
-                
-            background_tasks.add_task(
-                extract_and_save_fact_background,
-                text=text,
-                couple_id=couple_id,
-                source="memory creation"
-            )
-            
-        return memory
 
     def list_memories(
         self,
@@ -92,9 +77,15 @@ class MemoryService:
         memories = self.memory_repo.find_by_couple(
             couple_id, category=category, year=year
         )
+        images_by_memory: dict[str, list[MemoryImage]] = defaultdict(list)
+        page_images = self._present_images(
+            self.image_repo.find_by_memories([memory.id for memory in memories])
+        )
+        for image in page_images:
+            images_by_memory[image.memory_id].append(image)
         items: list[MemoryListItem] = []
         for memory in memories:
-            images = self.image_repo.find_by_memory(memory.id)
+            images = images_by_memory[memory.id]
             items.append(MemoryListItem.from_memory(memory, images))
         return items, len(items)
 
@@ -104,7 +95,7 @@ class MemoryService:
         memory = self.memory_repo.get(memory_id)
         if not memory or memory.couple_id != couple_id:
             raise NotFoundError("Memory không tồn tại")
-        images = self.image_repo.find_by_memory(memory.id)
+        images = self._present_images(self.image_repo.find_by_memory(memory.id))
         return memory, images
 
     def update_memory(
@@ -124,6 +115,12 @@ class MemoryService:
         memory = self.memory_repo.get(memory_id)
         if not memory or memory.couple_id != couple_id:
             raise NotFoundError("Memory không tồn tại")
+        images = self.image_repo.find_by_memory(memory_id)
+        self.storage.remove(
+            path
+            for image in images
+            for path in (image.storage_path, image.thumbnail_path)
+        )
         self.image_repo.delete_by_memory(memory_id)
         self.memory_repo.delete(memory_id)
 
@@ -137,40 +134,44 @@ class MemoryService:
         memory = self.memory_repo.get(memory_id)
         if not memory or memory.couple_id != couple_id:
             raise NotFoundError("Memory không tồn tại")
-        content = self._read_within_limit(file)
-
-        # Upload to Supabase Storage
-        file_id = generate_uuid()
-        ext = (file.filename or "img.png").rsplit(".", 1)[-1]
-        storage_path = f"memories/{couple_id}/{memory_id}/{file_id}.{ext}"
-        mime = file.content_type or "image/png"
-
-        self.db.storage.from_("memory-images").upload(
-            path=storage_path,
-            file=content,
-            file_options={"content-type": mime},
-        )
-        public_url = self.db.storage.from_("memory-images").get_public_url(storage_path)
-
-        return self.image_repo.create(
-            id=file_id,
-            memory_id=memory_id,
-            url=public_url,
-            thumbnail_url=None,
-            uploaded_by=user_id,
-            width=None,
-            height=None,
-            created_at=to_iso(now_utc()),
-        )
-
-    def _read_within_limit(self, file: UploadFile) -> bytes:
         max_bytes = settings.max_upload_size_mb * 1024 * 1024
-        content = file.file.read()
-        if len(content) > max_bytes:
-            raise ValidationError(
-                f"File vượt quá giới hạn {settings.max_upload_size_mb}MB"
+        processed = process_memory_image(file.file, max_bytes=max_bytes)
+        file_id = generate_uuid()
+        prefix = f"memories/{couple_id}/{memory_id}/{file_id}"
+        storage_path = f"{prefix}/original.jpg"
+        thumbnail_path = f"{prefix}/thumbnail.jpg"
+        uploaded: list[str] = []
+        try:
+            self.storage.upload(
+                storage_path,
+                processed.original.content,
+                processed.original.mime_type,
             )
-        return content
+            uploaded.append(storage_path)
+            self.storage.upload(
+                thumbnail_path,
+                processed.thumbnail.content,
+                processed.thumbnail.mime_type,
+            )
+            uploaded.append(thumbnail_path)
+            image = self.image_repo.create(
+                id=file_id,
+                memory_id=memory_id,
+                url=None,
+                thumbnail_url=None,
+                storage_path=storage_path,
+                thumbnail_path=thumbnail_path,
+                mime_type=processed.original.mime_type,
+                size_bytes=len(processed.original.content),
+                uploaded_by=user_id,
+                width=processed.original.width,
+                height=processed.original.height,
+                created_at=to_iso(now_utc()),
+            )
+        except Exception:
+            self.storage.remove(uploaded)
+            raise
+        return self._present_images([image])[0]
 
     def delete_image(
         self, couple_id: str, memory_id: str, image_id: str
@@ -181,4 +182,22 @@ class MemoryService:
         image = self.image_repo.get(image_id)
         if not image or image.memory_id != memory_id:
             raise NotFoundError("Image không tồn tại")
+        self.storage.remove([image.storage_path, image.thumbnail_path])
         return self.image_repo.delete(image_id)
+
+    def _present_images(self, images: list[MemoryImage]) -> list[MemoryImage]:
+        signed = self.storage.sign_many(
+            path
+            for image in images
+            for path in (image.storage_path, image.thumbnail_path)
+        )
+        presented: list[MemoryImage] = []
+        for image in images:
+            url = signed.get(image.storage_path) if image.storage_path else image.url
+            thumbnail_url = (
+                signed.get(image.thumbnail_path)
+                if image.thumbnail_path
+                else image.thumbnail_url or url
+            )
+            presented.append(replace(image, url=url, thumbnail_url=thumbnail_url))
+        return presented

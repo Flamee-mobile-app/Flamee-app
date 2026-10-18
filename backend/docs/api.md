@@ -100,40 +100,37 @@ Tạm thời trả **501**, `error.code = "feature_unavailable"` cho payload h�
 
 ---
 
-## 3. Module: Profile (4 endpoints)
+## 3. Module: Profile
 
-### `GET /profile`
-Lấy profile của user hiện tại.
+### `GET /auth/me` hoặc `GET /users/me`
+Lấy profile của user hiện tại. `avatar_url`, nếu có, là signed URL ngắn hạn do
+server tạo từ private storage path.
 
-### `PUT /profile`
-Cập nhật profile.
+### `PUT /auth/me` hoặc `PUT /users/me`
+Cập nhật trường text của profile. Không nhận URL avatar do client cung cấp.
 ```json
 // Request
 {
   "full_name": "Nguyễn Văn B",
-  "avatar_url": "https://...",
+  "username": "Bông",
   "birth_date": "1995-05-20",
-  "gender": "male",
-  "preferences": {
-    "hobbies": ["reading", "coffee"],
-    "food": ["vietnamese", "japanese"],
-    "music": ["ballad"],
-    "movie": ["romance"],
-    "travel": ["beach"]
-  }
+  "gender": "male"
 }
 ```
 
-### `GET /profile/partner`
-Lấy profile của partner (chỉ khi đã match couple).
-
-### `POST /profile/avatar`
-Upload avatar (multipart form-data).
+### `POST /auth/me/avatar`
+Upload hoặc thay avatar (multipart form-data, field `file`).
 ```bash
-curl -X POST /profile/avatar \
+curl -X POST /api/v1/auth/me/avatar \
   -H "Authorization: Bearer ..." \
   -F "file=@avatar.jpg"
 ```
+
+Server kiểm tra bytes ảnh thật, center-crop ảnh vuông tối đa 512 px, bỏ metadata,
+lưu JPEG vào bucket private và trả profile với signed URL tối đa 15 phút.
+
+### `DELETE /auth/me/avatar`
+Gỡ avatar hiện tại và dọn object private do pipeline quản lý.
 
 ---
 
@@ -199,11 +196,10 @@ Cập nhật ngày kỉ niệm.
 ## 5. Module: Memory (7 endpoints)
 
 ### `GET /memories`
-Lấy danh sách memories (phân trang).
+Lấy danh sách memories. Hiện API chưa có pagination; `category` và `year` là hai
+bộ lọc hiện có. Metadata ảnh được lấy một lần và signed URL được ký theo batch.
 ```
 Query params:
-  page: int = 1
-  limit: int = 20
   year: int = 2025
   category: str = "anniversary"
 ```
@@ -233,13 +229,16 @@ Cập nhật memory.
 Xóa memory.
 
 ### `POST /memories/{id}/images`
-Upload nhiều ảnh cho memory.
+Upload một ảnh cho memory bằng field multipart `file`.
 ```bash
 curl -X POST /memories/abc/images \
   -H "Authorization: Bearer ..." \
-  -F "files=@photo1.jpg" \
-  -F "files=@photo2.jpg"
+  -F "file=@photo1.jpg"
 ```
+
+Server đọc stream có giới hạn, giải mã ảnh thật, bỏ EXIF, tạo JPEG lớn tối đa
+1600 px và thumbnail tối đa 480 px. Database lưu private paths cùng MIME, kích
+thước pixel và byte size; response trả signed URL ngắn hạn.
 
 ### `DELETE /memories/{id}/images/{image_id}`
 Xóa 1 ảnh.
@@ -448,7 +447,7 @@ Nhắc date plan ngày mai. Chạy mỗi tối 20:00.
 | Module | Endpoints |
 |--------|-----------|
 | Auth | 6 |
-| Profile | 4 |
+| Profile | GET/PUT aliases + 2 avatar endpoints |
 | Couple & Invite | 5 |
 | Memory | 7 |
 | Mood + AI | 8 |

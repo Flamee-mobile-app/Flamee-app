@@ -1,4 +1,4 @@
-import { AuthError, type AuthApi, type AuthUser } from "./authApi.ts";
+import { AuthError, type AuthApi, type AuthAvatarFile, type AuthUser } from "./authApi.ts";
 
 export type AuthSession = { accountId: string; user: AuthUser };
 export type AuthCredentialStore = {
@@ -42,6 +42,7 @@ export function createAuthService({ api, credentials }: { api: AuthApi; credenti
 
   return {
     getAccessToken: (): string | null => accessToken,
+    getSessionSnapshot: (): AuthSession | null => session ? copy(session) : null,
     login: (email: string, password: string, remember = false) => begin(() => api.login(email, password), remember),
     register: (email: string, password: string, fullName: string) => begin(() => api.register(email, password, fullName), false),
     async getCurrentSession(): Promise<AuthSession | null> {
@@ -83,6 +84,16 @@ export function createAuthService({ api, credentials }: { api: AuthApi; credenti
       const request = generation;
       const accountId = session.accountId;
       const user = await api.updateProfile(accessToken, profile);
+      if (request !== generation) throw new AuthError("cancelled");
+      if (user.id !== accountId) throw new AuthError("response");
+      session = { accountId, user };
+      return copy(session);
+    },
+    async updateAvatar(file: AuthAvatarFile): Promise<AuthSession> {
+      if (!accessToken || !session) throw new AuthError("credentials");
+      const request = generation;
+      const accountId = session.accountId;
+      const user = await api.uploadAvatar(accessToken, file);
       if (request !== generation) throw new AuthError("cancelled");
       if (user.id !== accountId) throw new AuthError("response");
       session = { accountId, user };

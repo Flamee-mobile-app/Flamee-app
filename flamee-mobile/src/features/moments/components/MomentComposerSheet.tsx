@@ -6,7 +6,7 @@ import { Send } from "@tamagui/lucide-icons-2/icons/Send";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Image, Text, XStack, YStack } from "tamagui";
 import type { MomentDraft } from "../types";
-import { AppButton, AppField, AppFilterChip, SectionCard, StatusBanner } from "../../../shared/components";
+import { AppButton, AppField, AppFilterChip, SectionCard, appToast } from "../../../shared/components";
 import { getMessage, type MessageKey } from "../../../shared/localization/messages";
 import { localMediaAdapter } from "../../media/localMediaAdapter";
 import { momentDraftSchema } from "../schemas";
@@ -35,7 +35,7 @@ export function MomentComposerSheet({ embedded = false, initialText = "", initia
   const [place, setPlace] = useState("");
   const [mediaUri, setMediaUri] = useState("");
   const [duration, setDuration] = useState(0);
-  const [mediaState, setMediaState] = useState<"idle" | "denied" | "cancelled" | "unavailable" | "ready">("idle");
+  const [mediaState, setMediaState] = useState<"idle" | "ready">("idle");
   const [error, setError] = useState("");
   const ownedMediaUri = useRef<string | null>(null);
   const preserveMediaOnUnmount = useRef(false);
@@ -65,9 +65,14 @@ export function MomentComposerSheet({ embedded = false, initialText = "", initia
       return;
     }
     if (result.kind === "selected") { await discardOwnedMedia(); ownedMediaUri.current = result.uri; setMediaUri(result.uri); setMediaState("ready"); }
-    else if (result.kind === "unavailable") { await discardOwnedMedia(); setMediaUri(""); setMediaState("unavailable"); }
-    else if (result.kind === "denied") setMediaState("denied");
-    else if (result.kind === "cancelled") setMediaState("cancelled");
+    else if (result.kind === "unavailable") {
+      await discardOwnedMedia();
+      setMediaUri("");
+      setMediaState("idle");
+      appToast.error(getMessage("vi", "photoFallbackTitle"), { description: getMessage("vi", "photoFallbackBody") });
+    } else if (result.kind === "denied") {
+      appToast.warning(getMessage("vi", "photoPermissionDeniedTitle"), { description: getMessage("vi", "photoPermissionDeniedBody") });
+    }
   };
   const onVoiceReady = useCallback((uri: string, seconds: number) => {
     const previousUri = ownedMediaUri.current;
@@ -109,8 +114,6 @@ export function MomentComposerSheet({ embedded = false, initialText = "", initia
         <YStack gap="$sm">
           <XStack gap="$sm"><AppButton grow variant="secondary" icon={<Camera size={18} />} onPress={() => void selectPhoto("camera")}>{getMessage("vi", "takePhoto")}</AppButton><AppButton grow variant="ghost" onPress={() => void selectPhoto("library")}>{getMessage("vi", mediaUri ? "chooseAnotherPhoto" : "choosePhoto")}</AppButton></XStack>
           {mediaState === "ready" && mediaUri ? <Image source={{ uri: mediaUri }} width="100%" height={220} borderRadius="$lg" resizeMode="cover" accessibilityLabel={getMessage("vi", "photoPreviewLabel")} /> : null}
-          {mediaState === "denied" ? <StatusBanner tone="warning" title={getMessage("vi", "photoPermissionDeniedTitle")} description={getMessage("vi", "photoPermissionDeniedBody")} /> : null}
-          {mediaState === "unavailable" ? <StatusBanner tone="info" title={getMessage("vi", "photoFallbackTitle")} description={getMessage("vi", "photoFallbackBody")} /> : null}
         </YStack>
       ) : null}
       {kind === "voice" ? <VoiceDraftControl onReady={onVoiceReady} onReset={() => { void discardOwnedMedia(); setMediaUri(""); setDuration(0); setMediaState("idle"); }} /> : null}

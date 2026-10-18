@@ -25,3 +25,5 @@ END;
 $$;
 
 COMMIT;
+
+NOTIFY pgrst, 'reload schema';

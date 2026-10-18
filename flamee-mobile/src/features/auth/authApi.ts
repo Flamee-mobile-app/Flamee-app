@@ -23,6 +23,7 @@ const userSchema = z.object({
 
 export type AuthUser = z.infer<typeof userSchema>;
 export type AuthApi = ReturnType<typeof createAuthApi>;
+export type AuthAvatarFile = Blob | { uri: string; name: string; type: string };
 
 export function createAuthApi({
   baseUrl,
@@ -33,20 +34,20 @@ export function createAuthApi({
   fetcher?: typeof fetch;
   timeoutMs?: number;
 }) {
-  const request = async (path: string, options: { body?: unknown; token?: string; method?: "PUT" }) => {
+  const request = async (path: string, options: { body?: unknown; formData?: FormData; token?: string; method?: "PUT" }) => {
     const root = baseUrl.trim().replace(/\/+$/, "");
     if (!/^https?:\/\//.test(root)) throw new AuthError("configuration");
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const response = await fetcher(`${root}${path}`, {
-        method: options.method ?? (options.body === undefined ? "GET" : "POST"),
+        method: options.method ?? (options.body === undefined && !options.formData ? "GET" : "POST"),
         headers: {
           "Accept": "application/json",
           ...(options.body === undefined ? {} : { "Content-Type": "application/json" }),
           ...(options.token ? { "Authorization": `Bearer ${options.token}` } : {}),
         },
-        body: options.body === undefined ? undefined : JSON.stringify(options.body),
+        body: options.formData ?? (options.body === undefined ? undefined : JSON.stringify(options.body)),
         signal: controller.signal,
       });
       if (!response.ok) {
@@ -84,6 +85,14 @@ export function createAuthApi({
     },
     async updateProfile(token: string, profile: { full_name: string; username: string }): Promise<AuthUser> {
       const parsed = userSchema.safeParse(await request("/auth/me", { token, body: profile, method: "PUT" }));
+      if (!parsed.success) throw new AuthError("response");
+      return parsed.data;
+    },
+    async uploadAvatar(token: string, file: AuthAvatarFile): Promise<AuthUser> {
+      const formData = new FormData();
+      if (typeof Blob !== "undefined" && file instanceof Blob) formData.append("file", file, "avatar.jpg");
+      else formData.append("file", file as unknown as Blob);
+      const parsed = userSchema.safeParse(await request("/auth/me/avatar", { token, formData }));
       if (!parsed.success) throw new AuthError("response");
       return parsed.data;
     },

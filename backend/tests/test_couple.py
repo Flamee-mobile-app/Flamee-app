@@ -92,6 +92,30 @@ def test_validate_invite_normalizes_code_and_returns_inviter(
     assert response.json()["data"]["inviter"]["full_name"] == "Alice"
 
 
+def test_invite_preview_signs_private_avatar(
+    client: TestClient, alice_headers, bob_headers
+):
+    import base64
+    import io
+
+    image = base64.b64decode(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+    )
+    uploaded = client.post(
+        "/api/v1/auth/me/avatar",
+        headers=alice_headers,
+        files={"file": ("avatar.png", io.BytesIO(image), "image/png")},
+    )
+    assert uploaded.status_code == 200
+    code = _create_invite(client, alice_headers)
+    preview = client.post(
+        "/api/v1/couple/validate-invite",
+        json={"code": code},
+        headers=bob_headers,
+    )
+    assert "/storage/v1/object/sign/flamee-media/avatars/" in preview.json()["data"]["inviter"]["avatar_url"]
+
+
 def test_creator_cannot_validate_own_invite(client: TestClient, alice_headers):
     code = _create_invite(client, alice_headers)
     response = client.post(

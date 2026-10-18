@@ -1,4 +1,4 @@
-import type { PropsWithChildren, ReactNode } from "react";
+import type { ComponentProps, PropsWithChildren, ReactNode } from "react";
 import { Platform } from "react-native";
 import { Button } from "tamagui";
 import { buttonTokens } from "../constants/tokens";
@@ -16,6 +16,9 @@ export type AppTextButtonProps = PropsWithChildren<{
   accessibilityLabel?: string;
   accessibilityHint?: string;
   testID?: string;
+  expanded?: boolean;
+  controls?: string;
+  buttonRef?: ComponentProps<typeof Button>["ref"];
 }>;
 
 const toneColors = {
@@ -34,10 +37,14 @@ export function AppTextButton({
   accessibilityLabel,
   accessibilityHint,
   testID,
+  expanded,
+  controls,
+  buttonRef,
 }: AppTextButtonProps) {
   const interaction = useButtonInteraction(disabled);
   return (
     <Button
+      ref={buttonRef}
       unstyled
       testID={testID}
       outlineWidth={0}
@@ -65,8 +72,10 @@ export function AppTextButton({
       role="button"
       aria-label={accessibilityLabel}
       aria-disabled={disabled}
+      aria-expanded={expanded}
+      {...(Platform.OS === "web" ? { "aria-controls": controls } : {})}
       accessibilityHint={accessibilityHint}
-      {...resolvePlatformAccessibilityProps(Platform.OS, { disabled })}
+      {...resolvePlatformAccessibilityProps(Platform.OS, { disabled, ...(expanded === undefined ? {} : { expanded }) })}
       disabled={disabled}
       onPress={onPress}
     >

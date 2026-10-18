@@ -1,9 +1,11 @@
 # Flamee backend local
 
-## Trạng thái sau cleanup 2026-10-17
+## Trạng thái backend 2026-10-18
 
 - Forgot/reset-password trả 501 `feature_unavailable`; đã gỡ OTP trả trong response và OTP store trong bộ nhớ. Chưa có email delivery thật.
-- Upload ảnh mới trả `thumbnail_url: null` vì chưa có thumbnail pipeline. Bucket, quyền riêng tư, bounded upload, cleanup và pagination vẫn cần hoàn thiện; không coi unit test FakeSupabase là kiểm tra upload thật.
+- Avatar và ảnh kỷ niệm mới đi qua pipeline media riêng tư: đọc stream có giới hạn, giải mã ảnh thật, chuẩn hóa orientation, bỏ metadata, tạo JPEG và thumbnail bằng Pillow, lưu path vào database và trả signed URL tối đa 15 phút. Client không còn được gán `avatar_url` tùy ý.
+- Migration [private media pipeline](migrations/20261018_private_media_pipeline.sql) đã được viết nhưng **chưa áp dụng**. Unit test dùng FakeSupabase; chưa xác minh Storage, RLS, dung lượng, độ trễ hoặc cleanup trên Supabase thật.
+- `GET /memories` lấy metadata ảnh theo một query cho cả danh sách và ký URL theo batch. API hiện vẫn trả toàn bộ memory, chưa có cursor/pagination hoặc benchmark tải thật.
 - Mobile profile đã dùng GET/PUT `/auth/me` cho `full_name`/`username`. Migration username đã viết nhưng **chưa áp dụng**. Các feature chưa nối API không còn giả lưu local.
 - Hướng xử lý và nghiệm thu: [.doc/BACKEND-FIRST-CLEANUP.md](../.doc/BACKEND-FIRST-CLEANUP.md). Không chạy migration/SQL hoặc ghi backend thật trong đợt cleanup.
 
@@ -28,10 +30,14 @@ hoặc đổi ExecutionPolicy. Giữ terminal mở; Ctrl+C để dừng. Chỉ c
 
 - Health: `http://127.0.0.1:8000/health`
 - API docs: `http://127.0.0.1:8000/docs`
-- Điện thoại cùng Wi-Fi: `http://192.168.1.129:8000`
-- Mobile URL: `http://192.168.1.129:8000/api/v1` trong `flamee-mobile/.env.local`
+- Điện thoại cùng Wi-Fi: `http://<IPv4 Wi-Fi hiện tại của máy tính>:8000`
+- Mobile URL: `http://<IPv4 Wi-Fi hiện tại của máy tính>:8000/api/v1` trong `flamee-mobile/.env.local`
 
 IP Wi-Fi có thể thay đổi. Xem lại bằng `ipconfig` khi đổi mạng.
+Sau khi sửa `.env.local`, dừng và khởi động lại Expo trong terminal đang chạy
+`flamee-mobile`, rồi reload Expo Go. Ngày 2026-10-18, địa chỉ cũ `192.168.1.87`
+bị timeout còn IPv4 Wi-Fi mới `192.168.110.155` trả `/health` 200 trên máy tính.
+Health không chứng minh điện thoại truy cập được hoặc tài khoản đăng nhập thành công.
 
 ## Cột profile `username` — 2026-10-17
 
@@ -44,6 +50,21 @@ Review và áp dụng [migration username](migrations/20261017_profile_username.
 trên database phát triển trước khi dùng backend mới cho các thao tác ghi.
 Migration này chưa được agent chạy lên Supabase; các test dùng database giả
 trong bộ nhớ, không xác minh schema hoặc auth E2E trên dịch vụ thật.
+
+## Media riêng tư — 2026-10-18
+
+Review và áp dụng [migration media](migrations/20261018_private_media_pipeline.sql)
+trên database phát triển trước khi gọi endpoint upload. Migration tạo bucket private
+`flamee-media` và thêm storage path/metadata; agent chưa chạy SQL hoặc ghi Supabase.
+Bucket public cũ và URL legacy không bị tự động xóa hoặc đóng vì cần kiểm kê dữ liệu
+trước.
+
+- `POST /api/v1/auth/me/avatar`, multipart field `file`: thay avatar.
+- `DELETE /api/v1/auth/me/avatar`: gỡ avatar.
+- `POST /api/v1/memories/{memory_id}/images`, multipart field `file`: thêm một ảnh.
+- Xóa ảnh hoặc memory sẽ dọn object mới do pipeline quản lý.
+
+Contract, giới hạn và tradeoff: [.doc/BACKEND-MEDIA-PIPELINE.md](../.doc/BACKEND-MEDIA-PIPELINE.md).
 
 ## Môi trường đã thiết lập
 

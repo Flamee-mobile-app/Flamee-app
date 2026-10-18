@@ -21,6 +21,7 @@ class FakeSupabaseTable:
         self._order_desc: bool = False
         self._count_mode: str | None = None
         self._select_cols: str = "*"
+        self.select_calls: int = 0
 
     def _reset_query(self) -> "FakeSupabaseTable":
         self._query_filters = []
@@ -33,6 +34,7 @@ class FakeSupabaseTable:
         return self
 
     def select(self, cols: str = "*", count: str | None = None) -> "FakeSupabaseTable":
+        self.select_calls += 1
         self._reset_query()
         self._select_cols = cols
         self._count_mode = count
@@ -130,19 +132,56 @@ class FakeSupabaseClient:
     def __init__(self) -> None:
         self._tables: dict[str, FakeSupabaseTable] = {}
         self.rpc_calls: list[tuple[str, dict]] = []
-        
+
         class FakeBucket:
-            def upload(self, *args, **kwargs):
+            def __init__(self, name: str) -> None:
+                self.name = name
+                self.objects: dict[str, bytes] = {}
+                self.upload_calls: list[str] = []
+                self.remove_calls: list[list[str]] = []
+                self.batch_sign_calls: list[list[str]] = []
+
+            def upload(self, path, file, file_options=None):
+                self.upload_calls.append(path)
+                self.objects[path] = file
                 return MagicMock()
-            def remove(self, *args, **kwargs):
+
+            def remove(self, paths):
+                self.remove_calls.append(list(paths))
+                for path in paths:
+                    self.objects.pop(path, None)
                 return MagicMock()
+
             def get_public_url(self, path: str) -> str:
                 return f"https://fake-supabase.co/storage/v1/object/public/{path}"
 
+            def create_signed_url(self, path: str, expires_in: int):
+                if path not in self.objects:
+                    return {}
+                return {
+                    "signedURL": f"https://fake-supabase.co/storage/v1/object/sign/{self.name}/{path}?ttl={expires_in}"
+                }
+
+            def create_signed_urls(self, paths: list[str], expires_in: int):
+                self.batch_sign_calls.append(list(paths))
+                return [
+                    {
+                        "path": path,
+                        "signedURL": f"https://fake-supabase.co/storage/v1/object/sign/{self.name}/{path}?ttl={expires_in}",
+                    }
+                    for path in paths
+                    if path in self.objects
+                ]
+
         class FakeStorage:
+            def __init__(self) -> None:
+                self.buckets: dict[str, FakeBucket] = {}
+
             def from_(self, bucket: str) -> FakeBucket:
-                return FakeBucket()
-                
+                if bucket not in self.buckets:
+                    self.buckets[bucket] = FakeBucket(bucket)
+                return self.buckets[bucket]
+
         self.storage = FakeStorage()
 
     def rpc(self, name: str, params: dict):

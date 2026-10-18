@@ -24,7 +24,9 @@ export type LocalMediaAdapter = {
 
 const maximumPhotoEdge = 1600;
 const maximumPhotoBytes = 2 * 1024 * 1024;
-const compressionQualities = [0.92, 0.82, 0.68, 0.52, 0.36, 0.2];
+// One 1600 px pass is normally below the upload budget; keep one lower-quality
+// fallback instead of repeatedly re-encoding the same full-resolution source.
+const compressionQualities = [0.8, 0.55];
 
 export function isLocalMediaUri(uri: string): boolean {
   return /^(file|content):\/\//i.test(uri);
@@ -33,49 +35,38 @@ export function isLocalMediaUri(uri: string): boolean {
 function createExpoMediaNative(): LocalMediaNative {
   return {
     async isAvailable() {
-      try {
-        await Promise.all([import("expo-image-picker"), import("expo-image-manipulator"), import("expo-file-system"), import("expo-audio")]);
-        return true;
-      } catch {
-        return false;
-      }
+      return true;
     },
     async requestPhotoPermission(source) {
-      const picker = await import("expo-image-picker");
       const permission = source === "camera"
-        ? await picker.requestCameraPermissionsAsync()
-        : await picker.requestMediaLibraryPermissionsAsync();
+        ? await ImagePicker.requestCameraPermissionsAsync()
+        : await ImagePicker.requestMediaLibraryPermissionsAsync();
       return permission.granted;
     },
     async selectPhoto(source) {
-      const picker = await import("expo-image-picker");
       const selection = source === "camera"
-        ? await picker.launchCameraAsync({ mediaTypes: ["images"], allowsEditing: true, quality: 1 })
-        : await picker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsEditing: true, quality: 1 });
+        ? await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], allowsEditing: true, quality: 1 })
+        : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsEditing: false, quality: 1 });
       const asset = selection.assets?.[0];
       if (selection.canceled || !asset) return { kind: "cancelled" };
       return { uri: asset.uri, width: asset.width, height: asset.height };
     },
     async compressPhoto(uri, maxEdge, quality, width, height) {
-      const manipulator = await import("expo-image-manipulator");
       const resize = Math.max(width, height) > maxEdge
         ? [{ resize: width >= height ? { width: maxEdge } : { height: maxEdge } }]
         : [];
-      const compressed = await manipulator.manipulateAsync(uri, resize, { compress: quality, format: manipulator.SaveFormat.JPEG });
+      const compressed = await ImageManipulator.manipulateAsync(uri, resize, { compress: quality, format: ImageManipulator.SaveFormat.JPEG });
       return { uri: compressed.uri, width: compressed.width, height: compressed.height };
     },
     async getFileSize(uri) {
-      const { File } = await import("expo-file-system");
       const file = new File(uri);
       return file.size ?? Number.POSITIVE_INFINITY;
     },
     async requestVoicePermission() {
-      const audio = await import("expo-audio");
-      const permission = await audio.requestRecordingPermissionsAsync();
+      const permission = await Audio.requestRecordingPermissionsAsync();
       return permission.granted;
     },
     async deleteFile(uri) {
-      const { File } = await import("expo-file-system");
       const file = new File(uri);
       if (file.exists) file.delete();
     },
@@ -140,3 +131,8 @@ export function createLocalMediaAdapter({ native = createExpoMediaNative() }: { 
 }
 
 export const localMediaAdapter = createLocalMediaAdapter();
+import * as Audio from "expo-audio";
+import { File } from "expo-file-system";
+import * as ImageManipulator from "expo-image-manipulator";
+import * as ImagePicker from "expo-image-picker";
+

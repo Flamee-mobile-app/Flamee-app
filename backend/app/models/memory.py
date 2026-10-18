@@ -31,12 +31,16 @@ class Memory:
 class MemoryImage:
     id: str
     memory_id: str
-    url: str
+    url: str | None
     thumbnail_url: str | None
     uploaded_by: str
     width: int | None
     height: int | None
     created_at: str
+    storage_path: str | None = None
+    thumbnail_path: str | None = None
+    mime_type: str | None = None
+    size_bytes: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

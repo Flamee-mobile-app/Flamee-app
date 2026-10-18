@@ -55,17 +55,23 @@ class MemoryImageResponse(BaseModel):
     thumbnail_url: str | None
     width: int | None
     height: int | None
+    mime_type: str | None
+    size_bytes: int | None
     uploaded_by: str
     created_at: str
 
     @classmethod
     def from_model(cls, img: MemoryImage) -> "MemoryImageResponse":
+        if not img.url:
+            raise RuntimeError("Memory image has no readable URL")
         return cls(
             id=img.id,
             url=img.url,
             thumbnail_url=img.thumbnail_url,
             width=img.width,
             height=img.height,
+            mime_type=img.mime_type,
+            size_bytes=img.size_bytes,
             uploaded_by=img.uploaded_by,
             created_at=img.created_at,
         )
@@ -119,7 +125,7 @@ class MemoryListItem(BaseModel):
     def from_memory(
         cls, memory: Memory, images: list[MemoryImage]
     ) -> "MemoryListItem":
-        thumb = images[0].thumbnail_url or images[0].url if images else None
+        thumb = (images[0].thumbnail_url or images[0].url) if images else None
         return cls(
             id=memory.id,
             title=memory.title,

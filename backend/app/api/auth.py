@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, File, UploadFile, status
 from supabase import Client
 
 from app.api.deps import get_current_user, get_db
@@ -19,12 +19,17 @@ from app.schemas.auth import (
     UserResponse,
 )
 from app.services.auth_service import AuthService
+from app.services.avatar_service import AvatarService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 def _auth_service(db: Client) -> AuthService:
     return AuthService(UserRepository(db))
+
+
+def _present_user(db: Client, user: User) -> User:
+    return AvatarService(db, UserRepository(db)).present(user)
 
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
@@ -37,7 +42,7 @@ def register(
     )
     return ok(
         AuthResponse(
-            user=UserResponse.from_model(user),
+            user=UserResponse.from_model(_present_user(db, user)),
             access_token=token,
         ).model_dump()
     )
@@ -48,25 +53,19 @@ def login(payload: LoginRequest, db: Client = Depends(get_db)):
     user, token = _auth_service(db).login(payload.email, payload.password)
     return ok(
         AuthResponse(
-            user=UserResponse.from_model(user),
+            user=UserResponse.from_model(_present_user(db, user)),
             access_token=token,
         ).model_dump()
     )
 
 
 @router.get("/me")
-def me(current: dict = Depends(get_current_user)):
-    return ok(
-        UserResponse(
-            id=current["id"],
-            email=current["email"],
-            full_name=current.get("full_name", ""),
-            username=current.get("username"),
-            avatar_url=current.get("avatar_url"),
-            couple_id=current.get("couple_id"),
-            created_at=current.get("created_at", ""),
-        ).model_dump()
-    )
+def me(
+    current: dict = Depends(get_current_user),
+    db: Client = Depends(get_db),
+):
+    user = _present_user(db, User.from_dict(current))
+    return ok(UserResponse.from_model(user).model_dump())
 
 
 @router.post("/change-password")
@@ -104,9 +103,27 @@ def update_profile(
     user = _auth_service(db).update_profile(
         user_id=current["id"],
         full_name=payload.full_name,
-        avatar_url=payload.avatar_url,
         birth_date=payload.birth_date,
         gender=payload.gender,
         username=payload.username,
     )
+    return ok(UserResponse.from_model(_present_user(db, user)).model_dump())
+
+
+@router.post("/me/avatar")
+def upload_avatar(
+    file: UploadFile = File(...),
+    current: dict = Depends(get_current_user),
+    db: Client = Depends(get_db),
+):
+    user = AvatarService(db).upload(current["id"], file)
+    return ok(UserResponse.from_model(user).model_dump())
+
+
+@router.delete("/me/avatar")
+def delete_avatar(
+    current: dict = Depends(get_current_user),
+    db: Client = Depends(get_db),
+):
+    user = AvatarService(db).delete(current["id"])
     return ok(UserResponse.from_model(user).model_dump())

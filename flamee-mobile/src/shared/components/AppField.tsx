@@ -23,6 +23,7 @@ type AppFieldProps = Pick<
   endAction?: ReactNode;
   id?: string;
   label: string;
+  showLabel?: boolean;
   error?: string;
   help?: string;
   multiline?: boolean;
@@ -32,6 +33,7 @@ type AppFieldProps = Pick<
 
 export function AppField({
   label,
+  showLabel = true,
   error,
   help,
   multiline = false,
@@ -104,7 +106,7 @@ export function AppField({
   };
   return (
     <YStack gap="$sm">
-      <Label
+      {showLabel ? <Label
         htmlFor={fieldId}
         fontFamily="$body"
         fontSize="$bodyM"
@@ -112,7 +114,7 @@ export function AppField({
         color={disabled ? "$textSecondary" : error ? "$accentText" : "$textPrimary"}
       >
         {label}
-      </Label>
+      </Label> : null}
       <YStack
         testID={`${fieldId}-surface`}
         borderRadius={fieldTokens.radius}

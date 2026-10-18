@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field
 
 from app.models.user import User
 from app.schemas.common import Username
@@ -65,14 +65,9 @@ class ResetPasswordRequest(BaseModel):
 class UpdateProfileRequest(BaseModel):
     username: Username | None = None
     full_name: str | None = Field(default=None, min_length=1, max_length=120)
-    avatar_url: str | None = Field(default=None, max_length=512)
+    avatar_url: None = Field(default=None, description="Use POST /auth/me/avatar")
     birth_date: str | None = None
     gender: str | None = Field(default=None, max_length=20)
-
-    @field_validator("avatar_url")
-    @classmethod
-    def _trim_avatar(cls, v: str | None) -> str | None:
-        return v.strip() or None if v else None
 
 
 def user_dict_to_response(user_dict: dict[str, Any]) -> UserResponse:

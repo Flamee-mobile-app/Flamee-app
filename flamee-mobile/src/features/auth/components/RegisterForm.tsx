@@ -8,7 +8,7 @@ import { useRef, useState } from "react";
 import { Image, Keyboard, StyleSheet } from "react-native";
 import { Controller, useForm } from "react-hook-form";
 import { Text, XStack, YStack } from "tamagui";
-import { AppButton, AppField, AppIconButton, AppTextButton, StatusBanner } from "../../../shared/components";
+import { AppButton, AppField, AppIconButton, AppTextButton, appToast } from "../../../shared/components";
 import { loginTokens } from "../../../shared/constants/tokens";
 import { getMessage } from "../../../shared/localization/messages";
 import { registerSchema, type RegisterInput } from "../schemas";
@@ -29,9 +29,7 @@ type RegisterFormProps = { visible: boolean; reducedMotion: boolean; onLogin: ()
 
 export function RegisterForm({ visible, reducedMotion, onLogin, onAuthenticated }: RegisterFormProps) {
   const [shown, setShown] = useState({ password: false, confirmPassword: false });
-  const [unavailable, setUnavailable] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const pending = useRef(false);
   const form = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema), mode: "onTouched",
@@ -41,12 +39,14 @@ export function RegisterForm({ visible, reducedMotion, onLogin, onAuthenticated 
   const submit = form.handleSubmit(async (values) => {
     if (pending.current) return;
     pending.current = true;
-    setBusy(true); setError(null); setUnavailable(false); Keyboard.dismiss();
+    setBusy(true); Keyboard.dismiss();
     try {
       const session = await authService.register(values.email, values.password, values.fullName);
       form.reset();
       await onAuthenticated(session);
-    } catch (failure) { setError(getAuthErrorMessage(failure)); }
+    } catch (failure) {
+      appToast.error(getMessage("vi", "authErrorTitle"), { description: getAuthErrorMessage(failure) });
+    }
     finally { pending.current = false; setBusy(false); }
   });
   const returnToLogin = () => { Keyboard.dismiss(); form.reset(); onLogin(); };
@@ -71,7 +71,7 @@ export function RegisterForm({ visible, reducedMotion, onLogin, onAuthenticated 
             keyboardType={item.name === "email" ? "email-address" : "default"} inputMode={item.name === "email" ? "email" : "text"} autoCapitalize={item.name === "fullName" ? "words" : "none"} autoCorrect={false}
             autoComplete={passwordKey ? "new-password" : item.name === "email" ? "email" : "name"} textContentType={passwordKey ? "newPassword" : item.name === "email" ? "emailAddress" : "name"}
             secureTextEntry={hidden} type={hidden ? "password" : "text"} maxLength={item.name === "fullName" ? 100 : item.name === "email" ? 254 : 128}
-            editable={!busy} value={field.value} onChangeText={(value) => { field.onChange(value); setUnavailable(false); setError(null); }} onBlur={field.onBlur}
+            editable={!busy} value={field.value} onChangeText={field.onChange} onBlur={field.onBlur}
             returnKeyType={index === fields.length - 1 ? "go" : "next"} submitBehavior="submit" onSubmitEditing={() => { const next = fields[index + 1]; if (next) form.setFocus(next.name); else void submit(); }}
             endAction={passwordKey ? <AppIconButton tone="plain" disabled={busy} selected={!hidden}
               accessibilityLabel={getMessage("vi", hidden ? "loginShowPassword" : "loginHidePassword")}
@@ -91,10 +91,8 @@ export function RegisterForm({ visible, reducedMotion, onLogin, onAuthenticated 
         <Text fontFamily="$body" fontSize="$bodyS" lineHeight="$bodyS" color="$textSecondary">{getMessage("vi", "loginOr")}</Text>
         <YStack flex={1} height={1} backgroundColor="$supportPeachLight" />
       </XStack>
-      <AppButton variant="secondary" disabled={busy} icon={<Image source={googleLogo} resizeMode="contain" style={styles.googleLogo} accessible={false} />} onPress={() => setUnavailable(true)}>{getMessage("vi", "signInGoogle")}</AppButton>
+      <AppButton variant="secondary" disabled={busy} icon={<Image source={googleLogo} resizeMode="contain" style={styles.googleLogo} accessible={false} />} onPress={() => appToast.info(getMessage("vi", "loginUnavailableTitle"), { description: getMessage("vi", "loginGoogleUnavailable") })}>{getMessage("vi", "signInGoogle")}</AppButton>
     </LoginEntrance>
-    {unavailable && <YStack marginTop="$md"><StatusBanner tone="info" title={getMessage("vi", "loginUnavailableTitle")} description={getMessage("vi", "loginGoogleUnavailable")} /></YStack>}
-    {error && <YStack marginTop="$md"><StatusBanner tone="warning" title={getMessage("vi", "authErrorTitle")} description={error} /></YStack>}
   </YStack>;
 }
 

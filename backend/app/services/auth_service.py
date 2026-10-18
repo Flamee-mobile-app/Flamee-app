@@ -62,7 +62,6 @@ class AuthService:
         self,
         user_id: str,
         full_name: str | None,
-        avatar_url: str | None,
         birth_date: str | None,
         gender: str | None,
         username: str | None = None,
@@ -70,8 +69,6 @@ class AuthService:
         patch: dict = {"updated_at": to_iso(now_utc())}
         if full_name is not None:
             patch["full_name"] = full_name
-        if avatar_url is not None:
-            patch["avatar_url"] = avatar_url or None
         if birth_date is not None:
             patch["birth_date"] = birth_date or None
         if gender is not None:

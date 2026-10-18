@@ -72,6 +72,7 @@ const semanticColors = {
   glassButton: colors.glassButton,
   glassFilter: colors.glassFilter,
   glassDialog: colors.glassDialog,
+  glassHeader: colors.glassHeader,
   glassCard: colors.glassCard,
   glassCardPeach: colors.glassCardPeach,
   glassCardLavender: colors.glassCardLavender,

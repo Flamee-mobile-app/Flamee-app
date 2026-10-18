@@ -44,6 +44,7 @@ orjson==3.13.0
 ormsgpack==1.12.2
 packaging==26.3
 passlib==1.7.4
+pillow==12.3.0
 pluggy==1.6.0
 postgrest==2.32.0
 propcache==0.5.4

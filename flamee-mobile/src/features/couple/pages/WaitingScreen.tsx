@@ -5,7 +5,7 @@ import { AppState, Share } from "react-native";
 import { useEffect, useState } from "react";
 import { Text, XStack, YStack } from "tamagui";
 import { useSessionStore } from "../../../shared/state/sessionStore";
-import { AppButton, AppHeader, AppScreen, AsyncStateView, SectionCard, StatusBanner } from "../../../shared/components";
+import { AppButton, AppHeader, AppScreen, AsyncStateView, SectionCard, appToast } from "../../../shared/components";
 import { formatMessage, getMessage } from "../../../shared/localization/messages";
 import { inviteService, invitationURL, type ServerInvite } from "../../invites";
 import { authService } from "../../auth/authRuntime";
@@ -15,7 +15,6 @@ export function WaitingScreen() {
   const accountId = useSessionStore((state) => state.activeAccountId);
   const activeCoupleId = useSessionStore((state) => state.activeCoupleId);
   const setActiveCouple = useSessionStore((state) => state.setActiveCouple);
-  const [shareFailed, setShareFailed] = useState(false);
   const [invite, setInvite] = useState<ServerInvite | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -59,9 +58,8 @@ export function WaitingScreen() {
     try {
       if (!invite) return;
       await Share.share({ message: `${getMessage("vi", "inviteShareMessage")} ${invite.code}\n${invitationURL(invite.code)}` });
-      setShareFailed(false);
     } catch {
-      setShareFailed(true);
+      appToast.error(getMessage("vi", "shareInviteError"));
     }
   };
 
@@ -125,7 +123,6 @@ export function WaitingScreen() {
       >
         {getMessage("vi", "shareInvite")}
       </AppButton>
-      {shareFailed ? <StatusBanner tone="warning" title={getMessage("vi", "shareInviteError")} /> : null}
       {homeButton}
     </AppScreen>
   );
