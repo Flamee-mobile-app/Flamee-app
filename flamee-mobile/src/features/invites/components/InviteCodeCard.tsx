@@ -56,7 +56,7 @@ export function InviteCodeCard({ code, expiresAt, action, onShare, onCopy, onRec
   }, [countdown.expired, onExpired]);
 
   return (
-    <YStack flex={1} justifyContent="center" gap="$xl">
+    <YStack gap="$xl">
       <YStack alignItems="center" gap="$md">
         <YStack width="100%" alignItems="center" gap="$sm">
           <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" fontWeight="$semibold" color="$textSecondary">

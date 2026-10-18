@@ -225,3 +225,105 @@ ghi dữ liệu lên dịch vụ thật. Không thêm dependency hoặc sửa no
   bị”. Home khôi phục skeleton cho lần tải đầu chưa có snapshot đúng scope;
   refresh/quay lại tab giữ cả feed hoặc empty state đã được xác nhận. Guard
   tiếp tục cấm loading card nhưng cho phép skeleton.
+
+## Sửa phiên 401 và luồng kết nối — 2026-10-18
+
+- Mobile trước đây giữ access token bị 401 và không đọc refresh token mới của
+  backend. Auth coordinator nay lưu credential envelope trong SecureStore khi
+  Ghi nhớ đăng nhập, refresh một lần dùng chung cho các request đồng thời,
+  thử lại tối đa một lần sau 401 và hủy kết quả của session đã kết thúc. Phiên
+  hết hiệu lực không phục hồi được dừng request/polling, phát một toast và về
+  đăng nhập. Phiên access-only cũ cần đăng nhập lại; network error không bị coi
+  là đăng xuất. Không sửa backend để nới xác thực hoặc chạy migration thật.
+- Invite API nhận diện 401 cả khi body không phải JSON; invite/memory/profile
+  đều dùng cùng cơ chế phiên. Repository invite xử lý response PostgREST None
+  để tài khoản chưa có mã không gặp AttributeError 500.
+- Người dùng xác nhận không còn lỗi API. Log thiết bị sau đăng nhập có
+  `/auth/login` 200, `/auth/me` 200, GET invite 200 và POST invite 201; các hành
+  động đăng nhập/tạo mã do người dùng thực hiện, agent chỉ đọc log.
+- Màn Kết nối/Invite/Waiting dùng chung luồng từng bước, create → mã/chờ và
+  join → nhập/preview/xác nhận; thành công chỉ sau phản hồi couple thật. Đây là
+  bản UI đang review: người dùng nói chưa đúng thiết kế mong muốn, đang chờ
+  làm rõ hai nút chỉ ở bước đầu hay cố định thành hai tab. Chưa chốt UI cuối.
+- Kiểm tra hiện có: domain tests 127/127; 32 backend tests auth-session/couple
+  đạt bằng FakeSupabase, còn hai StarletteDeprecationWarning 422. Chưa ghép đôi
+  E2E hai thiết bị, không chạy live-workflow test/AI hoặc browser agent.
+
+## Kết nối theo mẫu brand + panel kính đáy — 2026-10-18
+
+- Người dùng đã làm rõ ảnh mẫu: không title header, logo brand ở giữa, hai nút
+  trong panel đáy; nhánh nhập mã gọn và success thể hiện hai user. Thay bản
+  step/tab trước bằng `InviteSceneLayout`, giữ palette Flamee, shared controls,
+  native blur hiện có, safe area, giới hạn chiều cao và keyboard avoidance.
+- Bỏ stepper/chip nhánh và màn preview riêng. Bấm Kết nối mới chạy validate →
+  accept; link/gõ mã không tự ghép đôi. Đổi account/rời màn trong khi validate
+  không được tiếp tục accept. Lỗi giữ form/mã và dùng toast.
+- Couple schema giải mã hai member thật. Người nhận dùng response accept,
+  người tạo và tài khoản đã kết nối đọc GET /couple. Avatar fallback bằng chữ
+  cái từ tên thật; từ chối member trùng nhau/không có account hiện tại. Không
+  dựng user/media giả hoặc gọi ghi backend từ agent để thử màn success.
+- Kiểm tra giai đoạn này: typecheck đạt, domain tests 131/131, gồm contract hai
+  thành viên, kiểm tra trước accept và hủy khi rời luồng. Chưa ghép đôi thật
+  hai thiết bị để kiểm tra toàn bộ màn success, không chạy browser agent.
+
+## Toast gọn, có icon và chiều sâu — review tiếp theo ngày 2026-10-18
+
+- Yêu cầu mới thay contract toast không icon/shadow trước đó. Dùng icon Lucide
+  chính thức của Tamagui theo semantic tone, title 14 px, description 12 px,
+  max-width 360/min-height 48/radius 18, padding 14 × 10 và shadow nâu ấm nông.
+- Controlled Tamagui.Toast cho phép enter 220 ms/10 px, exit 180 ms/6 px và
+  scale nhẹ; giữ một toast, safe area và FullWindowOverlay trên iOS. API
+  `appToast` của features giữ nguyên. State chỉ quản lý một thông báo cùng ID,
+  timer/focus/gesture vẫn do Tamagui quản lý; không thay dependency.
+- Loading dùng LoaderCircle quay chậm và chỉ đóng theo lifecycle. ID cũ không
+  được dismiss toast mới; Reduced Motion bỏ di chuyển/scale/vòng quay. Giữ
+  alert assertive cho lỗi, polite cho thông báo khác và ẩn icon khỏi screen reader.
+- Kiểm tra cuối: typecheck đạt, domain tests 134/134. iOS export đạt 4320
+  modules, HBC 8.4 MB tại thư mục tạm
+  `flamee-invite-toast-ios-39248e109e7744d9b34d7c2d3b975152`. Giữ nguyên warning
+  môi trường NO_COLOR/FORCE_COLOR. Đây là JS/assets bundle, không phải APK/IPA
+  hay kiểm tra hiển thị native. Chưa xác nhận toast mới trực tiếp trên iPhone
+  hoặc ghép đôi E2E hai thiết bị; không chạy browser agent/ghi backend/AI.
+
+## Review tiếp: mất chữ toast và nền kết nối — 2026-10-18
+
+- Người dùng báo toast chỉ còn icon. Đọc source Tamagui cho thấy Title/
+  Description kế thừa size mặc định `$4`/`$1`, không nằm trong font scale của
+  Flamee. Đặt `unstyled` và `size` semantic `$bodyM`/`$bodyS`, giữ line-height,
+  font/color tường minh; hàng icon/chữ dùng đủ chiều rộng card. Thêm regression
+  contract cho cả hai loại chữ, xác nhận đỏ trước khi sửa.
+- ToastImpl còn bọc card trong AnimatedView margin:auto. Thay width 100% của
+  card bằng chiều rộng số lấy từ viewport (tối đa 360, chừa 16 px mỗi cạnh),
+  tránh flex text bị co về 0 trong host chưa có chiều rộng. Regression thứ hai
+  xác nhận đỏ trước khi sửa; không sửa source thư viện.
+- Bỏ logo khỏi toàn bộ bước kết nối; màn chọn có câu chào xuất hiện nhẹ một
+  lần mỗi lần mở luồng, không replay khi quay lại và không chặn CTA. Nền kem
+  chuyển đào nhẹ thay các mảng tròn tím/đào. Panel trắng ấm có shadow hướng
+  lên/highlight mép trên, padding 28; hai CTA dùng AppButton large 56 px.
+- Giữ API/polling/validate/accept và success bằng dữ liệu thật. Không thêm
+  dữ liệu giả, không thay backend hoặc chạy browser agent.
+- Kiểm tra sau thay đổi: `npm run typecheck` đạt; `npm run test:domain` đạt
+  136/136, gồm hai regression toast mới. Chưa xác nhận hiển thị chữ toast,
+  hiệu ứng chào và vật liệu panel trên Expo Go/thiết bị ở lượt này; không dùng
+  kết quả export trước để khẳng định giao diện mới đã được kiểm tra native.
+
+## Màn chọn kết nối tối giản theo feedback tiếp — 2026-10-18
+
+- Bỏ câu chào có animation và panel đáy trên màn chọn. Dùng mascot Flamee
+  `image(3).png` có sẵn, bubble nhắc kết nối và hai CTA 56 px ở giữa màn;
+  nền kem chung, không blur/gradient ở màn đầu. Giữ scroll khi màn nhỏ; các
+  bước tiếp theo giữ form/panel và success dùng thành viên thật.
+- Source trước khóa hai nút trong lúc gọi `/auth/me` rồi GET invite tuần tự
+  ngay sau login. Entry mới dùng session backend vừa xác nhận; chưa gọi đọc
+  mã cho màn chọn/join. Create chủ động đọc mã, dùng lại pending còn hạn,
+  lấy couple khi accepted; chỉ tạo nếu cần và vẫn đúng account/focus.
+- Không thay logic entry đã ghép đôi → Home, cơ chế 401/refresh, quyền backend
+  hoặc dữ liệu thật. Thao tác tạo/lưu vẫn phản hồi loading trên nút.
+- Kiểm tra sau thay đổi: typecheck đạt, domain tests 140/140. Bốn test mới
+  bảo vệ dùng lại pending, chỉ tạo khi chưa có, accepted lấy couple thật và
+  rời màn trong lúc đọc không được tiếp tục tạo. Chưa đo độ trễ/frame rate
+  hoặc xác nhận bố cục mới trên Expo Go; không chạy browser agent.
+- Bổ sung theo feedback: text button Bỏ qua cố định góc dưới bên phải màn
+  chọn, ngoài vùng cuộn/trong safe area. AppTextButton accent + strong (bold),
+  target 48 px; vào Home, không thay đổi invite/couple và khóa khi busy.
+  Typecheck và 140/140 domain tests đạt sau thay đổi; chưa device QA.

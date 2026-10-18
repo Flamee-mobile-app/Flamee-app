@@ -52,7 +52,8 @@ class InviteCodeRepository(BaseRepository[InviteCode]):
             .maybe_single()
             .execute()
         )
-        return self.model_cls.from_dict(resp.data) if resp.data else None
+        data = getattr(resp, "data", None)
+        return self.model_cls.from_dict(data) if data else None
 
     def find_latest_by_user(self, user_id: str) -> InviteCode | None:
         """Return the most recently created invite code for `user_id`, if any."""
@@ -65,4 +66,5 @@ class InviteCodeRepository(BaseRepository[InviteCode]):
             .maybe_single()
             .execute()
         )
-        return self.model_cls.from_dict(resp.data) if resp.data else None
+        data = getattr(resp, "data", None)
+        return self.model_cls.from_dict(data) if data else None

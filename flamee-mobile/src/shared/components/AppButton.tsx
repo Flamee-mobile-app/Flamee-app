@@ -14,6 +14,7 @@ import {
 
 export type AppButtonProps = PropsWithChildren<{
   variant?: AppButtonVariant;
+  size?: "regular" | "large";
   loading?: boolean;
   disabled?: boolean;
   icon?: ReactNode;
@@ -30,6 +31,7 @@ export type AppButtonProps = PropsWithChildren<{
 export function AppButton({
   children,
   variant = "primary",
+  size = "regular",
   loading = false,
   disabled = false,
   icon,
@@ -53,8 +55,8 @@ export function AppButton({
     <Button
       unstyled
       testID={testID}
-      height={buttonTokens.height}
-      minHeight={buttonTokens.height}
+      height={size === "large" ? buttonTokens.largeHeight : buttonTokens.height}
+      minHeight={size === "large" ? buttonTokens.largeHeight : buttonTokens.height}
       borderRadius={buttonTokens.radius}
       borderWidth={presentation.base.borderWidth ?? 0}
       borderColor={presentation.base.borderColor ?? "transparent"}

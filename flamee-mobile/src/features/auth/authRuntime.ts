@@ -1,5 +1,8 @@
 import { Platform } from "react-native";
 import { File } from "expo-file-system";
+import { router } from "expo-router";
+import { appToast } from "../../shared/components/AppToast";
+import { getMessage } from "../../shared/localization/messages";
 import { authCredentialStore } from "../../shared/native/credentials.ts";
 import { useSessionStore } from "../../shared/state/sessionStore";
 import { createAuthApi } from "./authApi.ts";
@@ -23,6 +26,13 @@ export const authService = createAuthService({
     avatarFileFromUri: (file) => new File(file.uri),
   }),
   credentials,
+  onSessionExpired: () => {
+    const state = useSessionStore.getState();
+    if (!state.activeAccountId) return;
+    state.reset();
+    appToast.warning(getMessage("vi", "sessionExpiredTitle"));
+    router.replace("/(auth)");
+  },
   onSessionChanged: (session) => {
     const state = useSessionStore.getState();
     if (!session || state.activeAccountId === session.accountId) {

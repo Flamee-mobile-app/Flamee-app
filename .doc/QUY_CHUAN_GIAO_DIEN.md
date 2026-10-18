@@ -88,7 +88,8 @@ Giữ nguyên mã màu trong bảng khi tạo theme dùng chung. Gradient thươ
   `AppFilterChip` cho lựa chọn/filter, `AppIconButton` cho icon-only action và
   `AppTextButton` cho thao tác phụ không cần khối CTA. Không import `Button` từ
   Tamagui trực tiếp trong feature.
-- `AppButton` cao 48 px, radius 16 px, padding ngang 16 px, icon 18 px và gap
+- `AppButton` mặc định cao 48 px; `size="large"` cao 56 px dành cho hai CTA
+  đầu luồng kết nối theo review ngày 2026-10-18. Radius 16 px, padding ngang 16 px, icon 18 px và gap
   8 px. Variant hợp lệ là `primary`, `secondary`, `ghost`, `destructive`.
   Caller chỉ điều khiển semantic state và layout qua `loading`, `disabled`,
   `fill`, `grow`, `contentAlign`; không override màu, border, radius, shadow,
@@ -110,7 +111,10 @@ Giữ nguyên mã màu trong bảng khi tạo theme dùng chung. Gradient thươ
   semantics button. Action sửa avatar dùng `tone="avatar"`: hình tròn 44 px,
   nền đào `glassCardPeach` bán trong suốt, icon `accentText`, không border và
   shadow nâu ấm nông để nổi trên ảnh. `AppTextButton` giữ touch target cao 48 px nhưng không
-  có border hoặc shadow CTA.
+  có border hoặc shadow CTA. Text button có `emphasis="strong"` dùng chữ bold
+  khi cần tăng độ rõ; mặc định giữ semibold. Nút Bỏ qua trên màn chọn kết nối
+  dùng accentText + strong, cố định góc dưới bên phải trong safe area, target
+  cao 48 px, tách khỏi cụm giữa màn và vùng cuộn.
 - Interaction dùng timing 80 ms khi nhấn và 140 ms khi thả; nút lún 3 px bằng
   `transform: [{ translateY: ... }]`, không dùng prop `translateY` trực tiếp vì
   trên web nó không tạo transform. Không scale, spring, bounce hoặc float.
@@ -176,7 +180,25 @@ Giữ nguyên mã màu trong bảng khi tạo theme dùng chung. Gradient thươ
 - Max-width 560 px; màn hình có bottom nav dùng clearance chung để nội dung cuối không bị che. Danh sách dài dùng SectionList/FlatList bên trong surface; tránh lồng nhiều card có shadow.
 - Title của trang không nằm trong surface. Nhãn form, tiêu đề nhóm ngày và trạng thái bên trong surface vẫn dùng typography chung.
 - Chuẩn này áp dụng từ các màn mới và các màn được sửa trong đợt này: Timeline, Kết nối, composer Cảm xúc/Khoảnh khắc và danh sách Gợi ý. Không tự đổi toàn bộ màn cũ khi chưa nằm trong phạm vi công việc.
-- Bước chọn hành động đầu tiên của luồng lời mời là ngoại lệ đã duyệt: không có header; nút secondary `Bỏ qua` kèm mũi tên nằm ở góc trên bên phải; một surface trắng nổi ở giữa màn hình chứa bubble bo tròn màu peach với hai chấm dẫn xuống mascot `image(3)` và hai CTA rõ ràng cho Tạo lời mời/Nhập mã lời mời. Mascot nằm hoàn toàn trong surface. Các bước tạo, nhập và xác nhận sau đó vẫn dùng cấu trúc màn hình hiện có.
+- Luồng kết nối là ngoại lệ bố cục theo mẫu người dùng chốt ngày 2026-10-18:
+  bỏ title/header “Kết nối với người ấy” và logo ở mọi bước. Review mới nhất
+  bỏ hiệu ứng chữ và panel đáy trên màn chọn: mascot Flamee 136 px cùng bubble
+  nhắc kết nối nằm ngay trên hai nút Tạo mã mời / Nhập mã mời cao 56 px. Cả
+  cụm max-width 360 px, đặt giữa màn, nền kem chung; không blur/gradient hoặc
+  animation vào màn. Không bọc cả cụm trong card; màn nhỏ cuộn được. Các bước
+  nhập mã/chia sẻ/chờ vẫn giữ panel trắng ấm và keyboard handling hiện có.
+  Không tab hai nhánh hoặc thanh
+  đánh số bước. Chỉ còn icon quay lại nhỏ để rời luồng/đổi lựa chọn.
+- Nhập mã chỉ có tiêu đề ngắn trong panel đáy, `AppField` và nút Kết nối.
+  Người dùng bấm Kết nối mới validate rồi accept trên server; không tự accept
+  khi mở link, gõ xong hay chỉ tải preview. Trong xử lý khóa form, phản hồi trên
+  CTA/toast; lỗi giữ mã để sửa/thử lại. Panel tránh bàn phím và cuộn riêng khi
+  nội dung dài, không kéo trôi khỏi đáy.
+- Success dùng hai avatar/tên từ couple response thật, nối nhau qua biểu tượng
+  tim. Ảnh thiếu/lỗi dùng chữ cái từ tên thật; không dùng ảnh stock hoặc tài
+  khoản mẫu. Người tạo đọc `GET /couple` sau khi invite được chấp nhận; người
+  nhận dùng ngay hai member trong response accept. Scope phải gồm đúng user
+  hiện tại; không coi preview hoặc tạo mã là đã kết nối.
 - Bước chia sẻ lời mời không dùng content card hoặc badge trạng thái; chỉ hiển thị trực tiếp mã kết nối sáu ký tự trong các ô OTP, thời gian còn lại theo Giờ/Phút/Giây và cụm thao tác Chia sẻ/Sao chép/Tạo mã mới. Countdown lấy trực tiếp từ `expiresAt`, cập nhật mỗi giây; mã hết hạn khóa thao tác chia sẻ/sao chép. Tạo mã mới phải có bước xác nhận vì làm mã cũ mất hiệu lực.
 
 ## Chất liệu kính và dialog
@@ -235,24 +257,34 @@ Giữ nguyên mã màu trong bảng khi tạo theme dùng chung. Gradient thươ
 ## Phản hồi hệ thống bằng toast
 
 - Mọi phản hồi ngắn sau thao tác dùng `AppToastProvider` và API `appToast` dùng chung; không tự dựng toast riêng trong feature.
-- Toast dùng đúng palette Flamee: một khối trắng sáng `white` (#FFFFFF),
-  radius 20 px, padding ngang 18 px/dọc 16 px, cao tối thiểu 56 px.
-  Không border, outline, shadow, dải màu, icon, nút X hay lớp bắt sáng ở mép trên.
+- Theo review mới nhất ngày 2026-10-18, toast gọn hơn và có chiều sâu: nền sáng
+  `surface`, max-width 360 px, radius 18 px, padding ngang 14 px/dọc 10 px,
+  cao tối thiểu 48 px. Shadow nâu ấm offset 3/blur 12/opacity .10 (Android
+  elevation 5). Không border, outline, dải màu hoặc nút X.
+- Dùng icon chính thức `@tamagui/lucide-icons-2`: CircleCheck cho success,
+  CircleAlert cho error, TriangleAlert cho warning, Info cho info và LoaderCircle
+  cho loading. Icon 18 px trong nền tròn 28 px; loading quay nhẹ 1 vòng/giây,
+  Reduced Motion giữ icon tĩnh. Icon không thay thế nội dung chữ và ẩn với
+  trình đọc màn hình để không đọc lặp.
 - Title của success dùng `calmText`, error/warning dùng `accentText`, info dùng
   `textPrimary`; loading/default và description dùng `textSecondary` để đủ rõ trên nền trắng.
   Tất cả đều là màu có sẵn của app; không tạo bảng màu toast riêng.
-  Title `$bodyL` (16 px) rõ nghĩa, description chỉ khi cần. Lỗi dùng
+  Title `$bodyM` (14 px), description `$bodyS` (12 px) chỉ khi cần. Lỗi dùng
   live region `assertive`, các trạng thái còn lại dùng `polite`.
 - Toast nằm giữa phía trên, tôn trọng safe area và chỉ hiện một toast tại một
   thời điểm, tránh lộ các lớp xếp chồng thành đường ở mép trên. Tự đóng sau 3 giây
   (loading theo vòng đời riêng), hỗ trợ vuốt lên, chạm hoặc phím Escape để đóng.
+- Motion có kiểm soát bằng Tamagui.Toast: fade + dịch 10 px/scale .98 khi vào
+  trong 220 ms, ra nhẹ 6 px trong 180 ms. Reduced Motion bỏ dịch/scale. Chỉ một
+  record toast hiện tại; record đóng được giữ để chạy exit, và dismiss của
+  operation cũ không được làm tắt thông báo kết quả mới. Loading không đóng
+  bởi chạm/vuốt/Escape, chỉ kết thúc theo lifecycle thao tác.
 - iOS đặt viewport trong `FullWindowOverlay` để toast nằm trên native navigation
   screens. Viewport không portal lại xuống root trên nền tảng này; vùng bao
   không chặn thao tác của phần màn hình nằm ngoài toast.
-- Web ánh xạ `accessibilityLabel` của `ToastPositionWrapper` sang `aria-label`
-  qua `defaultProps.render` trong cấu hình Tamagui; không truyền native prop
-  ra DOM. Khi chạm đóng, nhả focus của toast trước khi unmount để bộ đếm của
-  thông báo tiếp theo tiếp tục hoạt động. Không sửa thư viện hoặc tắt cảnh báo.
+- Web/native dùng controlled Tamagui.Toast và ToastViewport, timer/focus/swipe
+  do thư viện quản lý. Khi chạm đóng trên web, nhả focus đang ở trong toast
+  trước khi unmount. Không sửa thư viện, thêm dependency hoặc tắt cảnh báo.
 - Trạng thái đang chạy vẫn phải hiện ngay trên control bằng loading/disabled. Toast chỉ thông báo kết quả hoặc thay đổi trạng thái, không thay thế phản hồi trực tiếp của nút.
 - Nội dung toast mô tả đúng kết quả quan sát được. Ví dụ đóng share sheet là “Chưa chia sẻ lời mời”, không báo thành công.
 - Lỗi ngắn phát sinh từ thao tác hoặc request nền phải dùng toast; không chèn

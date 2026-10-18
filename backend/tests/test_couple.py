@@ -10,6 +10,22 @@ def test_unauthenticated_invite_returns_401(client: TestClient):
     assert response.status_code == 401
 
 
+def test_empty_invite_lookup_handles_a_missing_postgrest_response():
+    from types import SimpleNamespace
+    from app.repositories.couple_repo import InviteCodeRepository
+
+    class EmptyQuery:
+        def __getattr__(self, _name):
+            return lambda *_args, **_kwargs: self
+
+        def execute(self):
+            return None
+
+    repo = InviteCodeRepository(SimpleNamespace(table=lambda _table: EmptyQuery()))
+    assert repo.find_latest_by_user("user-without-invite") is None
+    assert repo.find_active_by_user("user-without-invite") is None
+
+
 def test_alice_creates_invite(client: TestClient, alice_headers):
     response = client.post(
         "/api/v1/couple/invite-code", headers=alice_headers

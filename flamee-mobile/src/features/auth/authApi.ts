@@ -76,7 +76,7 @@ export function createAuthApi({
   };
 
   const authenticate = async (path: string, body: unknown) => {
-    const parsed = z.object({ user: userSchema, access_token: z.string().min(1) }).safeParse(await request(path, { body }));
+    const parsed = z.object({ user: userSchema, access_token: z.string().min(1), refresh_token: z.string().min(1).optional(), expires_at: z.string().optional() }).safeParse(await request(path, { body }));
     if (!parsed.success) throw new AuthError("response");
     return parsed.data;
   };
@@ -84,6 +84,7 @@ export function createAuthApi({
   return {
     login: (email: string, password: string) => authenticate("/auth/login", { email, password }),
     register: (email: string, password: string, fullName: string) => authenticate("/auth/register", { email, password, full_name: fullName }),
+    refresh: (refreshToken: string) => authenticate("/auth/refresh", { refresh_token: refreshToken }),
     async me(token: string): Promise<AuthUser> {
       const parsed = userSchema.safeParse(await request("/auth/me", { token }));
       if (!parsed.success) throw new AuthError("response");

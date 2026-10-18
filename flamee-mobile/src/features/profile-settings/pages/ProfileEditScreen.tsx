@@ -76,7 +76,7 @@ export function ProfileEditScreen() {
       if (!session || session.accountId !== accountId) throw new Error("Session unavailable");
       applySession(session, editRevision.current === editAtStart);
     } catch {
-      if (request === revision.current) appToast.error(getMessage("vi", "settingsLoadError"));
+      if (request === revision.current && useSessionStore.getState().activeAccountId === accountId) appToast.error(getMessage("vi", "settingsLoadError"));
     }
   }, [accountId, applySession]);
 

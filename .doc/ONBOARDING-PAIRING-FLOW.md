@@ -6,6 +6,33 @@ Ngày: 2026-10-11; cập nhật auth, entry route và invite backend 2026-10-14.
 
 ### Contract invite backend ngày 2026-10-14
 
+**Cập nhật xử lý phiên ngày 2026-10-18:** backend kiểm tra `jti` trong
+`auth_sessions`; mobile khôi phục token theo contract access/refresh, chia sẻ một
+refresh rotation cho các request đồng thời và dừng sử dụng phiên bị từ chối.
+Phiên cũ chỉ có access token bị 401 phải đăng nhập lại. Không bỏ kiểm tra phiên
+hoặc quyền phía server để tránh lỗi. Đọc invite chưa tồn tại phải trả `null` hợp
+lệ, kể cả khi thư viện PostgREST trả response `None`.
+
+**Bố cục mới theo ảnh tham chiếu ngày 2026-10-18:** màn đầu không có title
+header và logo. Theo yêu cầu tiếp theo, bỏ hiệu ứng chữ và panel đáy ở màn
+chọn nhánh: mascot Flamee có sẵn cùng bubble nhắc kết nối, phía dưới là hai
+nút Tạo mã mời / Nhập mã mời cao 56 px. Cả cụm nằm giữa màn trên nền kem
+đơn giản, không blur/gradient hoặc chờ animation. Màn nhỏ cuộn được cả cụm.
+Góc dưới bên phải có text button “Bỏ qua”, chữ bold màu accentText, target
+48 px, nằm ngoài vùng cuộn và chừa safe area. Bấm vào Home, không tạo/thu hồi
+mã hoặc thay đổi trạng thái kết nối; khóa khi đang xử lý thao tác.
+Session vừa login/bootstrap đã xác nhận được dùng ngay; không gọi lại
+`/auth/me` hoặc đọc invite để khóa màn chọn. Chỉ khi chọn Tạo mã mời mới đọc
+mã hiện tại, dùng lại pending còn hạn hoặc chủ động tạo nếu chưa có; accepted
+thì lấy couple thật. Nhánh Nhập mã mời mở form ngay. Các bước tiếp theo vẫn
+dùng panel/form hiện có, không giữ hai tab hoặc thanh bước.
+Nhánh nhập mã là form gọn; nút Kết nối chủ động chạy validate → accept, hiển
+thị trạng thái xử lý và chuyển tới success chỉ sau server xác nhận. Mở link chỉ
+điền mã, không tự accept. Success thể hiện hai người bằng tên/avatar thật từ
+couple response; người tạo lấy dữ liệu bằng GET /couple sau accepted. Mẫu tối
+chỉ là tham chiếu bố cục, palette Flamee vẫn áp dụng. Các mô tả UI cũ bên dưới
+không thay thế quyết định mới nhất này.
+
 - Mã gồm đúng 6 ký tự chữ hoa hoặc số, hiệu lực 72 giờ; tạo lại hủy mã pending cũ.
 - `POST /couple/invite-code`, `GET /couple/invite-code`, `DELETE /couple/invite-code` lần lượt tạo, đọc và thu hồi mã của user hiện tại.
 - `POST /couple/validate-invite` trả preview người mời nhưng không ghép đôi. `POST /couple/accept-invite` ghép đôi bằng PostgreSQL RPC có khóa hàng và transaction.

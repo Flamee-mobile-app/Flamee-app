@@ -9,6 +9,7 @@ type AppTextButtonTone = "neutral" | "accent" | "danger";
 
 export type AppTextButtonProps = PropsWithChildren<{
   tone?: AppTextButtonTone;
+  emphasis?: "normal" | "strong";
   icon?: ReactNode;
   iconAfter?: ReactNode;
   disabled?: boolean;
@@ -30,6 +31,7 @@ const toneColors = {
 export function AppTextButton({
   children,
   tone = "neutral",
+  emphasis = "normal",
   icon,
   iconAfter,
   disabled = false,
@@ -62,7 +64,7 @@ export function AppTextButton({
       paddingHorizontal={buttonTokens.paddingHorizontal}
       fontFamily="$body"
       fontSize="$button"
-      fontWeight="$semibold"
+      fontWeight={emphasis === "strong" ? "$bold" : "$semibold"}
       gap={buttonTokens.iconGap}
       {...interaction}
       animateOnly={["transform", "opacity"]}

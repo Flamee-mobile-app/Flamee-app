@@ -66,11 +66,27 @@ export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as cons
 export const radii = { sm: 8, md: 12, lg: 20, xl: 28 } as const;
 
 export const toastTokens = {
-  maxWidth: 420,
-  minHeight: 56,
-  radius: 20,
-  paddingHorizontal: 18,
-  paddingVertical: 16,
+  maxWidth: 360,
+  minHeight: 48,
+  radius: 18,
+  paddingHorizontal: 14,
+  paddingVertical: 10,
+  iconSize: 18,
+  iconSurfaceSize: 28,
+  iconGap: 10,
+  textGap: 2,
+  enterDuration: 220,
+  exitDuration: 180,
+  enterOffset: -10,
+  exitOffset: -6,
+  webShadow: "0 3px 12px rgba(48, 41, 36, 0.12)",
+  shadow: {
+    shadowColor: colors.textPrimary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 12,
+    shadowOpacity: 0.10,
+    elevation: 5,
+  },
   duration: 3000,
 } as const;
 
@@ -177,6 +193,7 @@ export const navigationTokens = {
 
 export const buttonTokens = {
   height: 48,
+  largeHeight: 56,
   radius: 16,
   paddingHorizontal: 16,
   iconSize: 18,
@@ -264,6 +281,23 @@ export const memoryFeedTokens = {
 export const photoPickerTokens = { height: 156, radius: 18, iconSize: 24, pressOffset: 1, previewViewportRatio: 0.43 } as const;
 
 export const memoryComposerTokens = { snapPoints: [85, 55], initialPosition: 1 };
+
+export const inviteSceneTokens = {
+  maxWidth: 560,
+  panelRadius: 28,
+  panelPadding: 28,
+  maxPanelHeightRatio: 0.64,
+  portraitSize: 88,
+  chooserWidth: 360,
+  mascotSize: 136,
+  panelShadow: {
+    shadowColor: colors.textPrimary,
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+    elevation: 8,
+  },
+} as const;
 
 export const featureTokens = {
   maxWidth: 560,

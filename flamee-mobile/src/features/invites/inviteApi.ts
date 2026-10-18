@@ -20,13 +20,14 @@ const inviteSchema = z.object({
   status: z.enum(["pending", "accepted", "expired", "cancelled"]),
   is_pending: z.boolean(),
 });
-const memberSchema = z.object({ id: z.string(), full_name: z.string(), avatar_url: z.string().nullable().optional() });
+const memberSchema = z.object({ id: z.string().min(1), full_name: z.string(), avatar_url: z.string().nullable().optional() });
 const previewSchema = z.object({ code: z.string().length(6), expires_at: z.string(), inviter: memberSchema });
-const coupleSchema = z.object({ id: z.string(), status: z.string() }).passthrough();
+const coupleSchema = z.object({ id: z.string().min(1), status: z.literal("active"), partner1: memberSchema, partner2: memberSchema }).passthrough();
 
 export type ServerInvite = z.infer<typeof inviteSchema>;
 export type InvitePreview = z.infer<typeof previewSchema>;
 export type AcceptedCouple = z.infer<typeof coupleSchema>;
+export type ConnectionMember = z.infer<typeof memberSchema>;
 
 export function createInviteApi({ baseUrl, fetcher = fetch, timeoutMs = 12000 }: { baseUrl: string; fetcher?: typeof fetch; timeoutMs?: number }) {
   const request = async (path: string, token: string, method: "GET" | "POST" | "DELETE", body?: unknown) => {
@@ -41,11 +42,11 @@ export function createInviteApi({ baseUrl, fetcher = fetch, timeoutMs = 12000 }:
         body: body === undefined ? undefined : JSON.stringify(body),
         signal: controller.signal,
       });
+      if (response.status === 401) throw new InviteApiError("unauthorized");
       let payload: unknown;
       try { payload = await response.json(); } catch { throw new InviteApiError("response"); }
       if (!response.ok) {
         const parsed = z.object({ error: z.object({ code: z.string(), message: z.string() }) }).safeParse(payload);
-        if (response.status === 401) throw new InviteApiError("unauthorized");
         if (parsed.success) throw new InviteApiError(parsed.data.error.code as InviteApiErrorCode, parsed.data.error.message);
         throw new InviteApiError("server");
       }
@@ -63,6 +64,7 @@ export function createInviteApi({ baseUrl, fetcher = fetch, timeoutMs = 12000 }:
     return result.data;
   };
   return {
+    async connection(token: string) { return parse(coupleSchema, await request("/couple", token, "GET")); },
     async create(token: string) { return parse(inviteSchema, await request("/couple/invite-code", token, "POST", {})); },
     async current(token: string) { return parse(inviteSchema.nullable(), await request("/couple/invite-code", token, "GET")); },
     async revoke(token: string) { return parse(inviteSchema, await request("/couple/invite-code", token, "DELETE")); },

@@ -112,6 +112,17 @@ Use a single Tamagui token source for colors, semantic backgrounds/text, spacing
 
 Transient system feedback is rendered through one root Tamagui toast provider and the shared `appToast` API. Feature actions keep their own loading/disabled state, then publish a semantic success, error, warning or info toast. The app uses in-app toasts for consistent Expo/mobile behavior; platform-native toasts remain optional and are not required for correctness.
 
+The current toast renderer uses controlled Tamagui.Toast with one in-memory
+notification record and operation IDs; stale dismissals cannot close a newer
+result. Tamagui owns timer pausing, swipe and focus behavior. Status icons,
+compact spacing, shallow depth and motion come from shared tokens/model; iOS
+uses FullWindowOverlay and Reduced Motion disables movement and icon rotation.
+Toast.Title/Description explicitly set semantic `size` ($bodyM/$bodyS) and
+unstyled typography: library defaults $4/$1 are absent from Flamee's custom
+font scale. The card receives the viewport's concrete numeric width because
+Tamagui's margin:auto gesture host is shrink-wrapped; a percentage card width
+with flex text could collapse to just the icon. The inner row fills the card.
+
 Screens use React Native primitives and safe-area-aware layout. Support system text size, screen readers, sufficient contrast, keyboard handling, platform back behavior, and localized dates. Display a partner's local clock and configured timezone difference, but calculate “today” independently for each member (§4.2 requirements 2.6–2.8; flow 5). Keep visible copy in Vietnamese localization resources with English expansion in mind (§6 language row).
 
 ## 5. Data ownership and API design
@@ -135,9 +146,39 @@ Feature services map to documented REST groups (§8): `auth`, `me/profile/settin
 
 Use short-lived access credentials and refresh through a single auth coordinator; cancel requests when their account scope ends. Retry transient reads with bounded backoff. Retry a mutation only when it is idempotent or carries the server-supported idempotency key. Do not duplicate the server's membership or privacy enforcement in client assumptions.
 
+The mobile auth coordinator now consumes the backend refresh-token contract.
+Remembered native sessions store a versioned access/refresh credential envelope
+in SecureStore; unremembered sessions keep refresh credentials in memory only.
+Legacy access-only credentials remain readable, but a rejected legacy credential
+requires sign-in. Concurrent 401s share one refresh rotation and retry once with
+the new access token. A second 401 or rejected refresh clears the session and
+routes to sign-in with one toast; transient refresh network errors preserve the
+session for an explicit retry. Auth, invite and memory services use this same
+coordinator. A replay after 401 is allowed because server authentication rejected
+the request before the mutation endpoint ran; network failures do not trigger
+automatic mutation replays. Results from an ended session are rejected.
+
 Subscribe to `partner.checkin`, `moment.new`, `nudge.new`, and `couple.status` while foregrounded if the backend provides realtime transport (§8). Reconnect/refetch after foregrounding. APNs/FCM plus server jobs own notifications while suspended; no persistent socket or guaranteed background JavaScript is assumed.
 
 The implemented invite slice uses `features/invites/inviteApi.ts` and `inviteService.ts` with the in-memory auth bearer token. Invite create/preview/revoke/accept are server-authoritative. Until a realtime couple-status channel exists, create/waiting screens poll `GET /couple/invite-code` every five seconds only while active, stop on unmount, and refresh `/auth/me` after acceptance before routing Home.
+
+Connection, invite and waiting routes now share the invite flow implementation,
+so they do not each maintain competing polling loops. Polling runs only while
+the creator flow is focused and the app is foregrounded, prevents overlapping
+reads and stops after a confirmed connection or invalid session. The user has
+confirmed the API issue is resolved. The revised presentation removes the logo
+from every step. The initial chooser centers an existing Flamee mascot with a
+speech bubble and the two 56px actions on the plain cream background; no entry
+animation, bottom panel, gradient or blur is rendered on this chooser. Later
+steps retain their existing form/panel. Entry uses the already verified auth
+session snapshot instead of another /auth/me read. The chooser/join form does
+not wait on an invite read; explicit Create reads/reuses a valid pending code
+before creating, or loads the actual couple if it was accepted. Account/focus
+changes prevent a subsequent create request. No page title or step/tab navigation.
+The explicit Connect action validates and accepts a manually entered code;
+opening an invite link only fills the form. Successful acceptance returns both
+real members for the success scene. Creators read authenticated GET /couple
+after accepted status; client presentation rejects unrelated/duplicate members.
 
 ## 6. Offline check-in and Tiny Moment media
 
