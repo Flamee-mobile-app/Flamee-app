@@ -1,3 +1,4 @@
+import { AppGradientText } from "../../../shared/components";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye } from "@tamagui/lucide-icons-2/icons/Eye";
 import { EyeOff } from "@tamagui/lucide-icons-2/icons/EyeOff";
@@ -101,17 +102,17 @@ export function AuthScreen() {
           </YStack>
         </YStack>
 
-        <YStack flexShrink={0} marginTop={-loginTokens.formOverlap} borderTopLeftRadius="$xl" borderTopRightRadius="$xl" backgroundColor="$background" paddingHorizontal={spacing.xl + Math.max(insets.left, insets.right)} paddingTop="$lg" paddingBottom={layout.surfacePaddingBottom}>
+        <YStack flexShrink={0} marginTop={-loginTokens.formOverlap} borderTopLeftRadius="$xl" borderTopRightRadius="$xl" backgroundColor="$white" paddingHorizontal={spacing.lg + Math.max(insets.left, insets.right)} paddingTop="$md" paddingBottom={layout.surfacePaddingBottom}>
           <YStack width="100%" maxWidth={loginTokens.maxWidth} alignSelf="center">
             {register ? <RegisterForm {...motion} onAuthenticated={activateSession} onLogin={() => setRegister(false)} /> : <YStack>
             <LoginEntrance order={2} {...motion}>
-              <Text role="heading" aria-level={1} fontFamily="$heading" fontSize="$h4" lineHeight="$h4" fontWeight="$bold" color="$textPrimary" textAlign="center" marginBottom={layout.titleGap}>{getMessage("vi", "loginAction")}</Text>
+              <AppGradientText role="heading" aria-level={1} fontFamily="$heading" fontSize="$h4" lineHeight="$h4" fontWeight="$bold" color="$textPrimary" textAlign="center" marginBottom={layout.titleGap}>{getMessage("vi", "loginAction")}</AppGradientText>
             </LoginEntrance>
 
             <LoginEntrance order={3} {...motion}>
               <Controller control={form.control} name="email" render={({ field, fieldState }) => (
                 <YStack marginBottom="$sm">
-                  <AppField inputRef={field.ref} id="login-email" label={getMessage("vi", "loginEmailLabel")}
+                  <AppField inputRef={field.ref} id="login-email" label={getMessage("vi", "loginEmailLabel")} showLabel={false}
                     startIcon={<Mail size={20} color="$textSecondary" aria-hidden={true} />}
                     placeholder={getMessage("vi", "loginEmailPlaceholder")} keyboardType="email-address" inputMode="email" autoComplete="email" textContentType="emailAddress" maxLength={254} autoCapitalize="none" autoCorrect={false}
                     editable={!busy} value={field.value} error={fieldState.error?.message}
@@ -124,7 +125,7 @@ export function AuthScreen() {
             <LoginEntrance order={4} {...motion}>
               <Controller control={form.control} name="password" render={({ field, fieldState }) => (
                 <YStack marginBottom="$sm">
-                  <AppField inputRef={field.ref} id="login-password" label={getMessage("vi", "loginPasswordLabel")}
+                  <AppField inputRef={field.ref} id="login-password" label={getMessage("vi", "loginPasswordLabel")} showLabel={false}
                     startIcon={<LockKeyhole size={20} color="$textSecondary" aria-hidden={true} />}
                     placeholder={getMessage("vi", "loginPasswordPlaceholder")} secureTextEntry={!showPassword} type={showPassword ? "text" : "password"} autoComplete="current-password" textContentType="password" maxLength={128} autoCapitalize="none" autoCorrect={false}
                     editable={!busy} value={field.value} error={fieldState.error?.message}
@@ -151,9 +152,6 @@ export function AuthScreen() {
                     {getMessage("vi", "loginRememberMe")}
                   </Label>
                 </XStack>
-                <AppTextButton tone="accent" disabled={busy} onPress={() => appToast.info(getMessage("vi", "loginUnavailableTitle"), { description: getMessage("vi", "loginResetUnavailable") })}>
-                  {getMessage("vi", "loginForgotPassword")}
-                </AppTextButton>
               </XStack>
             </LoginEntrance>
 

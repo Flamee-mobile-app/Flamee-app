@@ -126,13 +126,14 @@ def test_users_me_password_requires_current(client: TestClient):
         headers=headers,
     )
     assert r.status_code == 422
-    # Wrong current_password → 401
+    # Wrong current_password is a validation error, not an expired session.
     r2 = client.put(
         "/api/v1/users/me/password",
         json={"current_password": "WrongPw", "new_password": "NewSecret123"},
         headers=headers,
     )
-    assert r2.status_code == 401
+    assert r2.status_code == 400
+    assert r2.json()["error"]["code"] == "current_password_invalid"
     # Correct → 200
     r3 = client.put(
         "/api/v1/users/me/password",

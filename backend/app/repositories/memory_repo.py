@@ -50,7 +50,7 @@ class MemoryRepository(BaseRepository[Memory]):
         """M-03: đếm chính xác thay vì len(items)."""
         query = (
             self.db.table(self.table)
-            .select("id", count="exact")
+            .select("id", count="exact", head=True)
             .eq("couple_id", couple_id)
         )
         if category:

@@ -18,7 +18,7 @@ export type MascotStickerDefinition = {
 
 export type CheckInReason = {
   id: string;
-  labelKey: string;
+  labelKey: MessageKey;
 };
 
 export type CheckInFormValue = {

@@ -1,3 +1,4 @@
+import { AppGradientText } from "../../../shared/components";
 import { Clock3 } from "@tamagui/lucide-icons-2/icons/Clock3";
 import { Copy } from "@tamagui/lucide-icons-2/icons/Copy";
 import { RefreshCw } from "@tamagui/lucide-icons-2/icons/RefreshCw";
@@ -23,9 +24,9 @@ type InviteCodeCardProps = {
 function CountdownUnit({ value, label }: { value: string; label: string }) {
   return (
     <YStack minWidth={64} alignItems="center" gap="$xs">
-      <Text fontFamily="$heading" fontSize="$h3" lineHeight="$h3" fontWeight="$bold" color="$textPrimary">
+      <AppGradientText fontFamily="$heading" fontSize="$h3" lineHeight="$h3" fontWeight="$bold" color="$textPrimary">
         {value}
-      </Text>
+      </AppGradientText>
       <Text fontFamily="$body" fontSize="$caption" lineHeight="$caption" color="$textSecondary">
         {label}
       </Text>
@@ -76,7 +77,7 @@ export function InviteCodeCard({ code, expiresAt, action, onShare, onCopy, onRec
                 alignItems="center"
                 justifyContent="center"
               >
-                <Text
+                <AppGradientText
                   fontFamily="$heading"
                   fontSize="$h3"
                   lineHeight="$h3"
@@ -84,7 +85,7 @@ export function InviteCodeCard({ code, expiresAt, action, onShare, onCopy, onRec
                   color={countdown.expired ? "$textSecondary" : "$textPrimary"}
                 >
                   {character}
-                </Text>
+                </AppGradientText>
               </YStack>
             ))}
           </XStack>
@@ -107,9 +108,9 @@ export function InviteCodeCard({ code, expiresAt, action, onShare, onCopy, onRec
           </XStack>
           <XStack alignItems="flex-start" justifyContent="center" gap="$xs">
             <CountdownUnit value={countdown.hours} label={getMessage("vi", "countdownHours")} />
-            <Text fontFamily="$heading" fontSize="$h3" lineHeight="$h3" fontWeight="$bold" color="$textSecondary">:</Text>
+            <AppGradientText fontFamily="$heading" fontSize="$h3" lineHeight="$h3" fontWeight="$bold" color="$textSecondary">:</AppGradientText>
             <CountdownUnit value={countdown.minutes} label={getMessage("vi", "countdownMinutes")} />
-            <Text fontFamily="$heading" fontSize="$h3" lineHeight="$h3" fontWeight="$bold" color="$textSecondary">:</Text>
+            <AppGradientText fontFamily="$heading" fontSize="$h3" lineHeight="$h3" fontWeight="$bold" color="$textSecondary">:</AppGradientText>
             <CountdownUnit value={countdown.seconds} label={getMessage("vi", "countdownSeconds")} />
           </XStack>
         </YStack>

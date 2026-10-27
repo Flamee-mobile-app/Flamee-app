@@ -21,6 +21,7 @@ class FakeSupabaseTable:
         self._order_field: str | None = None
         self._order_desc: bool = False
         self._count_mode: str | None = None
+        self._head: bool = False
         self._select_cols: str = "*"
         self.select_calls: int = 0
 
@@ -32,14 +33,16 @@ class FakeSupabaseTable:
         self._order_field = None
         self._order_desc = False
         self._count_mode = None
+        self._head = False
         self._select_cols = "*"
         return self
 
-    def select(self, cols: str = "*", count: str | None = None) -> "FakeSupabaseTable":
+    def select(self, cols: str = "*", count: str | None = None, head: bool = False) -> "FakeSupabaseTable":
         self.select_calls += 1
         self._reset_query()
         self._select_cols = cols
         self._count_mode = count
+        self._head = head
         return self
 
     def eq(self, field: str, value: Any) -> "FakeSupabaseTable":
@@ -124,7 +127,9 @@ class FakeSupabaseTable:
     def execute(self) -> Any:
         results = self._apply_filters()
         resp = MagicMock()
-        if self._single:
+        if self._head:
+            resp.data = []
+        elif self._single:
             resp.data = results[0] if results else None
         else:
             resp.data = results

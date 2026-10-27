@@ -113,6 +113,22 @@ class MemoryResponse(BaseModel):
         )
 
 
+class MemoryAuthor(BaseModel):
+    id: str
+    full_name: str
+    username: str | None = None
+    avatar_url: str | None = None
+
+
+class MemoryCoverImage(BaseModel):
+    id: str
+    url: str
+    thumbnail_url: str | None
+    width: int | None
+    height: int | None
+    url_expires_at: int | None = None
+
+
 class MemoryListItem(BaseModel):
     id: str
     title: str
@@ -122,11 +138,16 @@ class MemoryListItem(BaseModel):
     is_pinned: bool
     thumbnail_url: str | None
     image_count: int
+    cover_image: MemoryCoverImage | None = None
+    description: str | None = None
+    created_by: str | None = None
+    created_at: str | None = None
+    author: MemoryAuthor | None = None
     url_expires_at: Optional[int] = None
 
     @classmethod
     def from_memory(
-        cls, memory: Memory, images: list[MemoryImage]
+        cls, memory: Memory, images: list[MemoryImage], *, image_count: int | None = None
     ) -> "MemoryListItem":
         thumb = images[0].thumbnail_url or images[0].url if images else None
         exp = images[0].url_expires_at if images else None
@@ -138,7 +159,16 @@ class MemoryListItem(BaseModel):
             location=memory.location,
             is_pinned=memory.is_pinned,
             thumbnail_url=thumb,
-            image_count=len(images),
+            image_count=len(images) if image_count is None else image_count,
+            cover_image=MemoryCoverImage(
+                id=images[0].id, url=images[0].url,
+                thumbnail_url=images[0].thumbnail_url,
+                width=images[0].width, height=images[0].height,
+                url_expires_at=_parse_exp_to_epoch(exp),
+            ) if images and images[0].url else None,
+            description=memory.description,
+            created_by=memory.created_by,
+            created_at=memory.created_at,
             url_expires_at=_parse_exp_to_epoch(exp),
         )
 

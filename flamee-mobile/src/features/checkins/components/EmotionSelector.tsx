@@ -1,3 +1,4 @@
+import { AppGradientText } from "../../../shared/components";
 import { Text, XStack, YStack } from "tamagui";
 import { AppField, AppFilterChip } from "../../../shared/components";
 import { getMessage } from "../../../shared/localization/messages";
@@ -13,9 +14,9 @@ type EmotionSelectorProps = {
 export function EmotionSelector({ emotionId, customEmotionLabel, onChange, error }: EmotionSelectorProps) {
   return (
     <YStack gap="$md">
-      <Text fontFamily="$heading" fontSize="$bodyL" fontWeight="$semibold" color="$textPrimary">
+      <AppGradientText fontFamily="$heading" fontSize="$bodyL" fontWeight="$semibold" color="$textPrimary">
         {getMessage("vi", "emotionChooseLabel")}
-      </Text>
+      </AppGradientText>
       <XStack flexWrap="wrap" gap="$sm" role="group" aria-label={getMessage("vi", "emotionChooseLabel")}>
         {emotionCatalog.map((emotion) => (
           <AppFilterChip
@@ -39,6 +40,7 @@ export function EmotionSelector({ emotionId, customEmotionLabel, onChange, error
           placeholder={getMessage("vi", "emotionCustomPlaceholder")}
           value={customEmotionLabel}
           maxLength={32}
+          surfaceTone="bright"
           onChangeText={(value) => onChange("custom", value)}
           error={error}
         />

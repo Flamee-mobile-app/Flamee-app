@@ -1,57 +1,68 @@
 import { Ellipsis } from "@tamagui/lucide-icons-2/icons/Ellipsis";
-import { Heart } from "@tamagui/lucide-icons-2/icons/Heart";
+import { MessageCircle } from "@tamagui/lucide-icons-2/icons/MessageCircle";
 import { MapPin } from "@tamagui/lucide-icons-2/icons/MapPin";
 import { Pin } from "@tamagui/lucide-icons-2/icons/Pin";
 import { RotateCcw } from "@tamagui/lucide-icons-2/icons/RotateCcw";
 import { useEffect, useState } from "react";
-import { Image } from "react-native";
 import { Text, XStack, YStack } from "tamagui";
-import { AppIconButton } from "../../../shared/components";
+import { AppIconButton, AppMediaButton, AppProfileAvatar, AppRemoteImage, AppTextButton, SectionCard, appToast } from "../../../shared/components";
 import { memoryFeedTokens } from "../../../shared/constants/tokens";
 import { formatMessage, getMessage } from "../../../shared/localization/messages";
 import type { MemorySummary } from "../../moments";
 import { formatMemoryDate } from "../memoryFeedModel";
 
-function MemoryPhoto({ memory, square = false }: { memory: MemorySummary; square?: boolean }) {
+function MemoryPhoto({ memory, square = false, onPress, onRetry }: { memory: MemorySummary; square?: boolean; onPress?: () => void; onRetry?: () => void }) {
   const [failed, setFailed] = useState(false);
-  useEffect(() => setFailed(false), [memory.thumbnail_url]);
-  if (!memory.thumbnail_url) return null;
-  return <YStack width="100%" aspectRatio={square ? 1 : memoryFeedTokens.photoAspectRatio} borderRadius={memoryFeedTokens.photoRadius} backgroundColor="$surfaceMuted" overflow="hidden" justifyContent="center" alignItems="center">
-    {failed ? <YStack alignItems="center" gap="$sm" padding="$lg">
+  const uri = square ? memory.thumbnail_url : memory.cover_image?.url ?? memory.thumbnail_url;
+  useEffect(() => setFailed(false), [uri]);
+  if (!uri) return null;
+  if (failed) return <YStack width="100%" aspectRatio={square ? 1 : memoryFeedTokens.photoAspectRatio} borderRadius={memoryFeedTokens.photoRadius} backgroundColor="$surfaceMuted" alignItems="center" justifyContent="center"><YStack alignItems="center" gap="$sm" padding="$lg">
       <Text fontFamily="$body" fontSize="$bodyS" color="$textSecondary" textAlign="center">{getMessage("vi", "memoryFeedPhotoError")}</Text>
-      <AppIconButton tone="plain" accessibilityLabel={getMessage("vi", "retry")} icon={<RotateCcw size={18} color="$textSecondary" />} onPress={() => setFailed(false)} />
-    </YStack> : <Image
-      source={{ uri: memory.thumbnail_url }}
+      <AppIconButton tone="plain" accessibilityLabel={getMessage("vi", "retry")} icon={<RotateCcw size={18} color="$textSecondary" />} onPress={() => { setFailed(false); onRetry?.(); }} />
+    </YStack></YStack>;
+  const photo = <YStack width="100%" aspectRatio={square ? 1 : memoryFeedTokens.photoAspectRatio} borderRadius={memoryFeedTokens.photoRadius} backgroundColor="$surfaceMuted" overflow="hidden" justifyContent="center" alignItems="center">
+    <AppRemoteImage
+      uri={uri}
+      previewUri={memory.thumbnail_url}
       accessibilityLabel={memory.title}
       resizeMode="cover"
       onError={() => setFailed(true)}
-      style={{ width: "100%", height: "100%" }}
-    />}
+    />
     {memory.image_count > 1 ? <YStack position="absolute" right="$sm" bottom="$sm" paddingHorizontal="$sm" paddingVertical="$xs" borderRadius="$sm" backgroundColor="$glassCard">
       <Text fontFamily="$body" fontSize="$bodyS" color="$textPrimary">{formatMessage("vi", "memoryFeedPhotoCount", { count: memory.image_count })}</Text>
     </YStack> : null}
   </YStack>;
+  return onPress ? <AppMediaButton onPress={onPress} accessibilityLabel={`${getMessage("vi", "memoryFeedDetails")}: ${memory.title}`}>{photo}</AppMediaButton> : photo;
 }
 
-/** Existing album summaries have no author identity or comment counts. Never invent either. */
-export function MemoryFeedPost({ memory, onDetails }: { memory: MemorySummary; onDetails: () => void }) {
+function MemoryAuthorAvatar({ memory }: { memory: MemorySummary }) {
+  const author = memory.author;
+  return <AppProfileAvatar uri={author?.avatar_url} fallbackSeed={author?.id ?? memory.created_by} size={memoryFeedTokens.avatarSize}
+    accessibilityLabel={author?.full_name || getMessage("vi", "memoryFeedShared")} />;
+}
+
+export function MemoryFeedPost({ memory, onDetails, onPhotoRetry }: { memory: MemorySummary; onDetails: () => void; onPhotoRetry?: () => void }) {
   const date = formatMemoryDate(memory.memory_date, "vi");
-  return <YStack gap="$md" paddingBottom={memoryFeedTokens.postGap}>
+  return <YStack paddingBottom={memoryFeedTokens.postGap}><SectionCard tone="white"><YStack gap="$md">
     <XStack alignItems="center" gap="$sm">
-      <YStack width={memoryFeedTokens.avatarSize} height={memoryFeedTokens.avatarSize} borderRadius="$xl" backgroundColor="$accentSoft" alignItems="center" justifyContent="center" aria-hidden={true}>
-        <Heart size={16} color="$accentText" strokeWidth={1.8} />
-      </YStack>
+      <MemoryAuthorAvatar memory={memory} />
       <YStack flex={1} minWidth={0} gap={2}>
-        <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" fontWeight="$semibold" color="$textPrimary">{getMessage("vi", "memoryFeedShared")}</Text>
+        <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" fontWeight="$semibold" color="$textPrimary" numberOfLines={1}>{memory.author?.username || memory.author?.full_name || getMessage("vi", "memoryFeedShared")}</Text>
         {date ? <Text fontFamily="$body" fontSize="$bodyS" lineHeight="$bodyS" color="$textSecondary">{date}</Text> : null}
       </YStack>
       {memory.is_pinned ? <Pin size={14} color="$accentText" accessibilityLabel={getMessage("vi", "memoryFeedPinned")} /> : null}
       <AppIconButton tone="plain" accessibilityLabel={getMessage("vi", "memoryFeedDetails")} icon={<Ellipsis size={20} color="$textSecondary" />} onPress={onDetails} />
     </XStack>
     <Text fontFamily="$body" fontSize="$bodyL" lineHeight="$bodyL" color="$textPrimary">{memory.title}</Text>
-    <MemoryPhoto memory={memory} />
+    {memory.description ? <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textSecondary">{memory.description}</Text> : null}
+    <MemoryPhoto memory={memory} onPress={onDetails} onRetry={onPhotoRetry} />
     {memory.location ? <XStack alignItems="center" gap="$xs"><MapPin size={14} color="$textSecondary" aria-hidden={true} /><Text flex={1} fontFamily="$body" fontSize="$bodyS" lineHeight="$bodyS" color="$textSecondary">{memory.location}</Text></XStack> : null}
-  </YStack>;
+    <YStack height={1} backgroundColor="$border" opacity={0.55} />
+    <XStack justifyContent="space-between" alignItems="center" flexWrap="wrap" gap="$xs">
+      <AppTextButton icon={<MessageCircle size={19} color="$textSecondary" />} onPress={() => appToast.info(getMessage("vi", "memoryCommentsUnavailable"))}>{getMessage("vi", "memoryComments")}</AppTextButton>
+      {memory.image_count > 0 ? <Text fontFamily="$body" fontSize="$bodyS" lineHeight="$bodyS" color="$textSecondary">{formatMessage("vi", "memoryFeedPhotoCount", { count: memory.image_count })}</Text> : null}
+    </XStack>
+  </YStack></SectionCard></YStack>;
 }
 
 export function MemoryGalleryTile({ memory }: { memory: MemorySummary }) {

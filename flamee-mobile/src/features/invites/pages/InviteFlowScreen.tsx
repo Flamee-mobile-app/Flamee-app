@@ -1,3 +1,4 @@
+import { AppGradientText } from "../../../shared/components";
 import { Check } from "@tamagui/lucide-icons-2/icons/Check";
 import { KeyRound } from "@tamagui/lucide-icons-2/icons/KeyRound";
 import { Send } from "@tamagui/lucide-icons-2/icons/Send";
@@ -21,6 +22,7 @@ import { inviteService } from "../inviteService";
 import { inviteCodeSchema } from "../schemas";
 import { joinInviteByCode, orderConnectedMembers } from "../joinInviteFlow";
 import { openInviteCreation } from "../openInviteCreation";
+import { readInviteEntrySession } from "../inviteEntrySession";
 
 type Props = { initialMode?: "choose" | InviteFlow; initialWaiting?: boolean; showBack?: boolean };
 type Action = "create" | "share" | "copy" | "recreate" | "accept" | "check";
@@ -80,7 +82,7 @@ export function InviteFlowScreen({ initialMode = "choose", initialWaiting = fals
         if (!accountId) return;
         // Login/bootstrap already verified this session with the backend. Do not
         // block the chooser on a second /auth/me request and an unused code read.
-        const session = authService.getSessionSnapshot() ?? await authService.getCurrentSession();
+        const session = await readInviteEntrySession(accountId, authService, useSessionStore.getState);
         if (!active || !current()) return;
         if (!session) {
           useSessionStore.getState().reset();
@@ -88,8 +90,7 @@ export function InviteFlowScreen({ initialMode = "choose", initialWaiting = fals
           router.replace("/(auth)");
           return;
         }
-        useSessionStore.getState().setActiveCouple(session.user.couple_id ?? null);
-        if (session.user.couple_id) {
+        if (session.coupleId) {
           const couple = await inviteService.connection();
           if (active && current()) connected(couple, false);
           return;
@@ -221,12 +222,12 @@ export function InviteFlowScreen({ initialMode = "choose", initialWaiting = fals
         : <AppButton fill loading={action === "create"} disabled={disabled} onPress={chooseCreate}>{getMessage("vi", "inviteCreateFlow")}</AppButton>}
       {invite?.status === "pending" ? <AppButton fill variant="ghost" disabled={disabled || Date.parse(invite.expires_at) <= Date.now()} onPress={() => dispatch({ type: "wait" })}>{getMessage("vi", "inviteWaitAction")}</AppButton> : null}
     </YStack> : flow.step === "waiting" ? <YStack gap="$lg">
-      <Text fontFamily="$heading" fontSize="$h5" lineHeight="$h5" fontWeight="$semibold" color="$textPrimary">{getMessage("vi", "inviteWaitingHeading")}</Text>
+      <AppGradientText fontFamily="$heading" fontSize="$h5" lineHeight="$h5" fontWeight="$semibold" color="$textPrimary">{getMessage("vi", "inviteWaitingHeading")}</AppGradientText>
       <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textSecondary">{getMessage("vi", "inviteWaitingBody")}</Text>
       <AppButton loading={action === "check"} disabled={disabled} onPress={() => void run("check", checkConnection)}>{getMessage("vi", "inviteCheckConnection")}</AppButton>
       <AppTextButton disabled={busy} onPress={() => dispatch({ type: "back" })}>{getMessage("vi", "inviteReviewCode")}</AppTextButton>
     </YStack> : flow.step === "enter" ? <YStack gap="$lg">
-      <Text fontFamily="$heading" fontSize="$h5" lineHeight="$h5" fontWeight="$semibold" color="$textPrimary" textAlign="center">{getMessage("vi", action === "accept" ? "inviteProcessingTitle" : "inviteJoinFlow")}</Text>
+      <AppGradientText fontFamily="$heading" fontSize="$h5" lineHeight="$h5" fontWeight="$semibold" color="$textPrimary" textAlign="center">{getMessage("vi", action === "accept" ? "inviteProcessingTitle" : "inviteJoinFlow")}</AppGradientText>
       <AppField showLabel={false} label={getMessage("vi", "inviteCodeLabel")} placeholder={getMessage("vi", "inviteCodePlaceholder")} autoCapitalize="characters" autoCorrect={false} maxLength={6} value={code} editable={!disabled} error={fieldError} onChangeText={(value) => { setCode(value); setFieldError(undefined); }} returnKeyType="done" onSubmitEditing={connect} />
       <AppButton fill loading={action === "accept"} disabled={disabled || code.trim().length !== 6} onPress={connect}>{getMessage("vi", "inviteConnectAction")}</AppButton>
     </YStack> : null}

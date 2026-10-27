@@ -81,3 +81,24 @@ test("removing during a pending replacement prevents its late result from restor
   await draft.dispose();
   assert.deepEqual(cleaned, ["file:///first.jpg", "file:///late-replacement.jpg"]);
 });
+
+test("draft forwards early previews only while the picker revision is active", async () => {
+  let preview: ((asset: { uri: string; width: number; height: number }) => void) | undefined;
+  let release: (result: LocalMediaResult) => void = () => undefined;
+  const { adapter, cleaned } = media(async (_source, options) => {
+    assert.equal(options?.purpose, "memory");
+    preview = options?.onPreview;
+    return new Promise((resolve) => { release = resolve; });
+  });
+  const draft = createMemoryPhotoDraft(adapter);
+  const previews: string[] = [];
+  const pending = draft.select((asset) => previews.push(asset.uri));
+  preview?.({ uri: "file:///original.jpg", width: 4000, height: 3000 });
+  assert.deepEqual(previews, ["file:///original.jpg"]);
+  await draft.dispose();
+  preview?.({ uri: "file:///late-original.jpg", width: 4000, height: 3000 });
+  release({ kind: "selected", uri: "file:///prepared.jpg" });
+  assert.equal(await pending, null);
+  assert.deepEqual(previews, ["file:///original.jpg"]);
+  assert.deepEqual(cleaned, ["file:///prepared.jpg"]);
+});

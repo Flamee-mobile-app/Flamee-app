@@ -1,33 +1,40 @@
 import type { ReactNode } from "react";
 import { Platform } from "react-native";
 import { Button } from "tamagui";
-import { buttonTokens } from "../constants/tokens";
+import { buttonTokens, noteComposerLayoutTokens } from "../constants/tokens";
 import { useButtonInteraction } from "./useButtonInteraction";
 import { getIconButtonPresentation, getIconButtonRadius, resolvePlatformAccessibilityProps, type IconButtonTone } from "./buttonSystemModel";
 
 export type AppIconButtonProps = {
   icon: ReactNode;
   tone?: IconButtonTone;
+  sizeVariant?: "default" | "large";
   selected?: boolean;
   disabled?: boolean;
   onPress: () => void;
   accessibilityLabel: string;
   accessibilityHint?: string;
+  preventNativeFocus?: boolean;
   testID?: string;
 };
 
 export function AppIconButton({
   icon,
   tone = "neutral",
+  sizeVariant = "default",
   selected = false,
   disabled = false,
   onPress,
   accessibilityLabel,
   accessibilityHint,
+  preventNativeFocus = false,
   testID,
 }: AppIconButtonProps) {
   const presentation = getIconButtonPresentation(tone, selected);
   const interaction = useButtonInteraction(disabled);
+  const size = tone === "send" ? buttonTokens.sendButtonSize
+    : tone === "composer" && sizeVariant === "large" ? noteComposerLayoutTokens.pickerItemSize
+      : tone === "composer" ? noteComposerLayoutTokens.toolSize : buttonTokens.iconButtonSize;
 
   return (
     <Button
@@ -40,12 +47,14 @@ export function AppIconButton({
       flexDirection="row"
       transform={[{ translateY: 0 }]}
       cursor={disabled ? "default" : "pointer"}
-      width={buttonTokens.iconButtonSize}
-      height={buttonTokens.iconButtonSize}
-      minWidth={buttonTokens.iconButtonSize}
-      minHeight={buttonTokens.iconButtonSize}
-      borderRadius={getIconButtonRadius(tone)}
-      borderWidth={0}
+      position="relative"
+      width={size}
+      height={size}
+      minWidth={size}
+      minHeight={size}
+      borderRadius={tone === "composer" ? size / 2 : getIconButtonRadius(tone)}
+      borderWidth={presentation.borderWidth ?? 0}
+      borderColor={presentation.borderColor ?? "transparent"}
       backgroundColor={presentation.backgroundColor}
       {...(tone === "avatar" ? Platform.OS === "web"
         ? { boxShadow: buttonTokens.avatarEditShadow }
@@ -54,6 +63,7 @@ export function AppIconButton({
       padding={0}
       hitSlop={buttonTokens.iconButtonHitSlop}
       {...interaction}
+      {...(Platform.OS !== "web" && preventNativeFocus ? { focusable: false } : {})}
       animateOnly={["transform", "opacity"]}
       hoverStyle={{ backgroundColor: presentation.hoverBackgroundColor }}
       pressStyle={{ transform: [{ translateY: buttonTokens.pressOffset }] }}

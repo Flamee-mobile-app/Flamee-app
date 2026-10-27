@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-27",
+  "feature": "couple",
+  "tool": "built-in image_gen",
+  "basePrompt": "Generate ONE standalone premium Vietnamese mobile app screen mockup for Flamee, a real couples connection app. Use reference image for warm tactile material, friendly polished illustration and phone presentation ONLY; do NOT copy Tiny Mission content. Cross-platform premium neutral UI in a consistent slender black iPhone-like frame, straight front-facing, centered on warm stone #EEECEA studio backdrop. PORTRAIT 1024x1536 canvas, whole device visible with balanced margins, frame subtle, content fills most canvas. Status bar 9:41 and home indicator. Warm cream app background, one off-white #FFFCF8 large gently rounded content surface with subtle warm shadow. Palette: coral #FF7158, soft apricot #FCB76D, dark brown #302924, muted #70655D, warm border #E6DDD3, small sage accents. Crisp large readable Vietnamese text with correct diacritics, short copy, humanist rounded semibold headings, body comfortable equivalent 14-16pt, feature heading moderate equivalent 24pt NOT huge. Tight title-to-content gap, generous internal rhythm. No extra page eyebrow or subtitle outside content. Preserve one brand system in every image. Realistic creamy photography for memories, cute painterly flame mascot and approved soft 3D illustrated avatars for fictional Linh and Nam. Native touch-sized coral primary buttons and pale peach secondary buttons. Non-Home screens use plain dark feature-name title with back chevron for nested views; NO global Flamee logo header, NO title divider. Only Home timeline/calendar has glass top header + left, centered dropdown title, bell right. Main tabs use SAME floating coral/apricot PILL bottom nav with four white icons home/heart/flag/profile flanking a raised round center coral FAB containing a WHITE FLAME, NOT A PLUS. Center FAB never selected and implies press effect only. Indicate active regular tab with subtle pale capsule. No white bottom nav from old reference. No navigation bar on auth, pairing, full-screen check-in or settings drilldown screens. Do not invent features or successful server operations for unavailable screens. Screen content only, no captions, annotations, arrows outside device or multiple phone collage. Specific screen requirements: ",
+  "screens": [
+    {
+      "feature": "couple",
+      "id": "01-choose",
+      "title": "Chọn cách kết nối",
+      "status": "api",
+      "spec": "Pairing entry with back arrow and title 'Kết nối'. One friendly coral flame mascot holding a little heart, speech bubble 'Kết nối với nửa kia để bắt đầu câu chuyện của hai cậu nhé.' Below two large touchable choice rows: 'Tạo lời mời' subtitle 'Gửi mã kết nối cho người ấy' with tiny envelope illustration; 'Tôi có mã mời' subtitle 'Nhập mã để kết nối' with a key illustration. Single main cream content surface, warm restrained art, no bottom nav."
+    },
+    {
+      "feature": "couple",
+      "id": "02-create",
+      "title": "Tạo lời mời",
+      "status": "api",
+      "spec": "Pairing create-intro screen. Back and black title 'Tạo lời mời'. Painterly flame mascot holding an envelope; short heading 'Mời người ấy vào thế giới của hai mình'. Main surface explains briefly 'Tạo một mã kết nối dành riêng cho hai bạn.' Full coral CTA 'Tạo mã mời', small secondary 'Tôi đã có mã'. Two tiny illustrated avatars subtly separated by a dotted heart path, NOT already connected, no success state yet. No nav."
+    },
+    {
+      "feature": "couple",
+      "id": "03-code",
+      "title": "Mã mời kết nối",
+      "status": "api",
+      "spec": "Pairing invite-code screen. Back and black title 'Mã kết nối'. Small envelope/flame illustration. Main surface label 'Mã mời của cậu', six large individual warm rounded OTP display cells reading F L A M 2 7. Below tasteful countdown 'Còn hiệu lực 71 giờ 42 phút', slim divider. Coral full-width 'Chia sẻ lời mời', peach 'Sao chép mã', neutral text 'Tạo lại mã', footer 'Mã dùng một lần, hết hạn sau 72 giờ.' No QR code, no invented invitation gift, no bottom nav."
+    },
+    {
+      "feature": "couple",
+      "id": "04-waiting",
+      "title": "Chờ người ấy",
+      "status": "api",
+      "spec": "Waiting for partner screen. Back and title 'Đang chờ người ấy'. Center small Linh illustrated avatar at left and empty peach dotted profile silhouette at right joined by a dashed line and tiny heart. Cream surface headline 'Lời mời đã sẵn sàng', body 'Gửi mã cho người ấy để bắt đầu kết nối.' Coral 'Kiểm tra kết nối', secondary 'Xem lại mã mời'. Gentle tiny flame waiting illustration, no claim partner accepted, no confetti, no fake check-in or gift. No nav."
+    },
+    {
+      "feature": "couple",
+      "id": "05-enter-code",
+      "title": "Nhập mã mời",
+      "status": "api",
+      "spec": "Enter invite screen with back/title 'Nhập mã kết nối'. Cozy key/heart micro-illustration, brief 'Nhập mã 6 ký tự từ người ấy'. One generous high contrast single input visually groups six uppercase characters F L A M 2 7 with caret, label 'Mã mời'. Coral 'Kết nối'. Small 'Kiểm tra mã trước khi tiếp tục'. No keyboard in this render, no QR or OTP phone-number login, no success yet. No bottom nav."
+    },
+    {
+      "feature": "couple",
+      "id": "06-connected",
+      "title": "Ghép đôi thành công",
+      "status": "api",
+      "spec": "Confirmed pairing result mockup for fictional example Linh and Nam. Small 'Kết nối' header back. Two approved 3D illustrated portrait avatars facing toward each other with a small coral heart between them, not real photos. Warm cream surface headline 'Hai cậu đã kết nối', smaller line 'Linh & Nam'. Tasteful subtle peach confetti only near avatars, one coral CTA 'Vào không gian chung'. No gift redemption, no points, no private information. No bottom nav."
+    },
+    {
+      "feature": "couple",
+      "id": "07-expired",
+      "title": "Lời mời hết hạn",
+      "status": "api-error",
+      "spec": "Shared app-style dialog over dimmed pairing code screen. Frosted warm cream dialog, small coral/orange gradient title 'Lời mời đã hết hạn', a little wilted envelope illustration, concise body 'Nhờ người ấy tạo mã mới để kết nối nhé.' Primary 'Nhập mã khác', secondary 'Để sau'. Underlying invite screen subdued with six expired pale cells. Native clean overlay, comfortable text, no automatic retry/success, no bottom nav."
+    }
+  ]
+}

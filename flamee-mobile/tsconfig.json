@@ -3,6 +3,7 @@
   "compilerOptions": {
     "strict": true,
     "noEmit": true,
+    "customConditions": ["react-native", "react-native-legacy-deep-imports"],
     "allowImportingTsExtensions": true,
     "types": [
       "node"

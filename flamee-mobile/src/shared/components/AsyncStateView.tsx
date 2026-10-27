@@ -1,3 +1,4 @@
+import { AppGradientText } from "./AppGradientText";
 import { AlertCircle } from "@tamagui/lucide-icons-2/icons/AlertCircle";
 import { BellOff } from "@tamagui/lucide-icons-2/icons/BellOff";
 import { CircleCheck } from "@tamagui/lucide-icons-2/icons/CircleCheck";
@@ -37,9 +38,9 @@ export function AsyncStateView({ variant, title, description, actionLabel, onAct
       <YStack width={64} height={64} borderRadius="$xl" alignItems="center" justifyContent="center" backgroundColor="$supportPeachLight">
         <Icon size={30} color="$primary" />
       </YStack>
-      <Text textAlign="center" fontFamily="$heading" fontSize="$h4" fontWeight="$bold" color="$textPrimary">
+      <AppGradientText textAlign="center" fontFamily="$heading" fontSize="$h4" fontWeight="$bold" color="$textPrimary">
         {getMessage("vi", title ?? copy.title)}
-      </Text>
+      </AppGradientText>
       <Text textAlign="center" fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textSecondary">
         {getMessage("vi", description ?? copy.description)}
       </Text>

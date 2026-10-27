@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
-import { Image, StyleSheet, View } from "react-native";
-import { BottomNavigationIcon } from "../../shared/components";
-import { colors, navigationTokens } from "../../shared/constants/tokens";
+import { View } from "react-native";
+import { AppProfileAvatar } from "../../shared/components";
+import { navigationTokens } from "../../shared/constants/tokens";
+import { getMessage } from "../../shared/localization/messages";
 import { useSessionStore } from "../../shared/state/sessionStore";
 
 type ProfileNavigationIconProps = {
@@ -11,32 +11,11 @@ type ProfileNavigationIconProps = {
 
 export function ProfileNavigationIcon({ focused, size }: ProfileNavigationIconProps) {
   const avatarUrl = useSessionStore((session) => session.activeAvatarUrl);
-  const [failedUrl, setFailedUrl] = useState<string | null>(null);
-
-  useEffect(() => setFailedUrl(null), [avatarUrl]);
-
-  if (!avatarUrl || failedUrl === avatarUrl) {
-    return <BottomNavigationIcon name="profile" focused={focused} size={size} />;
-  }
-
+  const accountId = useSessionStore((session) => session.activeAccountId);
   const avatarSize = navigationTokens.profileAvatarSize * size / navigationTokens.tabIconSize;
   return (
-    <View pointerEvents="none" style={[styles.frame, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}>
-      <Image
-        source={{ uri: avatarUrl }}
-        resizeMode="cover"
-        fadeDuration={160}
-        onError={() => setFailedUrl(avatarUrl)}
-        accessible={false}
-        style={{ width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }}
-      />
+    <View pointerEvents="none" accessible={false} style={{ opacity: focused ? 1 : 0.9 }}>
+      <AppProfileAvatar uri={avatarUrl} fallbackSeed={accountId} size={avatarSize} accessibilityLabel={getMessage("vi", "profileAvatarLabel")} />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  frame: {
-    backgroundColor: colors.surfaceMuted,
-    overflow: "hidden",
-  },
-});

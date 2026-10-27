@@ -1,6 +1,61 @@
-const appBackground = "#F8F5F1";
+const appBackground = "#EEECEA";
 const startupDuration = 2720;
 const startupTaglineEnd = 2320;
+
+export const moodFlowTokens = {
+  mascotSize: 144,
+  mascotStageHeight: 152,
+  mascotShadowWidth: 72,
+  mascotShadowHeight: 8,
+  completionMascotSize: 144,
+  badgeSize: 56,
+  progressHeight: 8,
+  contentFadeDuration: 160,
+  maxWidth: 520,
+  footerGap: 8,
+  noteMinHeight: 80,
+  noteAvatarSize: 92,
+  dashboardArtworkSize: 104,
+} as const;
+
+export const noteComposerLayoutTokens = {
+  headerHeight: 56,
+  headerHorizontalInset: 20,
+  composerBalancedEdgeGap: 24,
+  bubbleMinWidth: 120,
+  bubbleMaxWidth: "75%",
+  bubbleMinHeight: 48,
+  bubblePaddingHorizontal: 16,
+  bubblePaddingVertical: 12,
+  bubbleRadius: 22,
+  bubbleBorderWidth: 1,
+  bubbleToLargeTailGap: -6,
+  thoughtTailOffsetX: 32,
+  largeTailSize: 12,
+  largeTailRadius: 6,
+  largeToSmallTailGap: -2,
+  smallTailSize: 7,
+  smallTailRadius: 4,
+  smallTailToAvatarGap: -3,
+  avatarWidthRatio: 0.24,
+  avatarMaxSize: 140,
+  avatarToToolsGap: 12,
+  toolSize: 44,
+  toolGap: 16,
+  toolBorderWidth: 2,
+  toolIconSize: 24,
+  pickerHeight: 56,
+  pickerItemSize: 48,
+  pickerHorizontalPadding: 20,
+  pickerGap: 12,
+  pickerIconSize: 28,
+  pickerKeyboardGap: 12,
+  bubbleInputMinHeight: 32,
+  bubbleInputPaddingHorizontal: 0,
+  bubbleInputPaddingVertical: 4,
+  bubbleCharactersPerLineEstimate: 20,
+  counterLineHeight: 18,
+} as const;
 
 export const colors = {
   primary: "#FF7158",
@@ -28,10 +83,13 @@ export const colors = {
   glassFilter: "rgba(255, 255, 255, 0.52)",
   glassDialog: "rgba(255, 252, 248, 0.48)",
   glassHeader: "rgba(255, 252, 248, 0.88)",
+  glassLiquid: "rgba(255, 237, 222, 0.62)",
+  glassLiquidFallback: "rgba(246, 228, 213, 0.94)",
   glassCard: "rgba(255, 252, 248, 0.66)",
   glassCardPeach: "rgba(247, 221, 204, 0.38)",
   glassCardLavender: "rgba(220, 206, 247, 0.20)",
   fieldSurface: "rgba(240, 234, 227, 0.52)",
+  fieldSurfaceBright: "#FFFFFF",
   fieldDisabled: "rgba(240, 234, 227, 0.32)",
   moodVeryBad: "#E65C5C",
   moodBad: "#F5B041",
@@ -47,6 +105,20 @@ export const colors = {
 
 export const brandGradient = [colors.secondary, colors.primary] as const;
 
+export const ambientTokens = {
+  warmGlowOpacity: 0.22,
+  coralGlowOpacity: 0.09,
+} as const;
+
+export const skeletonTokens = {
+  background: "#DED5CC",
+  minOpacity: 0.46,
+  maxOpacity: 0.9,
+  restingOpacity: 0.72,
+  duration: 760,
+  radius: 8,
+} as const;
+
 // The brand guide names SF families, but the source font binaries are not present.
 // Use system fonts until licensed font assets are supplied and configured.
 export const typography = {
@@ -55,14 +127,17 @@ export const typography = {
   h3: { fontSize: 24, lineHeight: 32, fontWeight: "700" as const },
   h4: { fontSize: 20, lineHeight: 28, fontWeight: "700" as const },
   h5: { fontSize: 18, lineHeight: 24, fontWeight: "600" as const },
+  section: { fontSize: 17, lineHeight: 24, fontWeight: "600" as const },
+  label: { fontSize: 15, lineHeight: 20, fontWeight: "500" as const },
   bodyL: { fontSize: 16, lineHeight: 24, fontWeight: "500" as const },
   bodyM: { fontSize: 14, lineHeight: 20, fontWeight: "500" as const },
+  bodyXS: { fontSize: 13, lineHeight: 18, fontWeight: "400" as const },
   bodyS: { fontSize: 12, lineHeight: 16, fontWeight: "400" as const },
   caption: { fontSize: 10, lineHeight: 14, fontWeight: "400" as const },
   button: { fontSize: 16, lineHeight: 24, fontWeight: "500" as const },
 } as const;
 
-export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as const;
+export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, page: 20, xl: 24, xxl: 32 } as const;
 export const radii = { sm: 8, md: 12, lg: 20, xl: 28 } as const;
 
 export const toastTokens = {
@@ -90,7 +165,26 @@ export const toastTokens = {
   duration: 3000,
 } as const;
 
-export const sheetTokens = { snapPoint: 55, overlayOpacity: 0.45, zIndex: 100_000 } as const;
+export const sheetTokens = { snapPoint: 55, maxViewportRatio: 0.85, overlayOpacity: 0.45, zIndex: 100_000 } as const;
+
+export const liquidHeaderTokens = {
+  inset: 12,
+  topGap: 6,
+  contentGap: 20,
+  radius: 24,
+  expandedRadius: 30,
+  nativeBlur: 36,
+  webBackdrop: "blur(18px) saturate(145%)",
+  reflectionOpacity: 0.28,
+  edgeOpacity: 0.62,
+  shadow: {
+    shadowColor: colors.textPrimary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.10,
+    shadowRadius: 14,
+    elevation: 6,
+  },
+} as const;
 
 export const menuTokens = {
   rowMinHeight: 52,
@@ -103,14 +197,26 @@ export const menuTokens = {
 export const fieldTokens = {
   minHeight: 52,
   multilineMinHeight: 112,
+  multilineCompactMinHeight: 80,
+  multilineAutoGrowMinHeight: 24,
+  multilineAutoGrowMaxLines: 3,
   radius: 18,
+  outlinedRadius: 14,
   paddingHorizontal: 16,
   paddingVertical: 14,
   focusDuration: 160,
   focusLift: 1,
   errorIconSize: 16,
-  surfaceShadow: "inset 0 1px 3px rgba(48,41,36,0.08)",
+  surfaceShadow: "0 1px 4px rgba(48,41,36,0.10)",
   focusShadow: "0 2px 6px rgba(48,41,36,0.08)",
+  brightSurfaceShadow: "0 3px 10px rgba(48,41,36,0.18)",
+  brightNativeShadow: {
+    shadowColor: colors.textPrimary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.16,
+    shadowRadius: 8,
+    elevation: 3,
+  },
   nativeFocusShadow: {
     shadowColor: colors.textPrimary,
     shadowOffset: { width: 0, height: 2 },
@@ -145,6 +251,8 @@ export const glassTokens = {
 } as const;
 
 export const cardTokens = {
+  gradientOpacity: 0.2,
+  softGradientOpacity: 0.12,
   radius: 22,
   padding: 20,
   compactRadius: 18,
@@ -153,6 +261,8 @@ export const cardTokens = {
   pressOffset: 1,
   shadow: "0 2px 8px rgba(48,41,36,0.06)",
   pressedShadow: "0 1px 2px rgba(48,41,36,0.04)",
+  actionShadow: "0 7px 20px rgba(154,66,52,0.13)",
+  actionPressedShadow: "0 2px 6px rgba(154,66,52,0.08)",
   nativeShadow: {
     shadowColor: colors.textPrimary,
     shadowOffset: { width: 0, height: 2 },
@@ -167,6 +277,20 @@ export const cardTokens = {
     shadowRadius: 2,
     elevation: 0,
   },
+  nativeActionShadow: {
+    shadowColor: colors.accentText,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.14,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  nativeActionPressedShadow: {
+    shadowColor: colors.accentText,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 1,
+  },
 } as const;
 
 export const choiceTokens = { width: 72, height: 108, artworkSize: 56 } as const;
@@ -175,7 +299,7 @@ export const navigationTokens = {
   selectionBackground: colors.supportPeach,
   activeIconColor: colors.surface,
   inactiveIconColor: colors.white,
-  tabIconSize: 30,
+  tabIconSize: 28,
   profileAvatarSize: 40,
   selectionInset: 6,
   selectionDuration: 240,
@@ -204,7 +328,13 @@ export const buttonTokens = {
   filterPaddingHorizontal: 12,
   filterPressOffset: 1,
   filterSelectionDuration: 160,
+  choiceHeight: 44,
+  choiceRadius: 12,
+  choicePaddingHorizontal: 16,
+  choiceIconSize: 20,
+  choiceIconGap: 8,
   iconButtonSize: 44,
+  sendButtonSize: 64,
   iconButtonHitSlop: 2,
   iconButtonRadius: 14,
   avatarEditShadow: "0 4px 12px rgba(48,41,36,0.14)",
@@ -248,6 +378,14 @@ export const controlTokens = {
   },
 } as const;
 
+export const sliderTokens = {
+  targetHeight: 48,
+  edgeInset: 24,
+  trackHeight: 6,
+  thumbSize: 32,
+  thumbBorderWidth: 2,
+} as const;
+
 export const homeTokens = {
   maxWidth: 560,
   moodIconSize: 34,
@@ -269,13 +407,34 @@ export const memoryFeedTokens = {
   expandedHeaderRadius: 28,
   headerTransition: 200,
   gutter: 20,
-  postGap: 36,
+  postGap: 24,
+  pageSize: 24,
   gridGap: 12,
   avatarSize: 34,
   photoRadius: 18,
   photoAspectRatio: 4 / 3,
   iconSize: 24,
   navigationClearance: 116,
+} as const;
+
+export const memoryCalendarTokens = {
+  progressGap: 2,
+  progressHeight: 3,
+  progressPadding: 4,
+  completionIconSize: 9,
+  monthPadding: 12,
+  cellHeight: 52,
+  cellRadius: 10,
+  cellGap: 3,
+  dotSize: 6,
+  stickerSize: 17,
+  moodCircleSize: 32,
+  moodIconSize: 22,
+  connectorHeight: 48,
+  connectorStroke: colors.accentText,
+  connectorOpacity: 0.6,
+  connectorWidth: 2.5,
+  weekdays: ["T2", "T3", "T4", "T5", "T6", "T7", "CN"],
 } as const;
 
 export const photoPickerTokens = { height: 156, radius: 18, iconSize: 24, pressOffset: 1, previewViewportRatio: 0.43 } as const;
@@ -311,6 +470,20 @@ export const featureTokens = {
   },
 } as const;
 
+export const featureTitleTokens = { height: 52, contentGap: 4, color: "#211B17" } as const;
+
+export const missionTokens = {
+  artworkSize: 48, walletArtworkSize: 44, avatarSize: 36, detailArtworkSize: 112,
+  rewardAspectRatio: 1.25, rewardDialogAspectRatio: 1, progressHeight: 10, dayDotSize: 11, milestoneSize: 28,
+  surfacePadding: 12, rowRadius: 14, rewardRadius: 10, rowMinHeight: 90,
+  heroAspectRatio: 1.85, mascotSize: 78, rewardWalletMascotSize: 70,
+  compactWidth: 360,
+  ink: "#281C15", muted: "#806E61", coral: "#FF7158", orange: "#FF8939",
+  line: "#EDE3DA", paper: "#FFFCF8", wash: "#F7F1EB", peach: "#FFF0E4",
+  completedSurface: "#EDF1E4", completed: "#789260", sage: "#A0B394",
+  waitingSurface: "#FFECE6", waiting: "#F36F52", dotEmpty: "#EADFD5",
+} as const;
+
 export const homeShadows = {
   card: {
     shadowColor: colors.textPrimary,
@@ -330,19 +503,20 @@ export const homeShadows = {
 
 // The custom startup uses a warm dark surface so its ember trails retain depth.
 export const startupTokens = {
-  background: "#24110F",
-  backgroundDeep: "#120807",
-  backgroundGlow: "#5A2019",
+  background: "#F4F1EB",
+  backgroundLight: "#FBF9F5",
+  backgroundShade: "#E9E3DA",
+  backgroundContour: "#D9D0C6",
   coral: "#FF7461",
-  amber: "#FDB872",
+  amber: colors.accentText,
   peach: "#FFE6CE",
-  tagline: "#F7D5C3",
+  tagline: colors.textSecondary,
   wordmarkTop: "#FF8A4C",
   wordmarkBottom: "#FF4E6B",
   duration: startupDuration,
-  playbackDuration: 2450,
-  exitDuration: 650,
-  contentRevealDelay: 350,
+  playbackDuration: 900,
+  exitDuration: 200,
+  contentRevealDelay: 80,
   exitArtworkLift: 72,
   exitArtworkScale: 0.9,
   initializationTimeout: 15000,

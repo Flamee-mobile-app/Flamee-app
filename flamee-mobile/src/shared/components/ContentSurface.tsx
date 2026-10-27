@@ -1,7 +1,7 @@
 import { YStack, type YStackProps } from "tamagui";
 import { featureTokens } from "../constants/tokens";
 
-export function ContentSurface(props: YStackProps) {
+export function ContentSurface({ children, ...props }: YStackProps) {
   return (
     <YStack
       backgroundColor="$surface"
@@ -10,6 +10,8 @@ export function ContentSurface(props: YStackProps) {
       gap="$lg"
       {...featureTokens.surfaceShadow}
       {...props}
-    />
+    >
+      {children}
+    </YStack>
   );
 }

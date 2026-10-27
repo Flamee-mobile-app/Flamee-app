@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, File, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, Header, Query, UploadFile, status
 from supabase import Client
 
 from app.api.deps import get_current_user, get_db
@@ -59,12 +59,14 @@ def list_memories(
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_memory(
     payload: CreateMemoryRequest,
+    idempotency_key: str | None = Header(default=None, min_length=1, max_length=120, pattern=r"^[A-Za-z0-9_-]+$"),
     current: dict = Depends(get_current_user),
     db: Client = Depends(get_db),
 ):
     couple_id = _ensure_couple_id(current)
-    memory = _service(db).create_memory(current["id"], couple_id, payload)
-    images = MemoryImageRepository(db).find_by_memory(memory.id)
+    service = _service(db)
+    memory = service.create_memory(current["id"], couple_id, payload, request_key=idempotency_key)
+    images = service.get_memory_images(couple_id, memory)
     return ok(MemoryResponse.build(memory, images).model_dump())
 
 
@@ -112,12 +114,13 @@ def delete_memory(
 def upload_image(
     memory_id: str,
     file: UploadFile = File(...),
+    idempotency_key: str | None = Header(default=None, min_length=1, max_length=120, pattern=r"^[A-Za-z0-9_-]+$"),
     current: dict = Depends(get_current_user),
     db: Client = Depends(get_db),
 ):
     couple_id = _ensure_couple_id(current)
     image = _service(db).upload_image(
-        current["id"], couple_id, memory_id, file
+        current["id"], couple_id, memory_id, file, request_key=idempotency_key
     )
     return ok(MemoryImageResponse.from_model(image).model_dump())
 

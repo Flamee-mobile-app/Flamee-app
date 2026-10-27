@@ -8,16 +8,30 @@ test("keeps the floating navigation inside compact and tablet viewports", async 
   const compact = model.getBottomNavigationLayout(320, 0);
   const tablet = model.getBottomNavigationLayout(1024, 24);
 
-  assert.equal(compact.width, 304);
-  assert.equal(compact.horizontalInset, 8);
+  assert.equal(compact.width, 288);
+  assert.equal(compact.horizontalInset, 16);
   assert.equal(compact.bottomInset, 14);
   assert.ok(compact.fabSize >= 48);
   assert.ok(compact.totalHeight <= 100, "compact navigation should leave more room for screen content");
   assert.ok(compact.notchRadius > compact.fabSize / 2);
   assert.ok(compact.fabOutlineWidth <= 2);
-  assert.equal(tablet.width, 520);
-  assert.equal(tablet.horizontalInset, 252);
+  assert.equal(tablet.width, 480);
+  assert.equal(tablet.horizontalInset, 272);
   assert.equal(tablet.bottomInset, 14);
+});
+
+test("the reduced pill balances the header while retaining 48px tab and FAB targets", async () => {
+  const model = await import("./bottomNavigationModel.ts");
+  const phone = model.getBottomNavigationLayout(390, 34);
+  assert.ok(phone.barHeight <= 56);
+  assert.ok(phone.fabSize <= 52);
+  for (const width of [320, 360, 390, 430, 768]) {
+    const layout = model.getBottomNavigationLayout(width, 34);
+    const tabWidth = (layout.width / 2 - layout.notchRadius) / 2;
+    assert.ok(tabWidth >= 48, `tab width at ${width}`);
+    assert.ok(layout.barHeight >= 48, `tab height at ${width}`);
+    assert.ok(layout.fabSize >= 48, `FAB at ${width}`);
+  }
 });
 
 test("places radial actions in a symmetric fan above the FAB", async () => {

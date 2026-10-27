@@ -2,20 +2,16 @@ import { Tabs } from "expo-router";
 import { BottomNavigationBar, BottomNavigationIcon } from "../../src/shared/components";
 import { getMessage } from "../../src/shared/localization/messages";
 import { flameeSymbolAsset } from "../../src/features/startup";
-import { ProfileNavigationIcon, useFabActions } from "../../src/features/main-navigation";
+import { ProfileNavigationIcon } from "../../src/features/main-navigation";
 
 export default function MainLayout() {
-  const { onFabPress } = useFabActions();
-
   return (
     <Tabs tabBar={(props) => (
       <BottomNavigationBar
         {...props}
-        fabAccessibilityLabel={getMessage("vi", "fabMomentLabel")}
-        fabAccessibilityHint={getMessage("vi", "fabMomentHint")}
+        fabAccessibilityLabel={getMessage("vi", "fabLabel")}
+        fabAccessibilityHint={getMessage("vi", "fabHint")}
         fabIcon={flameeSymbolAsset}
-        fabSelected={props.state.routes[props.state.index].name === "timeline"}
-        onFabPress={onFabPress}
         tabRouteNames={["index", "moments", "tasks", "profile"]}
       />
     )} screenOptions={{

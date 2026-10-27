@@ -2,6 +2,7 @@ import { getMessage, type MessageKey } from "../../shared/localization/messages.
 import { AuthError, type AuthErrorCode } from "./authApi.ts";
 
 const copy: Record<AuthErrorCode, MessageKey> = {
+  currentPassword: "passwordCurrentInvalid",
   configuration: "authConfigurationError",
   network: "authNetworkError",
   timeout: "authTimeoutError",

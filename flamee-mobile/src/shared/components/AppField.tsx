@@ -1,9 +1,9 @@
 import { CircleAlert } from "@tamagui/lucide-icons-2/icons/CircleAlert";
-import { useId, useState, type ComponentProps, type ReactNode } from "react";
-import { Platform, type TextInputProps } from "react-native";
+import { useEffect, useId, useRef, useState, type ComponentProps, type ReactNode } from "react";
+import { Platform, type TextInput, type TextInputProps } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
-import { Input, Label, Text, TextArea, XStack, YStack, type InputProps } from "tamagui";
-import { colors, fieldTokens, spacing } from "../constants/tokens";
+import { Input, Label, Text, TextArea, XStack, YStack, type InputProps, type TamaguiElement } from "tamagui";
+import { colors, fieldTokens, radii, spacing, typography } from "../constants/tokens";
 
 type AppFieldProps = Pick<
   TextInputProps,
@@ -14,6 +14,7 @@ type AppFieldProps = Pick<
   | "secureTextEntry"
   | "autoCapitalize"
   | "autoCorrect"
+  | "autoFocus"
   | "maxLength"
   | "editable"
   | "accessibilityLabel"
@@ -24,24 +25,47 @@ type AppFieldProps = Pick<
   id?: string;
   label: string;
   showLabel?: boolean;
+  labelSize?: "default" | "large";
+  labelSpacing?: "default" | "comfortable";
   error?: string;
   help?: string;
   multiline?: boolean;
+  multilineSize?: "regular" | "compact";
+  autoGrow?: boolean;
+  maxAutoGrowLines?: number;
+  autoGrowMinHeight?: number;
+  autoGrowPaddingHorizontal?: number;
+  autoGrowPaddingVertical?: number;
+  autoGrowTextAlignVertical?: TextInputProps["textAlignVertical"];
   characterCount?: string;
+  onFocus?: () => void;
   onBlur?: () => void;
+  surfaceTone?: "default" | "bright" | "outlined" | "elevated" | "thought";
 };
 
 export function AppField({
   label,
   showLabel = true,
+  labelSize = "default",
+  labelSpacing = "default",
   error,
   help,
   multiline = false,
+  multilineSize = "regular",
+  autoGrow = false,
+  maxAutoGrowLines = fieldTokens.multilineAutoGrowMaxLines,
+  autoGrowMinHeight = fieldTokens.multilineAutoGrowMinHeight,
+  autoGrowPaddingHorizontal = spacing.xs,
+  autoGrowPaddingVertical = spacing.xs,
+  autoGrowTextAlignVertical = "top",
   characterCount,
   id,
   accessibilityLabel,
+  autoFocus,
   editable,
+  onFocus,
   onBlur,
+  surfaceTone = "default",
   inputRef,
   startIcon,
   endAction,
@@ -52,16 +76,34 @@ export function AppField({
   const messageId = `${fieldId}-message`;
   const countId = `${fieldId}-count`;
   const [focused, setFocused] = useState(false);
+  const [autoGrowHeight, setAutoGrowHeight] = useState<number>(autoGrowMinHeight);
+  const textAreaRef = useRef<TamaguiElement | null>(null);
+  const didAutoFocusRef = useRef(false);
+  const autoGrowMaxHeight = typography.bodyL.lineHeight * maxAutoGrowLines + autoGrowPaddingVertical * 2;
   const reducedMotion = useReducedMotion();
   const disabled = editable === false;
   const active = focused && !disabled;
+  const outlined = surfaceTone === "outlined";
+  const elevated = surfaceTone === "elevated";
+  const thought = surfaceTone === "thought";
+  const radius = outlined ? fieldTokens.outlinedRadius : thought ? radii.xl : fieldTokens.radius;
   const message = error || help;
   const transition: ["200ms", { duration: number }] | undefined = reducedMotion
     ? undefined
     : ["200ms", { duration: fieldTokens.focusDuration }];
+  useEffect(() => {
+    if (!autoFocus || !autoGrow || !multiline || didAutoFocusRef.current) return;
+    const frame = requestAnimationFrame(() => {
+      if (didAutoFocusRef.current) return;
+      didAutoFocusRef.current = true;
+      (textAreaRef.current as unknown as TextInput | null)?.focus();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [autoFocus, autoGrow, multiline]);
   const resetStyle = { borderWidth: 0, outlineWidth: 0, outlineStyle: "none", backgroundColor: "transparent" } as const;
   const fieldProps = {
     ...props,
+    autoFocus: autoGrow && multiline ? undefined : autoFocus,
     type: props.type ?? (props.secureTextEntry ? "password" : props.keyboardType === "email-address" ? "email" : "text"),
     unstyled: true,
     id: fieldId,
@@ -81,23 +123,32 @@ export function AppField({
     color: disabled ? ("$textSecondary" as const) : ("$textPrimary" as const),
     placeholderTextColor: "$textSecondary" as const,
     // iOS uses selectionColor for its caret as well as the selection highlight.
-    selectionColor: Platform.OS === "ios" ? ("$accentText" as const) : ("$accentSoft" as const),
-    cursorColor: "$accentText" as const,
-    selectionHandleColor: "$accentText" as const,
-    ...(Platform.OS === "web" ? { caretColor: colors.accentText } : {}),
+    selectionColor: Platform.OS === "ios" ? (thought ? "$primary" as const : "$accentText" as const) : ("$accentSoft" as const),
+    cursorColor: thought ? "$primary" as const : "$accentText" as const,
+    selectionHandleColor: thought ? "$primary" as const : "$accentText" as const,
+    ...(Platform.OS === "web" ? { caretColor: thought ? colors.primary : colors.accentText } : {}),
     underlineColorAndroid: "$colorTransparent" as const,
     fontFamily: "$body" as const,
     fontSize: "$bodyL" as const,
-    flex: 1,
+    flex: autoGrow ? 0 : 1,
     minWidth: 0,
-    paddingHorizontal: startIcon ? spacing.md : fieldTokens.paddingHorizontal,
-    paddingVertical: fieldTokens.paddingVertical,
+    paddingHorizontal: startIcon ? spacing.md : autoGrow ? autoGrowPaddingHorizontal : fieldTokens.paddingHorizontal,
+    paddingVertical: autoGrow ? autoGrowPaddingVertical : fieldTokens.paddingVertical,
+    ...(autoGrow && multiline ? {
+      onContentSizeChange: (event: { nativeEvent: { contentSize: { height: number } } }) => {
+        const contentHeight = Math.ceil(event.nativeEvent.contentSize.height + autoGrowPaddingVertical * 2);
+        setAutoGrowHeight(Math.min(autoGrowMaxHeight, Math.max(autoGrowMinHeight, contentHeight)));
+      },
+    } : {}),
     hoverStyle: resetStyle,
     focusStyle: resetStyle,
     focusVisibleStyle: resetStyle,
     pressStyle: resetStyle,
     onFocus: () => {
-      if (!disabled) setFocused(true);
+      if (!disabled) {
+        setFocused(true);
+        onFocus?.();
+      }
     },
     onBlur: () => {
       setFocused(false);
@@ -108,59 +159,68 @@ export function AppField({
     <YStack gap="$sm">
       {showLabel ? <Label
         htmlFor={fieldId}
+        marginBottom={labelSpacing === "comfortable" ? "$xs" : undefined}
         fontFamily="$body"
-        fontSize="$bodyM"
-        lineHeight="$bodyM"
+        fontSize={labelSize === "large" ? "$label" : "$bodyM"}
+        lineHeight={labelSize === "large" ? "$label" : "$bodyM"}
         color={disabled ? "$textSecondary" : error ? "$accentText" : "$textPrimary"}
       >
         {label}
       </Label> : null}
       <YStack
         testID={`${fieldId}-surface`}
-        borderRadius={fieldTokens.radius}
-        backgroundColor={disabled ? "$fieldDisabled" : error ? "$accentSoft" : "$fieldSurface"}
-        transform={[{ translateY: active && !reducedMotion ? -fieldTokens.focusLift : 0 }]}
+        borderRadius={radius}
+        borderWidth={outlined ? (active ? 2 : 1) : surfaceTone === "bright" ? 1 : 0}
+        borderColor={outlined ? (active ? "$primary" : "$border") : surfaceTone === "bright" ? "$accentText" : "transparent"}
+        backgroundColor={disabled ? "$fieldDisabled" : error ? "$accentSoft" : thought ? "transparent" : outlined || surfaceTone === "bright" || elevated ? "$fieldSurfaceBright" : "$fieldSurface"}
+        boxShadow={Platform.OS === "web" && surfaceTone === "bright" ? fieldTokens.brightSurfaceShadow : undefined}
+        transform={[{ translateY: active && !thought && !reducedMotion ? -fieldTokens.focusLift : 0 }]}
         transition={transition}
         animateOnly={["transform"]}
         zIndex={active ? 1 : 0}
         {...(Platform.OS !== "web" ? {
           shadowColor: fieldTokens.nativeFocusShadow.shadowColor,
-          shadowOffset: fieldTokens.nativeFocusShadow.shadowOffset,
-          shadowRadius: fieldTokens.nativeFocusShadow.shadowRadius,
-          shadowOpacity: active ? fieldTokens.nativeFocusShadow.shadowOpacity : 0,
-          ...(Platform.OS === "android" ? { elevation: active ? fieldTokens.nativeFocusShadow.elevation : 0 } : {}),
+          shadowOffset: surfaceTone === "bright" ? fieldTokens.brightNativeShadow.shadowOffset : fieldTokens.nativeFocusShadow.shadowOffset,
+          shadowRadius: surfaceTone === "bright" ? fieldTokens.brightNativeShadow.shadowRadius : fieldTokens.nativeFocusShadow.shadowRadius,
+          shadowOpacity: disabled ? 0 : surfaceTone === "bright" ? fieldTokens.brightNativeShadow.shadowOpacity : (active || elevated ? fieldTokens.nativeFocusShadow.shadowOpacity : 0),
+          ...(Platform.OS === "android" ? { elevation: disabled ? 0 : surfaceTone === "bright" ? fieldTokens.brightNativeShadow.elevation : (active || elevated ? fieldTokens.nativeFocusShadow.elevation : 0) } : {}),
         } : {})}
       >
-        <YStack
-          position="absolute"
-          top={0}
-          right={0}
-          bottom={0}
-          left={0}
-          borderRadius={fieldTokens.radius}
-          boxShadow={Platform.OS === "web" ? fieldTokens.surfaceShadow : undefined}
-          opacity={active ? 0 : 1}
-          pointerEvents="none"
-          transition={transition}
-          animateOnly={["opacity"]}
-        />
-        <YStack
-          position="absolute"
-          top={0}
-          right={0}
-          bottom={0}
-          left={0}
-          borderRadius={fieldTokens.radius}
-          pointerEvents="none"
-          boxShadow={Platform.OS === "web" ? fieldTokens.focusShadow : undefined}
-          opacity={active ? 1 : 0}
-          transition={transition}
-          animateOnly={["opacity"]}
-        />
+        {!thought ? <>
+          <YStack
+            position="absolute"
+            top={0}
+            right={0}
+            bottom={0}
+            left={0}
+            borderRadius={radius}
+            boxShadow={Platform.OS === "web" ? fieldTokens.surfaceShadow : undefined}
+            opacity={active ? 0 : 1}
+            pointerEvents="none"
+            transition={transition}
+            animateOnly={["opacity"]}
+          />
+          <YStack
+            position="absolute"
+            top={0}
+            right={0}
+            bottom={0}
+            left={0}
+            borderRadius={radius}
+            pointerEvents="none"
+            boxShadow={Platform.OS === "web" ? fieldTokens.focusShadow : undefined}
+            opacity={active ? 1 : 0}
+            transition={transition}
+            animateOnly={["opacity"]}
+          />
+        </> : null}
         <XStack alignItems="center" position="relative" zIndex={1}>
           {startIcon ? <YStack paddingLeft={fieldTokens.paddingHorizontal} pointerEvents="none">{startIcon}</YStack> : null}
           {multiline ? (
-            <TextArea minHeight={fieldTokens.multilineMinHeight} textAlignVertical="top" {...fieldProps} />
+            <TextArea ref={autoGrow ? textAreaRef : undefined}
+              minHeight={autoGrow ? autoGrowMinHeight : multilineSize === "compact" ? fieldTokens.multilineCompactMinHeight : fieldTokens.multilineMinHeight}
+              height={autoGrow ? autoGrowHeight : undefined} maxHeight={autoGrow ? autoGrowMaxHeight : undefined}
+              scrollEnabled={autoGrow} textAlignVertical={autoGrowTextAlignVertical} {...fieldProps} />
           ) : (
             <Input ref={inputRef} minHeight={fieldTokens.minHeight} {...fieldProps} />
           )}

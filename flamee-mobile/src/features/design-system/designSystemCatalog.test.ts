@@ -7,7 +7,7 @@ test("keeps every requested design-system family in the review catalog", async (
   assert.ok(catalogModule, "design-system catalog should exist");
   assert.deepEqual(
     catalogModule.designSystemCatalog.map((entry) => entry.id),
-    ["button", "input", "card", "dialog", "sheet", "toast", "switch", "checkbox"],
+    ["button", "input", "card", "dialog", "sheet", "toast", "switch", "checkbox", "slider"],
   );
 });
 

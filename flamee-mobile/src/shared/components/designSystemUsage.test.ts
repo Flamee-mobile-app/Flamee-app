@@ -12,6 +12,22 @@ function sources(directory: string): string[] {
   });
 }
 
+test("feature screens declare header metadata instead of mounting a second app header", () => {
+  const violations: string[] = [];
+  for (const path of [...sources(root), ...sources(join(process.cwd(), "app")), join(process.cwd(), "src", "shared", "components", "FeatureScreen.tsx")]) {
+    const file = ts.createSourceFile(path, readFileSync(path, "utf8"), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+    function visit(node: ts.Node) {
+      if ((ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) && ["AppHeader", "MemoryFeedHeader", "AppHeaderPill"].includes(node.tagName.getText(file))) {
+        // The existing header renderer owns its shared visual frame; pages do not.
+        if (!path.endsWith(join("components", "MemoryFeedHeader.tsx"))) violations.push(relative(root, path));
+      }
+      ts.forEachChild(node, visit);
+    }
+    visit(file);
+  }
+  assert.deepEqual(violations, [], "Mount the app header once in the root provider; screens use useAppHeader for metadata.");
+});
+
 test("routes and feature pages do not replace content with a loading card", () => {
   const violations: string[] = [];
   for (const path of [...sources(root), ...sources(join(process.cwd(), "app"))]) {

@@ -5,6 +5,7 @@ import { buttonTokens, glassTokens } from "../constants/tokens";
 import { useButtonInteraction } from "./useButtonInteraction";
 import {
   getAppButtonPresentation,
+  getAppButtonDisabledPresentation,
   resolveAppButtonLayout,
   resolveAppButtonState,
   resolvePlatformAccessibilityProps,
@@ -14,7 +15,9 @@ import {
 
 export type AppButtonProps = PropsWithChildren<{
   variant?: AppButtonVariant;
-  size?: "regular" | "large";
+  size?: "regular" | "large" | "compact";
+  depth?: "raised" | "flat";
+  disabledTone?: "default" | "muted";
   loading?: boolean;
   disabled?: boolean;
   icon?: ReactNode;
@@ -32,6 +35,8 @@ export function AppButton({
   children,
   variant = "primary",
   size = "regular",
+  depth = "raised",
+  disabledTone = "default",
   loading = false,
   disabled = false,
   icon,
@@ -46,6 +51,8 @@ export function AppButton({
 }: AppButtonProps) {
   const presentation = getAppButtonPresentation(variant);
   const state = resolveAppButtonState({ disabled, loading });
+  const disabledPresentation = state.disabled ? getAppButtonDisabledPresentation(disabledTone) : undefined;
+  const contentColor = disabledPresentation?.color ?? presentation.base.color;
   const layout = resolveAppButtonLayout({ fill, grow, contentAlign });
   const interaction = useButtonInteraction(state.disabled);
   const { elevation: pressedElevation, ...pressStyle } = presentation.press;
@@ -55,27 +62,27 @@ export function AppButton({
     <Button
       unstyled
       testID={testID}
-      height={size === "large" ? buttonTokens.largeHeight : buttonTokens.height}
-      minHeight={size === "large" ? buttonTokens.largeHeight : buttonTokens.height}
+      height={size === "large" ? buttonTokens.largeHeight : size === "compact" ? buttonTokens.choiceHeight : buttonTokens.height}
+      minHeight={size === "large" ? buttonTokens.largeHeight : size === "compact" ? buttonTokens.choiceHeight : buttonTokens.height}
       borderRadius={buttonTokens.radius}
       borderWidth={presentation.base.borderWidth ?? 0}
       borderColor={presentation.base.borderColor ?? "transparent"}
       outlineWidth={0}
       outlineStyle="none"
-      backgroundColor={presentation.base.backgroundColor}
+      backgroundColor={disabledPresentation?.backgroundColor ?? presentation.base.backgroundColor}
       backdropFilter={webGlass ? glassTokens.buttonBackdrop : undefined}
       backgroundImage={webGlass ? glassTokens.buttonSheen : undefined}
       boxShadow={webGlass ? glassTokens.buttonShadow : undefined}
-      color={presentation.base.color}
-      paddingHorizontal={buttonTokens.paddingHorizontal}
+      color={contentColor}
+      paddingHorizontal={size === "compact" ? buttonTokens.iconGap : buttonTokens.paddingHorizontal}
       fontFamily="$body"
       fontSize="$button"
       fontWeight="$semibold"
       shadowColor={webGlass ? undefined : presentation.base.shadowColor}
       shadowOffset={webGlass ? undefined : presentation.base.shadowOffset}
-      shadowOpacity={webGlass ? undefined : presentation.base.shadowOpacity}
-      shadowRadius={webGlass ? undefined : presentation.base.shadowRadius}
-      elevation={Platform.OS === "android" ? presentation.base.elevation : undefined}
+      shadowOpacity={webGlass ? undefined : depth === "flat" ? 0 : disabledPresentation?.shadowOpacity ?? presentation.base.shadowOpacity}
+      shadowRadius={webGlass ? undefined : depth === "flat" ? 0 : disabledPresentation?.shadowRadius ?? presentation.base.shadowRadius}
+      elevation={Platform.OS === "android" ? depth === "flat" ? 0 : disabledPresentation?.elevation ?? presentation.base.elevation : undefined}
       alignSelf={layout.alignSelf}
       flex={layout.flex}
       minWidth={layout.minWidth}
@@ -93,10 +100,11 @@ export function AppButton({
           boxShadow: glassTokens.buttonPressedShadow,
         } : pressStyle),
         ...(Platform.OS === "android" ? { elevation: pressedElevation } : {}),
+        ...(depth === "flat" ? { shadowOpacity: 0, shadowRadius: 0, ...(Platform.OS === "android" ? { elevation: 0 } : {}) } : {}),
       }}
       focusStyle={{ borderWidth: 0, outlineWidth: 0, outlineStyle: "none" }}
       focusVisibleStyle={{ outlineWidth: 0, outlineStyle: "none" }}
-      opacity={state.disabled ? buttonTokens.disabledOpacity : 1}
+      opacity={disabledPresentation?.opacity ?? 1}
       cursor={state.disabled ? "default" : "pointer"}
       role="button"
       aria-label={accessibilityLabel}
@@ -123,14 +131,14 @@ export function AppButton({
           fontSize="$button"
           lineHeight="$button"
           fontWeight="$semibold"
-          color={presentation.base.color}
+          color={contentColor}
           textAlign={contentAlign === "start" ? "left" : "center"}
         >
           {children}
         </Text>
         {iconAfter}
       </XStack>
-      {state.busy ? <Spinner position="absolute" size="small" color={presentation.base.color} /> : null}
+      {state.busy ? <Spinner position="absolute" size="small" color={contentColor} /> : null}
     </Button>
   );
 }

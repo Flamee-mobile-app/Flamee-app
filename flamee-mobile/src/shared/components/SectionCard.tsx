@@ -6,12 +6,18 @@ import { Card, Text, XStack, YStack } from "tamagui";
 import { buttonTokens, cardTokens, glassTokens } from "../constants/tokens";
 import { resolveFilterSemantics, resolvePlatformAccessibilityProps, type FilterSelectionMode } from "./buttonSystemModel";
 import { useButtonInteraction } from "./useButtonInteraction";
+import { AppCardBackdrop } from "./AppCardBackdrop";
+import { AppGradientText } from "./AppGradientText";
+import { getSectionCardPresentation, type SectionCardEmphasis } from "./sectionCardPresentation";
 
 type SectionCardProps = PropsWithChildren<{
   title?: string;
   description?: string;
-  tone?: "default" | "peach" | "lavender";
+  tone?: "default" | "peach" | "lavender" | "sage" | "brand" | "brandSoft" | "white" | "paper";
+  showChevron?: boolean;
   density?: "default" | "compact";
+  fill?: boolean;
+  emphasis?: SectionCardEmphasis;
   testID?: string;
 }> & ({
   onPress: () => void;
@@ -25,7 +31,7 @@ type SectionCardProps = PropsWithChildren<{
   disabled?: undefined;
 });
 
-export function SectionCard({ title, description, tone = "default", density = "default", children, onPress, accessibilityLabel, disabled = false, testID, ...selection }: SectionCardProps) {
+export function SectionCard({ title, description, tone = "default", density = "default", fill = false, emphasis = "default", showChevron = true, children, onPress, accessibilityLabel, disabled = false, testID, ...selection }: SectionCardProps) {
   const radius = density === "compact" ? cardTokens.compactRadius : cardTokens.radius;
   const interactive = !!onPress;
   const interaction = useButtonInteraction(!interactive || disabled);
@@ -33,20 +39,21 @@ export function SectionCard({ title, description, tone = "default", density = "d
   const reducedMotion = useReducedMotion();
   const activePress = interactive && !disabled && pressed;
   const transition = reducedMotion ? undefined : interaction.transition;
-  const nativeShadow = activePress ? cardTokens.nativePressedShadow : cardTokens.nativeShadow;
-  const backgroundColor =
-    tone === "peach" ? "$glassCardPeach" : tone === "lavender" ? "$glassCardLavender" : "$glassCard";
+  const presentation = getSectionCardPresentation(emphasis, activePress);
+  const isBrandTone = tone === "brand" || tone === "brandSoft";
+  const backgroundColor = tone === "paper" ? "$surface" : tone === "white" || isBrandTone ? "$white" : tone === "peach" ? "$glassCardPeach" : tone === "lavender" ? "$glassCardLavender" : tone === "sage" ? "$calmSurface" : "$glassCard";
   return (
     <Card
       unstyled
       testID={testID}
-      borderWidth={0}
-      borderColor="transparent"
+      flex={fill ? 1 : undefined}
+      borderWidth={presentation.borderWidth}
+      borderColor={presentation.borderColor}
       outlineWidth={0}
       outlineStyle="none"
       borderRadius={radius}
       backgroundColor={backgroundColor}
-      backdropFilter={Platform.OS === "web" ? glassTokens.cardBackdrop : undefined}
+      backdropFilter={Platform.OS === "web" && tone !== "white" && !isBrandTone ? glassTokens.cardBackdrop : undefined}
       paddingHorizontal={density === "compact" ? cardTokens.compactPaddingHorizontal : cardTokens.padding}
       paddingVertical={density === "compact" ? cardTokens.compactPaddingVertical : cardTokens.padding}
       minHeight={buttonTokens.height}
@@ -56,11 +63,11 @@ export function SectionCard({ title, description, tone = "default", density = "d
       transition={interactive ? transition : undefined}
       animateOnly={["transform"]}
       {...(Platform.OS !== "web" ? {
-        shadowColor: nativeShadow.shadowColor,
-        shadowOffset: nativeShadow.shadowOffset,
-        shadowOpacity: nativeShadow.shadowOpacity,
-        shadowRadius: nativeShadow.shadowRadius,
-        ...(Platform.OS === "android" ? { elevation: nativeShadow.elevation } : {}),
+        shadowColor: presentation.shadowColor,
+        shadowOffset: presentation.shadowOffset,
+        shadowOpacity: presentation.shadowOpacity,
+        shadowRadius: presentation.shadowRadius,
+        ...(Platform.OS === "android" ? { elevation: presentation.elevation } : {}),
       } : {})}
       {...(interactive ? {
         render: "button",
@@ -96,24 +103,24 @@ export function SectionCard({ title, description, tone = "default", density = "d
         onPress,
         onPressIn: () => { interaction.onPressIn(); setPressed(true); },
         onPressOut: () => { interaction.onPressOut(); setPressed(false); },
-        hoverStyle: { backgroundColor, borderWidth: 0 },
-        pressStyle: { backgroundColor, borderWidth: 0 },
-        focusStyle: { borderWidth: 0, outlineWidth: 0, outlineStyle: "none" as const },
-        focusVisibleStyle: { borderWidth: 0, outlineWidth: 0, outlineStyle: "none" as const },
+        hoverStyle: { backgroundColor, borderWidth: presentation.borderWidth, borderColor: presentation.borderColor },
+        pressStyle: { backgroundColor, borderWidth: presentation.borderWidth, borderColor: presentation.borderColor },
+        focusStyle: { borderWidth: presentation.borderWidth, borderColor: presentation.borderColor, outlineWidth: 0, outlineStyle: "none" as const },
+        focusVisibleStyle: { borderWidth: presentation.borderWidth, borderColor: presentation.borderColor, outlineWidth: 0, outlineStyle: "none" as const },
       } : {})}
     >
+      {isBrandTone ? <AppCardBackdrop radius={radius} opacity={tone === "brandSoft" ? cardTokens.softGradientOpacity : cardTokens.gradientOpacity} /> : null}
       {Platform.OS === "web" ? (
         <>
-          <YStack position="absolute" top={0} right={0} bottom={0} left={0} borderRadius={radius} pointerEvents="none" boxShadow={cardTokens.shadow} opacity={activePress ? 0 : 1} transition={interactive ? transition : undefined} animateOnly={["opacity"]} />
-          <YStack position="absolute" top={0} right={0} bottom={0} left={0} borderRadius={radius} pointerEvents="none" boxShadow={cardTokens.pressedShadow} opacity={activePress ? 1 : 0} transition={interactive ? transition : undefined} animateOnly={["opacity"]} />
+          <YStack position="absolute" top={0} right={0} bottom={0} left={0} borderRadius={radius} pointerEvents="none" boxShadow={presentation.webShadow} />
         </>
       ) : null}
-      <XStack alignItems="center" gap="$md" position="relative" zIndex={1}>
+      <XStack flex={fill ? 1 : undefined} alignItems={fill ? "stretch" : "center"} gap="$md" position="relative" zIndex={1}>
         <YStack flex={1} minWidth={0} gap="$sm">
           {title ? (
-            <Text fontFamily="$heading" fontSize="$h5" lineHeight="$h5" fontWeight="$semibold" color="$textPrimary" textAlign="left">
+            <AppGradientText size="h5" weight="semibold">
               {title}
-            </Text>
+            </AppGradientText>
           ) : null}
           {description ? (
             <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textSecondary" textAlign="left">
@@ -122,7 +129,9 @@ export function SectionCard({ title, description, tone = "default", density = "d
           ) : null}
           {children}
         </YStack>
-        {interactive && !("selectionMode" in selection && selection.selectionMode) ? <ChevronRight size={18} color="$textSecondary" aria-hidden={true} /> : null}
+        {interactive && showChevron && !("selectionMode" in selection && selection.selectionMode) ? emphasis === "action"
+          ? <YStack width={32} height={32} borderRadius="$md" backgroundColor="$accentSoft" alignItems="center" justifyContent="center" aria-hidden><ChevronRight size={19} color="$accentText" /></YStack>
+          : <ChevronRight size={18} color="$textSecondary" aria-hidden={true} /> : null}
       </XStack>
     </Card>
   );

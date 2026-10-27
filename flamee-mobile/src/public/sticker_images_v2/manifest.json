@@ -1,0 +1,52 @@
+{
+  "pack_id": "daily_emotions_v2_images",
+  "version": 2,
+  "format": "PNG",
+  "canvas_px": [
+    512,
+    512
+  ],
+  "transparent_background": true,
+  "stickers": [
+    {
+      "id": "tired",
+      "label_vi": "Mệt mỏi",
+      "file": "tired.png"
+    },
+    {
+      "id": "discouraged",
+      "label_vi": "Chán nản",
+      "file": "discouraged.png"
+    },
+    {
+      "id": "happy",
+      "label_vi": "Vui vẻ",
+      "file": "happy.png"
+    },
+    {
+      "id": "energetic",
+      "label_vi": "Đầy năng lượng",
+      "file": "energetic.png"
+    },
+    {
+      "id": "unbothered",
+      "label_vi": "Bất cần đời",
+      "file": "unbothered.png"
+    },
+    {
+      "id": "broken_down",
+      "label_vi": "Suy sụp",
+      "file": "broken_down.png"
+    },
+    {
+      "id": "sad",
+      "label_vi": "Buồn bã",
+      "file": "sad.png"
+    },
+    {
+      "id": "awful",
+      "label_vi": "Tệ quá",
+      "file": "awful.png"
+    }
+  ]
+}

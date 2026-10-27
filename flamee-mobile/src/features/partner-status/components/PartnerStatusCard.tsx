@@ -1,3 +1,4 @@
+import { AppGradientText } from "../../../shared/components";
 import { Clock3 } from "@tamagui/lucide-icons-2/icons/Clock3";
 import { Heart } from "@tamagui/lucide-icons-2/icons/Heart";
 import { Image } from "react-native";
@@ -48,10 +49,10 @@ export function PartnerStatusCard({ status, onSignal }: { status: PartnerStatusV
         <YStack width={homeTokens.avatarSize} height={homeTokens.avatarSize} borderRadius="$lg" backgroundColor="$surfaceMuted" alignItems="center" justifyContent="center" overflow="hidden">
           {status.partner.avatarUri ? (
             <Image source={{ uri: status.partner.avatarUri }} style={{ width: homeTokens.avatarSize, height: homeTokens.avatarSize }} accessible={false} />
-          ) : <Text fontFamily="$heading" fontSize="$h4" fontWeight="$semibold" color="$textSecondary">{partnerName.trim().charAt(0).toLocaleUpperCase("vi")}</Text>}
+          ) : <AppGradientText fontFamily="$heading" fontSize="$h4" fontWeight="$semibold" color="$textSecondary">{partnerName.trim().charAt(0).toLocaleUpperCase("vi")}</AppGradientText>}
         </YStack>
         <YStack flex={1} minWidth={0} gap="$xs">
-          <Text fontFamily="$heading" fontSize="$h5" fontWeight="$semibold" color="$textPrimary">{partnerName}</Text>
+          <AppGradientText fontFamily="$heading" fontSize="$h5" fontWeight="$semibold" color="$textPrimary">{partnerName}</AppGradientText>
           <Text fontFamily="$body" fontSize="$bodyS" lineHeight="$bodyS" color="$textSecondary">
             {status.kind === "no_update" ? getMessage("vi", "partnerNoUpdate") : status.kind === "emotion" ? getMessage("vi", "partnerSharedANote") : getMessage("vi", moodCopy[status.mood])}
           </Text>

@@ -91,7 +91,7 @@ def test_me_with_token_returns_200(client: TestClient, alice_headers):
     assert body["email"] == "alice@example.com"
 
 
-def test_change_password_wrong_current_returns_401(
+def test_change_password_wrong_current_returns_validation_error(
     client: TestClient, alice_headers
 ):
     response = client.post(
@@ -102,7 +102,8 @@ def test_change_password_wrong_current_returns_401(
         },
         headers=alice_headers,
     )
-    assert response.status_code == 401
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "current_password_invalid"
 
 
 def test_change_password_ok(client: TestClient, alice_headers):

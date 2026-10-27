@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-27",
+  "feature": "account-lifecycle",
+  "tool": "built-in image_gen",
+  "basePrompt": "Generate ONE standalone premium Vietnamese mobile app screen mockup for Flamee, a real couples connection app. Use reference image for warm tactile material, friendly polished illustration and phone presentation ONLY; do NOT copy Tiny Mission content. Cross-platform premium neutral UI in a consistent slender black iPhone-like frame, straight front-facing, centered on warm stone #EEECEA studio backdrop. PORTRAIT 1024x1536 canvas, whole device visible with balanced margins, frame subtle, content fills most canvas. Status bar 9:41 and home indicator. Warm cream app background, one off-white #FFFCF8 large gently rounded content surface with subtle warm shadow. Palette: coral #FF7158, soft apricot #FCB76D, dark brown #302924, muted #70655D, warm border #E6DDD3, small sage accents. Crisp large readable Vietnamese text with correct diacritics, short copy, humanist rounded semibold headings, body comfortable equivalent 14-16pt, feature heading moderate equivalent 24pt NOT huge. Tight title-to-content gap, generous internal rhythm. No extra page eyebrow or subtitle outside content. Preserve one brand system in every image. Realistic creamy photography for memories, cute painterly flame mascot and approved soft 3D illustrated avatars for fictional Linh and Nam. Native touch-sized coral primary buttons and pale peach secondary buttons. Non-Home screens use plain dark feature-name title with back chevron for nested views; NO global Flamee logo header, NO title divider. Only Home timeline/calendar has glass top header + left, centered dropdown title, bell right. Main tabs use SAME floating coral/apricot PILL bottom nav with four white icons home/heart/flag/profile flanking a raised round center coral FAB containing a WHITE FLAME, NOT A PLUS. Center FAB never selected and implies press effect only. Indicate active regular tab with subtle pale capsule. No white bottom nav from old reference. No navigation bar on auth, pairing, full-screen check-in or settings drilldown screens. Do not invent features or successful server operations for unavailable screens. Screen content only, no captions, annotations, arrows outside device or multiple phone collage. Specific screen requirements: ",
+  "screens": [
+    {
+      "feature": "account-lifecycle",
+      "id": "01-account",
+      "title": "Tài khoản và kết nối",
+      "status": "partial",
+      "spec": "Nested screen back and black title 'Tài khoản & kết nối'. Main cream surface first available standard action 'Đổi mật khẩu' with lock icon/chevron, followed a sign-out section with concise body and peach 'Đăng xuất' button. Lower separate simple pending area with tiny outline link icon, black heading 'Chức năng đang được hoàn thiện', body 'Kết thúc kết nối và xóa tài khoản chưa khả dụng.' Do not draw enabled unpair/delete account buttons, confirmation toggles or fake linked-account options. No bottom nav."
+    },
+    {
+      "feature": "account-lifecycle",
+      "id": "02-logout",
+      "title": "Xác nhận đăng xuất",
+      "status": "api",
+      "spec": "Shared frosted warm cream AppDialog over dimmed profile/settings. Coral gradient title 'Đăng xuất?', short body 'Cậu sẽ cần đăng nhập lại để tiếp tục sử dụng Flamee.' One small subtle door/flame illustration, two touch-sized actions 'Hủy' in pale peach and 'Đăng xuất' muted coral. No warning about deleting data, no success state, no exaggerated danger red. Same phone/frame/palette, no random layout ornaments."
+    },
+    {
+      "feature": "account-lifecycle",
+      "id": "03-data",
+      "title": "Dữ liệu của tôi",
+      "status": "unavailable",
+      "spec": "Nested screen back and black title 'Dữ liệu của tôi'. Cream content surface small warm paper/folder-and-heart illustration. Heading 'Dữ liệu của hai mình', concise 'Tải dữ liệu và quản lý xóa dữ liệu chưa khả dụng.' Small peach 'Quay lại'. No fake download/export button, progress percent or enabled delete data control. Calm, thoughtful pending screen. No app nav."
+    },
+    {
+      "feature": "account-lifecycle",
+      "id": "04-support",
+      "title": "Hỗ trợ",
+      "status": "unavailable",
+      "spec": "Nested feature screen back and black title 'Hỗ trợ'. One cream content surface small painterly life-ring and tiny flame holding a heart. Heading 'Không gian hỗ trợ đang được chuẩn bị', body 'Thông tin liên hệ và nội dung hỗ trợ chưa được cấu hình.' Small peach 'Quay lại'. No invented phone numbers, hotline, live chat, email or fanpage link. No app nav."
+    }
+  ]
+}

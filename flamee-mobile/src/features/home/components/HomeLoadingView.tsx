@@ -1,21 +1,24 @@
 import { Text, XStack, YStack } from "tamagui";
+import { AppSkeleton, AppSkeletonGroup } from "../../../shared/components";
 import { memoryFeedTokens } from "../../../shared/constants/tokens";
 import { getMessage } from "../../../shared/localization/messages";
 
 export function HomeLoadingView() {
   return (
     <YStack gap="$xl" paddingTop="$lg">
-      <Text role="status" fontFamily="$body" fontSize="$bodyS" color="$textSecondary">{getMessage("vi", "homeLoadingTitle")}</Text>
-      <YStack aria-hidden={true} gap="$xl">
+      <Text fontFamily="$body" fontSize="$bodyS" color="$textSecondary">{getMessage("vi", "homeLoadingTitle")}</Text>
+      <AppSkeletonGroup accessibilityLabel={getMessage("vi", "homeLoadingTitle")}>
+        <YStack gap="$xl">
         {[0, 1].map((key) => <YStack key={key} gap="$md">
           <XStack alignItems="center" gap="$sm">
-            <YStack width={memoryFeedTokens.avatarSize} height={memoryFeedTokens.avatarSize} borderRadius="$xl" backgroundColor="$surfaceMuted" />
-            <YStack gap="$xs"><YStack width={100} height={12} borderRadius="$sm" backgroundColor="$surfaceMuted" /><YStack width={60} height={8} borderRadius="$sm" backgroundColor="$surfaceMuted" /></YStack>
+            <AppSkeleton width={memoryFeedTokens.avatarSize} height={memoryFeedTokens.avatarSize} borderRadius={memoryFeedTokens.avatarSize / 2} />
+            <YStack gap="$xs"><AppSkeleton width={100} height={12} /><AppSkeleton width={60} height={8} /></YStack>
           </XStack>
-          <YStack width="65%" height={14} borderRadius="$sm" backgroundColor="$surfaceMuted" />
-          <YStack width="100%" aspectRatio={memoryFeedTokens.photoAspectRatio} borderRadius={memoryFeedTokens.photoRadius} backgroundColor="$surfaceMuted" />
+          <AppSkeleton width="65%" height={14} />
+          <AppSkeleton width="100%" aspectRatio={memoryFeedTokens.photoAspectRatio} borderRadius={memoryFeedTokens.photoRadius} />
         </YStack>)}
-      </YStack>
+        </YStack>
+      </AppSkeletonGroup>
     </YStack>
   );
 }

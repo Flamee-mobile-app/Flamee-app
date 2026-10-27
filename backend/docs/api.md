@@ -1,5 +1,16 @@
 # API Specification
 
+## Contract cập nhật ngày 2026-10-26 — tài khoản mobile
+
+- POST `/api/v1/auth/logout` trả `success:true, data:{logged_out:true}` khi đã thu hồi phiên. Mobile phân biệt server-confirmed với logout chỉ trên thiết bị khi mất mạng; không coi 401 là xác nhận thu hồi refresh token.
+- POST `/api/v1/auth/change-password` nhận `current_password`, `new_password`, trả `data:{updated:true}` sau khi đổi và thu hồi các phiên. Mobile phải yêu cầu đăng nhập lại sau xác nhận.
+- Sai mật khẩu hiện tại trả **400** với `error.code=current_password_invalid`, không còn dùng 401. PUT `/api/v1/users/me/password` dùng cùng quy tắc lỗi. 401 vẫn dành cho phiên/token không hợp lệ, để client không refresh hoặc đăng xuất nhầm khi người dùng gõ sai mật khẩu.
+- DELETE `/api/v1/auth/me/avatar` trả user đã có `avatar_url:null`; mobile chỉ chuyển sang fallback sau khi kiểm đúng account và response này.
+- Forgot/reset password vẫn trả 501 cho tới khi có kênh xác minh thật; không phát OTP mô phỏng.
+- Theo quyết định người dùng, bản E2E đầu tiên dùng email/mật khẩu; Google/Apple/OTP để đợt sau. UI đổi mật khẩu giữ tối thiểu 8 ký tự như màn đăng ký; backend hiện chấp nhận tối thiểu 6 ký tự, không hạ validation UI trong đợt này.
+
+Các phần bên dưới là tài liệu hiện có; contract cập nhật ở trên ưu tiên khi mô tả khác phần tài khoản cũ.
+
 > MVP: 5 modules, ~33 endpoints. Ngắn gọn, đủ dùng.
 > Auto-generated OpenAPI docs ở `/docs` (Swagger UI) khi chạy FastAPI.
 

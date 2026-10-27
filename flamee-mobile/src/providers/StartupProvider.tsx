@@ -35,6 +35,7 @@ export function StartupProvider({ children }: PropsWithChildren) {
   const segments = useSegments();
   const isEntryRoute = segments.at(0) === undefined;
   const bootstrapped = useSessionStore((session) => session.isBootstrapped);
+  const bootstrapStatus = useSessionStore((session) => session.bootstrapStatus);
   const [visible, setVisible] = useState(!startupLifetime.dismissed);
   const [prepared, setPrepared] = useState(startupLifetime.dismissed);
   const [complete, setComplete] = useState(startupLifetime.animationCompleted);
@@ -45,7 +46,7 @@ export function StartupProvider({ children }: PropsWithChildren) {
   const { canNavigate, canDismiss: dismiss, canReveal } = resolveStartupGate({
     prepared,
     animationComplete: complete,
-    sessionReady: bootstrapped,
+    sessionReady: bootstrapped || bootstrapStatus === "error",
     isEntryRoute,
     entryFailed,
     overlayVisible: visible,

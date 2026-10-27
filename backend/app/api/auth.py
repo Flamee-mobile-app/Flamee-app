@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, File, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, UploadFile, status
 from supabase import Client
 
 from app.api.deps import get_current_user, get_db
@@ -127,11 +127,12 @@ def update_profile(
 
 @router.post("/me/avatar")
 def upload_avatar(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     current: dict = Depends(get_current_user),
     db: Client = Depends(get_db),
 ):
-    user = AvatarService(db).upload(current["id"], file)
+    user = AvatarService(db).upload(current["id"], file, schedule_cleanup=background_tasks.add_task)
     return ok(UserResponse.from_model(user).model_dump())
 
 

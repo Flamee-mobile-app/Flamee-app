@@ -811,12 +811,17 @@ Cập nhật / xóa anniversary.
 
 #### 6.3.1 GET `/api/v1/memories`
 
-List memory của couple hiện tại. **Phân trang**: chưa có — trả về toàn bộ.
+List memory của couple hiện tại. Phân trang bằng `limit`/`offset`, sắp theo
+`memory_date DESC`, sau đó `created_at DESC`.
 
 **Query params**:
 
 - `category: str | None` — lọc theo `MemoryCategory`. Nếu không hợp lệ → 400.
 - `year: int | None` (1900–2999) — lọc theo năm của `memory_date`.
+- `limit: int` (1–100, mặc định 50), `offset: int` (>=0, mặc định 0).
+- Mỗi item thêm `description`, `created_by`, `created_at` và `author` nullable
+  gồm `id`, `full_name`, `username`, `avatar_url`. Tác giả được lọc cùng couple
+  và lấy theo batch; avatar private ký URL, không trả email hoặc storage path.
 
 **Success 200**:
 
@@ -824,8 +829,11 @@ List memory của couple hiện tại. **Phân trang**: chưa có — trả về
 {
   "success": true,
   "data": {
-    "items": [/* MemoryListItem[] — sort by created_at DESC theo service */],
-    "total": 5
+      "items": [/* MemoryListItem[] */],
+      "total": 5,
+      "limit": 50,
+      "offset": 0,
+      "has_more": false
   }
 }
 ```
@@ -834,9 +842,14 @@ List memory của couple hiện tại. **Phân trang**: chưa có — trả về
 
 Tạo memory mới.
 
+Header tùy chọn `Idempotency-Key`: 1–120 ký tự A–Z/a–z/0–9/`_`/`-`, scope
+theo user. Gửi lại cùng key + nội dung trả cùng memory; đổi nội dung với cùng
+key trả 409 `idempotency_conflict`. Không có key vẫn tạo record mới mỗi lần.
+
 **Request body** (`CreateMemoryRequest`): xem §5.6.
 
-**Success 201**: full `MemoryResponse` (với `images: []`).
+**Success 201**: full `MemoryResponse`; lần đầu `images: []`, replay sau upload
+có thể trả các ảnh đã có, với signed URL hợp lệ.
 
 #### 6.3.3 GET `/api/v1/memories/{memory_id}`
 
@@ -869,6 +882,10 @@ retry sẽ hoàn tất phần database nếu object đã được xóa ở lần
 #### 6.3.6 POST `/api/v1/memories/{memory_id}/images`
 
 Upload ảnh. Dùng **multipart/form-data** với field `file`.
+
+Header `Idempotency-Key` tùy chọn cùng giới hạn ở create, scope theo
+user/memory; replay trả cùng asset, không tạo thêm metadata hoặc object.
+Client để multipart encoder tự đặt boundary, không gán Content-Type JSON.
 
 **Request**:
 

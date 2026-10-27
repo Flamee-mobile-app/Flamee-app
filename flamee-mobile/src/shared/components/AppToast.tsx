@@ -10,7 +10,7 @@ import { useReducedMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FullWindowOverlay } from "react-native-screens";
 import { XStack, YStack } from "tamagui";
-import { spacing, toastTokens } from "../constants/tokens";
+import { liquidHeaderTokens, memoryFeedTokens, spacing, toastTokens } from "../constants/tokens";
 import { getMessage } from "../localization/messages";
 import { getAppToastPresentation, type AppToastTone } from "./appToastModel";
 import { createAppToastState, type AppToastMessage, type AppToastOptions } from "./appToastState";
@@ -112,7 +112,7 @@ export function AppToastProvider({ children }: PropsWithChildren) {
     portalToRoot={Platform.OS !== "ios"}
     width={viewportWidth}
     left={(width - viewportWidth) / 2}
-    top={insets.top + spacing.md}
+    top={insets.top + liquidHeaderTokens.topGap + memoryFeedTokens.expandedHeaderHeight + spacing.sm}
     alignItems="center"
     label={getMessage("vi", "notificationsLabel")}
   />;

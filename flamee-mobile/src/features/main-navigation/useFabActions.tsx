@@ -24,5 +24,5 @@ export function useFabActions(tone: "light" | "accent" = "light") {
     { key: "moment", label: getMessage("vi", "fabMoment"), icon: <Send color={iconColor} size={iconSize} />, onPress: () => open("moment") },
     { key: "connection", label: getMessage("vi", "fabConnection"), icon: <HeartHandshake color={iconColor} size={iconSize} />, onPress: () => open("connection") },
   ];
-  return { quickActions, onFabPress: () => open("timeline") };
+  return { quickActions };
 }

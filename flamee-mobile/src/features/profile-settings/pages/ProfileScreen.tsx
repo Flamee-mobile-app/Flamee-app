@@ -8,10 +8,11 @@ import { UserRound } from "@tamagui/lucide-icons-2/icons/UserRound";
 import { useRouter } from "expo-router";
 import { Children, Fragment, type PropsWithChildren } from "react";
 import { Text, YStack } from "tamagui";
-import { AppHeader, AppMenuRow, AppScreen, SectionCard } from "../../../shared/components";
+import { AppGradientText, AppMenuRow, AppScreen, SectionCard, useAppHeader } from "../../../shared/components";
 import { featureTokens, menuTokens } from "../../../shared/constants/tokens";
 import { getMessage, type MessageKey } from "../../../shared/localization/messages";
 import { useFabActions } from "../../main-navigation";
+import { SignOutAction } from "../../account-lifecycle";
 import { profileSettingsSections } from "../settingsSections";
 
 const rowDetails: Record<(typeof profileSettingsSections)[number], { key: MessageKey; icon: typeof UserRound }> = {
@@ -33,9 +34,9 @@ function MenuGroup({ title, tone = "default", children }: PropsWithChildren<{ ti
   const rows = Children.toArray(children);
   return (
     <YStack gap="$sm">
-      <Text role="heading" aria-level={2} fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" fontWeight="$semibold" color="$textSecondary" paddingHorizontal="$xs">
+      <AppGradientText role="heading" aria-level={2} size="bodyM" weight="semibold" paddingHorizontal="$xs">
         {title}
-      </Text>
+      </AppGradientText>
       <SectionCard tone={tone} density="compact">
         <YStack>
           {rows.map((row, index) => (
@@ -52,11 +53,11 @@ function MenuGroup({ title, tone = "default", children }: PropsWithChildren<{ ti
 
 export function ProfileScreen() {
   const router = useRouter();
+  useAppHeader({ title: getMessage("vi", "profileMenuTitle") });
   const { quickActions } = useFabActions("accent");
 
   return (
     <AppScreen contentProps={{ width: "100%", maxWidth: featureTokens.maxWidth, alignSelf: "center", paddingBottom: featureTokens.navigationClearance }}>
-      <AppHeader title={getMessage("vi", "profileMenuTitle")} />
       <YStack gap="$lg">
         {menuGroups.map((group) => (
           <MenuGroup key={group.title} title={getMessage("vi", group.title)}>
@@ -87,6 +88,7 @@ export function ProfileScreen() {
               <AppMenuRow key={action.key} testID={`profile-quick-${action.key}`} label={action.label} icon={action.icon} onPress={action.onPress} />
             ))}
         </MenuGroup>
+        <SignOutAction />
       </YStack>
     </AppScreen>
   );

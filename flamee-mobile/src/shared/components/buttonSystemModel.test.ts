@@ -3,6 +3,17 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 
+function luminance(hex: string): number {
+  const channels = hex.slice(1).match(/../g)!.map((channel) => parseInt(channel, 16) / 255);
+  const [red, green, blue] = channels.map((channel) => channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
+  return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+}
+
+function contrastRatio(foreground: string, background: string): number {
+  const values = [luminance(foreground), luminance(background)].sort((left, right) => right - left);
+  return (values[0] + 0.05) / (values[1] + 0.05);
+}
+
 test("presses filled buttons into their shadow without changing the surface color", async () => {
   const model = await import("./buttonSystemModel.ts");
 
@@ -43,6 +54,76 @@ test("gives unselected filters a glass surface while keeping both states borderl
   assert.notEqual(active.backgroundColor, "transparent");
 });
 
+test("gives check-in reason chips a compact outlined and selected brand presentation", async () => {
+  const { getFilterChipPresentation } = await import("./buttonSystemModel.ts");
+  const { buttonTokens } = await import("../constants/tokens.ts");
+  const inactive = getFilterChipPresentation(false, "choice");
+  const active = getFilterChipPresentation(true, "choice");
+
+  assert.equal(buttonTokens.choiceHeight, 44);
+  assert.equal(buttonTokens.choicePaddingHorizontal, 16);
+  assert.equal(buttonTokens.choiceIconSize, 20);
+  assert.equal(buttonTokens.choiceIconGap, 8);
+
+  assert.deepEqual(inactive, {
+    borderWidth: 1,
+    borderColor: "$border",
+    backgroundColor: "$white",
+    selectionBackgroundColor: "$white",
+    selectionOpacity: 1,
+    color: "$textPrimary",
+    hoverBackgroundColor: "$white",
+    pressBackgroundColor: "$white",
+  });
+  assert.deepEqual(active, {
+    borderWidth: 1,
+    borderColor: "$primary",
+    backgroundColor: "$primary",
+    selectionBackgroundColor: "$primary",
+    selectionOpacity: 1,
+    color: "$white",
+    hoverBackgroundColor: "$primary",
+    pressBackgroundColor: "$primary",
+  });
+});
+
+test("keeps check-in typography, page spacing and note field dimensions tokenized", async () => {
+  const { fieldTokens, spacing, typography } = await import("../constants/tokens.ts");
+  assert.equal(typography.h3.fontSize, 24);
+  assert.equal(typography.section.fontSize, 17);
+  assert.equal(typography.label.fontSize, 15);
+  assert.equal(typography.bodyXS.fontSize, 13);
+  assert.equal(spacing.page, 20);
+  assert.equal(spacing.xxl, 32);
+  assert.equal(spacing.md, 12);
+  assert.equal(spacing.sm, 8);
+  assert.equal(fieldTokens.outlinedRadius, 14);
+  assert.equal(fieldTokens.multilineCompactMinHeight, 80);
+});
+
+test("keeps check-in title, helper, selected chip and disabled button contrast above 4.5:1", async () => {
+  const { colors } = await import("../constants/tokens.ts");
+  assert.ok(contrastRatio(colors.textPrimary, colors.background) >= 4.5);
+  assert.ok(contrastRatio(colors.textSecondary, colors.background) >= 4.5);
+  assert.ok(contrastRatio(colors.accentText, colors.background) >= 4.5);
+  assert.ok(contrastRatio(colors.textSecondary, colors.supportPeachLight) >= 4.5);
+  assert.ok(contrastRatio(colors.white, colors.accentText) >= 4.5);
+  assert.ok(contrastRatio(colors.textPrimary, colors.surfaceMuted) >= 4.5);
+});
+
+test("keeps disabled check-in actions readable without elevation", async () => {
+  const { getAppButtonDisabledPresentation } = await import("./buttonSystemModel.ts");
+  assert.deepEqual(getAppButtonDisabledPresentation("muted"), {
+    backgroundColor: "$surfaceMuted",
+    color: "$textPrimary",
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
+    opacity: 1,
+  });
+});
+
+
 test("keeps glass action borders absent in every press state", async () => {
   const { getAppButtonPresentation } = await import("./buttonSystemModel.ts");
   const glass = getAppButtonPresentation("ghost");
@@ -61,6 +142,21 @@ test("renders the avatar edit action as a circular translucent peach bubble", as
   assert.equal(avatar.hoverBackgroundColor, "$glassCardPeach");
   assert.equal(avatar.pressBackgroundColor, "$glassCardPeach");
   assert.equal(model.getIconButtonRadius("avatar"), buttonTokens.iconButtonSize / 2);
+});
+
+test("renders composer tools with a clear outlined surface and selected state", async () => {
+  const model = await import("./buttonSystemModel.ts");
+  const idle = model.getIconButtonPresentation("composer", false);
+  const selected = model.getIconButtonPresentation("composer", true);
+
+  assert.deepEqual(idle, {
+    backgroundColor: "$white", color: "$accentText", borderColor: "transparent", borderWidth: 2,
+    hoverBackgroundColor: "$white", pressBackgroundColor: "$white",
+  });
+  assert.deepEqual(selected, {
+    backgroundColor: "$accentSoft", color: "$accentText", borderColor: "$primary", borderWidth: 2,
+    hoverBackgroundColor: "$accentSoft", pressBackgroundColor: "$accentSoft",
+  });
 });
 
 test("keeps loading content footprint while blocking interaction", async () => {

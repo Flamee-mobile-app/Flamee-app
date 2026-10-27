@@ -16,7 +16,7 @@ export function resolveLoginLayout({
   return {
     heroHeight,
     surfacePaddingBottom: Math.max(bottomInset, spacing.lg),
-    titleGap: spacing.lg,
-    footerTopGap: spacing.lg,
+    titleGap: spacing.md,
+    footerTopGap: spacing.md,
   } as const;
 }

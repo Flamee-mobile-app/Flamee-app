@@ -1,7 +1,7 @@
 import { navigationTokens } from "../constants/tokens.ts";
 
-const MAX_BAR_WIDTH = 520;
-const MIN_HORIZONTAL_INSET = 8;
+const MAX_BAR_WIDTH = 480;
+const MIN_HORIZONTAL_INSET = 16;
 const BASELINE_WIDTH = 390;
 
 export type BottomNavigationLayout = {
@@ -34,12 +34,12 @@ export function getBottomNavigationLayout(viewportWidth: number, safeAreaBottom:
   const horizontalInset = (viewportWidth - width) / 2;
   const bottomInset = Math.round(Math.min(18, Math.max(14, safeAreaBottom * 0.5)) * 10) / 10;
   const scale = Math.max(0.86, Math.min(1.08, width / BASELINE_WIDTH));
-  const fabSize = 60 * scale;
+  const fabSize = 56 * scale;
   const fabOutlineWidth = 2 * scale;
   const barTop = fabSize / 2 + 5 * scale;
-  const barHeight = 64 * scale;
+  const barHeight = 60 * scale;
   const notchRadius = (fabSize + 14 * scale) / 2;
-  const radialRadius = 104 * scale;
+  const radialRadius = Math.max(96, 104 * scale);
 
   return {
     width,

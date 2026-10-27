@@ -1,3 +1,4 @@
+import { AppGradientText } from "../../../shared/components";
 import { X } from "@tamagui/lucide-icons-2/icons/X";
 import { Image } from "react-native";
 import { Text, XStack, YStack } from "tamagui";
@@ -9,7 +10,7 @@ import { mascotStickerCatalog } from "../mascotCatalog";
 export function MascotStickerPicker({ value, onChange }: { value: string | null; onChange: (value: string | null) => void }) {
   return <YStack gap="$md">
     <YStack gap="$xs">
-      <Text fontFamily="$heading" fontSize="$bodyL" fontWeight="$semibold" color="$textPrimary">{getMessage("vi", "mascotOptionalTitle")}</Text>
+      <AppGradientText fontFamily="$heading" fontSize="$bodyL" fontWeight="$semibold" color="$textPrimary">{getMessage("vi", "mascotOptionalTitle")}</AppGradientText>
       <Text fontFamily="$body" fontSize="$bodyS" color="$textSecondary">{getMessage("vi", "mascotOptionalBody")}</Text>
     </YStack>
     <XStack flexWrap="wrap" gap="$sm" role="radiogroup" aria-label={getMessage("vi", "mascotOptionalTitle")}>

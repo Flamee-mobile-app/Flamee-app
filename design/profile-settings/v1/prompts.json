@@ -1,0 +1,43 @@
+{
+  "date": "2026-10-27",
+  "feature": "profile-settings",
+  "tool": "built-in image_gen",
+  "basePrompt": "Generate ONE standalone premium Vietnamese mobile app screen mockup for Flamee, a real couples connection app. Use reference image for warm tactile material, friendly polished illustration and phone presentation ONLY; do NOT copy Tiny Mission content. Cross-platform premium neutral UI in a consistent slender black iPhone-like frame, straight front-facing, centered on warm stone #EEECEA studio backdrop. PORTRAIT 1024x1536 canvas, whole device visible with balanced margins, frame subtle, content fills most canvas. Status bar 9:41 and home indicator. Warm cream app background, one off-white #FFFCF8 large gently rounded content surface with subtle warm shadow. Palette: coral #FF7158, soft apricot #FCB76D, dark brown #302924, muted #70655D, warm border #E6DDD3, small sage accents. Crisp large readable Vietnamese text with correct diacritics, short copy, humanist rounded semibold headings, body comfortable equivalent 14-16pt, feature heading moderate equivalent 24pt NOT huge. Tight title-to-content gap, generous internal rhythm. No extra page eyebrow or subtitle outside content. Preserve one brand system in every image. Realistic creamy photography for memories, cute painterly flame mascot and approved soft 3D illustrated avatars for fictional Linh and Nam. Native touch-sized coral primary buttons and pale peach secondary buttons. Non-Home screens use plain dark feature-name title with back chevron for nested views; NO global Flamee logo header, NO title divider. Only Home timeline/calendar has glass top header + left, centered dropdown title, bell right. Main tabs use SAME floating coral/apricot PILL bottom nav with four white icons home/heart/flag/profile flanking a raised round center coral FAB containing a WHITE FLAME, NOT A PLUS. Center FAB never selected and implies press effect only. Indicate active regular tab with subtle pale capsule. No white bottom nav from old reference. No navigation bar on auth, pairing, full-screen check-in or settings drilldown screens. Do not invent features or successful server operations for unavailable screens. Screen content only, no captions, annotations, arrows outside device or multiple phone collage. Specific screen requirements: ",
+  "screens": [
+    {
+      "feature": "profile-settings",
+      "id": "01-profile-menu",
+      "title": "Menu hồ sơ",
+      "status": "mixed",
+      "spec": "Main profile tab. Plain black title 'Hồ sơ' outside warm main cream surface. A compact optional avatar identity row 'Linh' using approved portrait. Grouped standard settings cells with restrained coral/apricot section titles and neutral icons/chevrons: group 'Tài khoản' rows 'Chỉnh sửa hồ sơ', 'Thông báo'; group 'Kết nối' rows 'Cách muốn được quan tâm', 'Tài khoản & kết nối'; group 'Khác' rows 'Hỗ trợ', 'Dữ liệu của tôi'. Smaller lower row 'Đăng xuất' in muted coral. No fake premium subscription, follower count or stats. Same coral pill nav PROFILE selected and white flame center. Keep rows large and readable."
+    },
+    {
+      "feature": "profile-settings",
+      "id": "02-edit-profile",
+      "title": "Chỉnh sửa hồ sơ",
+      "status": "api",
+      "spec": "Nested edit profile with back and plain black title 'Chỉnh sửa hồ sơ'. One cream surface with approved Linh portrait at104px, small peach circular pencil edit button overlapping lower right, small coral text 'Gỡ ảnh đại diện'. Two labelled standard white softly elevated fields 'Tên hiển thị' value 'Linh', 'Biệt danh' value 'Mây'. Full coral bottom 'Lưu thay đổi'. No age/gender/timezone form, no avatar emoji selector, no unrelated preference switches, no nav. Warm rounded controls consistent with actual app design system."
+    },
+    {
+      "feature": "profile-settings",
+      "id": "03-remove-avatar",
+      "title": "Xác nhận gỡ avatar",
+      "status": "api",
+      "spec": "Shared warm frosted app dialog over dimmed edit-profile screen with Linh portrait behind. Small coral-gradient title 'Gỡ ảnh đại diện', concise 'Ảnh đại diện sẽ được thay bằng ảnh mặc định. Bạn có thể tải ảnh mới lên sau.' A small default illustrated avatar preview, primary muted coral 'Gỡ ảnh đại diện', secondary peach 'Hủy'. No deletion-success message yet. No nav on underlying edit screen. Clean readable native confirmation rather than a giant popup hero."
+    },
+    {
+      "feature": "profile-settings",
+      "id": "04-password",
+      "title": "Đổi mật khẩu",
+      "status": "api",
+      "spec": "Nested password screen back arrow + plain black title 'Đổi mật khẩu'. Main cream surface brief body 'Sau khi đổi, cậu cần đăng nhập lại.' Three labelled standard secure fields 'Mật khẩu hiện tại', 'Mật khẩu mới', 'Nhập lại mật khẩu mới', all dots with optional eye icons. Helper 'Ít nhất 8 ký tự'. Primary coral full-width 'Đổi mật khẩu'. No email/OTP/reset-password controls, no success illustration before submit, no app nav."
+    },
+    {
+      "feature": "profile-settings",
+      "id": "05-care",
+      "title": "Cách muốn được quan tâm",
+      "status": "unavailable",
+      "spec": "Nested feature screen back and plain black title 'Cách muốn được quan tâm'. One cream surface with small gentle illustration of two hands and a heart, heading 'Sắp có không gian dành riêng cho cậu', body 'Tùy chọn cách quan tâm đang được hoàn thiện.' Small peach 'Quay lại'. No selectable love-language form or saved preferences as these are not implemented yet. Warm mature caring illustration, no bottom nav."
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+import { AppGradientText } from "../../../shared/components";
 import { HeartHandshake } from "@tamagui/lucide-icons-2/icons/HeartHandshake";
 import { useRouter } from "expo-router";
 import { useEffect } from "react";
@@ -18,9 +19,9 @@ export function PairedSuccess() {
       <YStack width={104} height={104} borderRadius="$xl" backgroundColor="$supportPeachLight" alignItems="center" justifyContent="center">
         <HeartHandshake size={54} color="$primary" />
       </YStack>
-      <Text textAlign="center" fontFamily="$heading" fontSize="$h1" lineHeight="$h1" fontWeight="$bold" color="$textPrimary">
+      <AppGradientText textAlign="center" fontFamily="$heading" fontSize="$h1" lineHeight="$h1" fontWeight="$bold" color="$textPrimary">
         {getMessage("vi", "pairedSuccessTitle")}
-      </Text>
+      </AppGradientText>
       <Text textAlign="center" fontFamily="$body" fontSize="$bodyL" lineHeight="$bodyL" color="$textSecondary">
         {getMessage("vi", "pairedSuccessBody")}
       </Text>

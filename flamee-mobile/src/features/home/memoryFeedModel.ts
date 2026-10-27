@@ -2,6 +2,10 @@ import type { MemorySummary } from "../moments";
 import type { Locale } from "../../shared/localization/messages.ts";
 
 export type MemoryFeedView = "timeline" | "memories";
+const dateFormatters = {
+  vi: new Intl.DateTimeFormat("vi-VN", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }),
+  en: new Intl.DateTimeFormat("en-US", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }),
+};
 
 function calendarDate(value: string): Date | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
@@ -16,5 +20,5 @@ export function selectMemoryFeed(records: readonly MemorySummary[], view: Memory
 
 export function formatMemoryDate(value: string, locale: Locale): string | null {
   const date = calendarDate(value);
-  return date ? new Intl.DateTimeFormat(locale === "vi" ? "vi-VN" : "en-US", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(date) : null;
+  return date ? dateFormatters[locale].format(date) : null;
 }

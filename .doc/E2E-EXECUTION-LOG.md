@@ -1,0 +1,42 @@
+# SDD ledger — plan: docs/superpowers/plans/2026-10-26-app-e2e-completion.md
+
+## Bắt đầu sau khi duyệt kế hoạch
+
+- Người dùng đã duyệt kế hoạch; triển khai local trong workspace hiện tại.
+- Task 1: in progress — baseline offline, rà contract và lập ma trận nghiệm thu.
+- Task 2–12: pending; không xem duyệt kế hoạch là bằng chứng E2E đã đạt.
+- Ruling: giữ workspace hiện tại, dùng ledger này và công cụ đọc/chỉnh file trực tiếp; không chạy helper skill phụ thuộc Git, không tạo branch/commit hoặc đọc Git vì quy tắc repository yêu cầu phạm vi cho phép riêng. Không ghi live backend hoặc gọi AI có phí.
+- Pre-flight 2→4/9: onboarding dùng profile API hiện có trước; care/relationship chưa có contract đầy đủ được hoàn thiện với settings, không gửi thêm trường vào DTO cũ.
+- Pre-flight 4→5→6: cần chốt mapping cảm xúc, privacy và media payload trước khi thay preview; Tiny Moment hiện chưa có private media contract đầy đủ.
+- Pre-flight 4/6→7/8: đồng bộ chỉ invalidates query đã có, notification/WS không thay thế dữ liệu API.
+- Pre-flight 9→10→11: cần quy tắc ngày chung/đổi nhiệm vụ/giá quà/fanpage và lifecycle ledger trước khi ghi điểm hoặc redemption thật.
+- Ruling: ưu tiên phần local có contract xác định; ghi nhận các điểm cần quyết định sản phẩm/cấu hình bên ngoài để hỏi khi chúng chặn triển khai, không tự đặt quy tắc có ảnh hưởng điểm/quà/dữ liệu.
+
+## Bằng chứng kiểm tra
+
+- Baseline mobile: typecheck đạt; 278 domain tests = 276 đạt/2 lỗi. Lỗi hiện có: checkInUiContract intrinsic bubble gap và profileFeedbackContract outlined field. Không sửa UI hoặc xóa assertion trong nhánh logout.
+- Baseline backend: 132 passed, 4 deselected (live tests), 10 Starlette HTTP 422 deprecation warnings. Không gọi backend/Supabase/AI thật.
+- Người dùng đã xác nhận giữ UI check-in hiện tại: note 60 ký tự, cho chọn nhiều lý do; quy tắc này ưu tiên tài liệu lịch sử.
+- Task 1: đã tạo E2E-API-CONTRACT và E2E-ACCEPTANCE; có Android emulator qua adb, chưa có Maestro PATH/native build hoặc nghiệm thu hai thiết bị. Chưa đánh dấu complete.
+- Task 2: in progress — thêm AuthApi.logout POST/ack validation, AuthService.signOut kết quả revoked/localOnly/noSession, xóa local ngay; tự thu hồi credential từ login/refresh bị hủy; UI chỉ báo local-only khi chưa có account mới.
+- Test RED→GREEN: authSignOut 8 ca ban đầu đều đỏ do thiếu logout; thêm race logout khi login đang ghi storage cho thấy phiên server chưa bị thu hồi, sửa rồi đạt. Tổng 10 ca mới đạt; regression auth/session/localSignOut 40/40.
+- Ruling: kết quả logout phân biệt server-confirmed và local-only, không coi HTTP 401 đơn lẻ là đã thu hồi refresh session. Refresh phục vụ logout dùng credential cũ, không đi qua coordinator của account mới.
+- Ruling: cập nhật transport test cũ để hiểu endpoint logout mới; giữ nguyên assertion nghiệp vụ. Không đưa test double vào production.
+- Người dùng xác nhận bản E2E đầu tiên dùng email/mật khẩu; Google/Apple/OTP chuyển đợt kế tiếp.
+- Task 2: bổ sung API/service/UI gỡ avatar có xác nhận, chỉ chấp nhận response avatar_url=null đúng account; dùng save lifecycle và revision để không phục hồi avatar cũ hoặc mở xác nhận của account trước. 4 ca RED→GREEN; 23 test avatar/logout/profile lifecycle/design-system đạt.
+- Sau logout: toàn mobile 288 tests = 286 đạt, đúng 2 lỗi baseline, không có lỗi mới; typecheck đạt. Sau avatar removal sẽ chạy lại suite trước bàn giao.
+- Task 2: đã nối đổi mật khẩu API/service/UI ở settings section=password. Thành công đóng phiên; lỗi storage sau server ack được báo riêng. Form keyed theo account/session và không trim secret, xóa nội dung khi rời màn hình.
+- Ruling: backend dùng HTTP 400/current_password_invalid cho mật khẩu hiện tại sai, giữ 401 cho phiên không hợp lệ; nếu giữ 401 như cũ, coordinator có thể refresh và đăng xuất nhầm user. Cập nhật hai endpoint dùng chung service, test và API docs.
+- Ruling: giữ tối thiểu 8 ký tự cho mật khẩu mới như UI đăng ký hiện tại, không hạ xuống 6 chỉ để khớp mức tối thiểu backend.
+- Đổi mật khẩu: 5 ca mobile và 2 ca backend RED→GREEN; validation form RED→GREEN; backend toàn suite 134 passed/4 deselected. Phát hiện test route list cũ chưa có password, cập nhật list và vẫn giữ kiểm tra privacy/terms bị loại.
+- Bổ sung guard live account ở handler profile/password trước khi gọi mutation; response sau đổi account vẫn qua generation/lifecycle guard, không chạm phiên mới.
+- Người dùng chọn development hiện có; bỏ luôn quên/reset mật khẩu khỏi phạm vi. Đã gỡ entry quên mật khẩu không hoạt động khỏi login; endpoint legacy vẫn 501, không xây OTP/email giả.
+- Read-only live: 2 test schema/RPC và private media bucket đạt (11.51s). Không ghi dữ liệu trong hai test này; đây không phải kiểm quyền RLS của user.
+- Người dùng đã cho phép đúng lệnh FLAMEE_TEST_LIVE_ACCOUNT=1 chạy `tests/test_live_account_workflow.py`, không AI/migration/dữ liệu có sẵn.
+- Live account lần 1 `account-be4ea8bd65a3`: đã tạo 2 account, sửa profile, upload/gỡ avatar và server đã tạo invite; test harness dừng do mong 200 thay vì contract 201 của create invite. Sửa kỳ vọng trong harness, không sửa backend để chiều test.
+- Đã thông báo giữ lại 2 account lần đầu và chạy lại cùng lệnh được duyệt. Lần 2 `account-f2e2a9e327b2`: 1 passed, 22 bước API đạt (30.53s), gồm pair, wrong-password validation giữ phiên, change-password revoke access/refresh, login mới, logout revoke access/refresh và partner session độc lập.
+- Dữ liệu test giữ lại: account `b835c99c-eba9-4adf-a6ae-0e0e06b09587`, `23fbbaa4-af48-4d16-9889-dc104eb9f416` (lần 1); `0467a380-8290-4b4c-962c-f7a591173a39`, `fc6c0e9b-6c56-47df-9aa9-3c6b96f9ef61` (lần 2). Tổng 4 account test, 1 cặp, 1 invite chưa accept của lần 1 và 1 invite accepted của lần 2. Avatar của cả hai lần đã được gỡ qua API. Không dọn account/invite/couple có sẵn.
+- Review local phát hiện khoảng microtask giữa withAccessToken và cleanup của changePassword có thể hủy login B. Test hồi quy bổ sung đã quan sát RED rồi GREEN sau guard generation ở outer operation. Bộ auth/session/avatar/password/localSignOut/schema 51/51 đạt.
+- Android emulator từng xuất hiện lúc đầu nhưng lần kiểm tra adb sau không còn thiết bị; chưa kiểm UI native hoặc tạo native build. Không đánh dấu M0/M1 hoàn tất E2E hai thiết bị.
+- Checkpoint cuối đợt local: mobile typecheck đạt, toàn suite 299 = 297 đạt/2 lỗi UI baseline, auth/session/schema liên quan 51/51; backend 134 unit/integration FakeSupabase đạt, development read-only 2/2 và account live workflow 1/1 (22 checks). Web export đã đạt trước chỉnh cuối form generation guard và gỡ entry forgot; các chỉnh cuối được typecheck/domain tests kiểm lại.
+- Toàn bộ kế hoạch vẫn đang thực hiện. Không tick hoàn tất task/mốc chỉ vì API smoke đạt; UI Android/iOS, Home CRUD còn thiếu và các mốc sau vẫn pending.

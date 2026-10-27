@@ -7,6 +7,7 @@ import { authCredentialStore } from "../../shared/native/credentials.ts";
 import { useSessionStore } from "../../shared/state/sessionStore";
 import { createAuthApi } from "./authApi.ts";
 import { createAuthService, type AuthCredentialStore } from "./authService.ts";
+import { synchronizeAuthSession } from "./authSessionSync.ts";
 
 // Import Platform by name: dynamic import of RN enumerates lazy native exports.
 // The domain service is isolated in authService.ts and does not import RN.
@@ -26,6 +27,11 @@ export const authService = createAuthService({
     avatarFileFromUri: (file) => new File(file.uri),
   }),
   credentials,
+  getMembershipRevision: () => useSessionStore.getState().membershipRevision,
+  getMembershipSnapshot: () => {
+    const state = useSessionStore.getState();
+    return { accountId: state.activeAccountId, coupleId: state.activeCoupleId, revision: state.membershipRevision };
+  },
   onSessionExpired: () => {
     const state = useSessionStore.getState();
     if (!state.activeAccountId) return;
@@ -33,10 +39,5 @@ export const authService = createAuthService({
     appToast.warning(getMessage("vi", "sessionExpiredTitle"));
     router.replace("/(auth)");
   },
-  onSessionChanged: (session) => {
-    const state = useSessionStore.getState();
-    if (!session || state.activeAccountId === session.accountId) {
-      state.setActiveAvatar(session?.user.avatar_url ?? null);
-    }
-  },
+  onSessionChanged: synchronizeAuthSession,
 });

@@ -19,3 +19,17 @@ test("profile edit reports async failures with toast instead of inline status ba
   );
   assert.match(source, /getMessage\("vi", saving \? "profileSaving" : saved \? "profileSavedAction" : "save"\)/);
 });
+
+test("profile keeps raw avatar preview separate from its prepared upload draft", () => {
+  const source = readFileSync(join(process.cwd(), "src/features/profile-settings/pages/ProfileEditScreen.tsx"), "utf8");
+  assert.match(source, /purpose: "avatar"/);
+  assert.match(source, /onPreview:/);
+  assert.match(source, /preparingAvatar\?\.uri \?\? avatarDraft\?\.uri/);
+  assert.match(source, /setPreparingAvatar\(null\)/);
+});
+
+test("profile name and username fields use the white outlined surface", () => {
+  const source = readFileSync(join(process.cwd(), "src/features/profile-settings/pages/ProfileEditScreen.tsx"), "utf8");
+  const fields = source.match(/<AppField[^>]*surfaceTone="outlined"[^>]*>/g) ?? [];
+  assert.equal(fields.length, 2);
+});

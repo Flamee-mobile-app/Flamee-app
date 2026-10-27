@@ -21,3 +21,16 @@ test("failed or malformed profile responses cannot become a local save", async (
     await assert.rejects(api.updateProfile("token", { full_name: "An", username: "" }), (error) => error instanceof AuthError);
   }
 });
+
+test("avatar multipart has a 60 second budget while profile reads keep 12 seconds", async (context) => {
+  const delays: number[] = [];
+  const original = globalThis.setTimeout;
+  context.mock.method(globalThis, "setTimeout", (callback: () => void, delay: number) => {
+    delays.push(delay);
+    return original(callback, delay);
+  });
+  const api = createAuthApi({ baseUrl: "https://api.example.test", fetcher: async () => new Response(JSON.stringify({ success: true, data: { ...user, avatar_url: "https://image.example.test/avatar.jpg" } })) });
+  await api.uploadAvatar("token", new Blob(["bytes"]));
+  await api.me("token");
+  assert.deepEqual(delays, [60_000, 12_000]);
+});

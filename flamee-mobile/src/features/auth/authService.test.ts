@@ -24,6 +24,12 @@ async function withServer(handler: (req: IncomingMessage, res: ServerResponse, b
     const raw = Buffer.concat(chunks).toString();
     const contentType = req.headers["content-type"] ?? "";
     const body = raw && contentType.includes("application/json") ? JSON.parse(raw) : raw || null;
+    if (req.url === "/api/v1/auth/logout") {
+      assert.equal(req.method, "POST");
+      assert.match(req.headers.authorization ?? "", /^Bearer .+/);
+      res.end(JSON.stringify({ success: true, data: { logged_out: true } }));
+      return;
+    }
     await handler(req, res, body);
   });
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));

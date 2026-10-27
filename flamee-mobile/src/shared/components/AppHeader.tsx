@@ -1,8 +1,4 @@
-import { ArrowLeft } from "@tamagui/lucide-icons-2/icons/ArrowLeft";
-import { useRouter } from "expo-router";
-import { Text, XStack, YStack } from "tamagui";
-import { getMessage } from "../localization/messages";
-import { AppIconButton } from "./AppIconButton";
+import { useAppHeader } from "../navigation/appHeaderContext";
 
 type AppHeaderProps = {
   title: string;
@@ -10,42 +6,10 @@ type AppHeaderProps = {
   showBack?: boolean;
   onBack?: () => void;
   eyebrow?: string;
+  titleTone?: "default" | "accent";
 };
 
-export function AppHeader({ title, subtitle, showBack = false, onBack, eyebrow }: AppHeaderProps) {
-  const router = useRouter();
-  return (
-    <YStack gap="$sm">
-      <XStack alignItems="center" gap="$sm">
-        {showBack ? (
-          <AppIconButton
-            accessibilityLabel={getMessage("vi", "back")}
-            icon={<ArrowLeft color="$textPrimary" />}
-            onPress={onBack ?? router.back}
-          />
-        ) : null}
-        <YStack flex={1} gap="$xs">
-          {eyebrow ? (
-            <Text fontFamily="$body" fontSize="$bodyS" color="$primary" fontWeight="$semibold">
-              {eyebrow}
-            </Text>
-          ) : null}
-          <Text
-            fontFamily="$heading"
-            fontSize="$h2"
-            lineHeight="$h2"
-            fontWeight="$bold"
-            color="$textPrimary"
-          >
-            {title}
-          </Text>
-        </YStack>
-      </XStack>
-      {subtitle ? (
-        <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textSecondary">
-          {subtitle}
-        </Text>
-      ) : null}
-    </YStack>
-  );
+export function AppHeader({ title, showBack = false, onBack }: AppHeaderProps) {
+  useAppHeader({ title, showBack, onBack });
+  return null;
 }

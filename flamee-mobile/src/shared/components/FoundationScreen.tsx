@@ -1,3 +1,4 @@
+import { AppGradientText } from "./AppGradientText";
 import type { PropsWithChildren } from "react";
 import { Text, YStack } from "tamagui";
 import { getMessage, type MessageKey } from "../localization/messages";
@@ -13,7 +14,7 @@ type FoundationScreenProps = PropsWithChildren<{
 export function FoundationScreen({ title, description, actionLabel, onAction }: FoundationScreenProps) {
   return (
     <YStack flex={1} alignItems="center" justifyContent="center" backgroundColor="transparent" paddingHorizontal="$xxl">
-      <Text
+      <AppGradientText
         marginBottom="$md"
         textAlign="center"
         fontFamily="$heading"
@@ -23,7 +24,7 @@ export function FoundationScreen({ title, description, actionLabel, onAction }: 
         color="$textPrimary"
       >
         {getMessage("vi", title)}
-      </Text>
+      </AppGradientText>
       <Text
         maxWidth={384}
         textAlign="center"

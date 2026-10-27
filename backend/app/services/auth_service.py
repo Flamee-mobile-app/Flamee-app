@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.core.exceptions import AuthError, ConflictError
+from app.core.exceptions import AuthError, ConflictError, ValidationError
 from app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -88,7 +88,7 @@ class AuthService:
     ) -> None:
         user = self.me(user_id)
         if not verify_password(current, user.password_hash):
-            raise AuthError("Mật khẩu hiện tại không đúng")
+            raise ValidationError("Mật khẩu hiện tại không đúng", code="current_password_invalid")
         self.sessions.revoke_all_for_user(user_id)
         self.user_repo.update(
             user_id,

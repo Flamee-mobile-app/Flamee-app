@@ -34,7 +34,7 @@ test("keeps the login surface compact and independent from viewport height", asy
   }), {
     heroHeight: 307,
     surfacePaddingBottom: 34,
-    titleGap: 16,
-    footerTopGap: 16,
+    titleGap: 12,
+    footerTopGap: 12,
   });
 });

@@ -40,3 +40,20 @@ test("toast card has a concrete width inside Tamagui's shrink-wrapped gesture ho
   visit(file);
   assert.ok(checked);
 });
+
+test("toast viewport starts below the shared header", () => {
+  const source = readFileSync(new URL("./AppToast.tsx", import.meta.url), "utf8");
+  const file = ts.createSourceFile("AppToast.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  let checked = false;
+  function visit(node: ts.Node) {
+    if ((ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) && node.tagName.getText(file) === "ToastViewport") {
+      const top = node.attributes.properties.find((prop) => ts.isJsxAttribute(prop) && prop.name.getText(file) === "top");
+      assert.ok(top && ts.isJsxAttribute(top) && top.initializer && ts.isJsxExpression(top.initializer));
+      assert.equal(top.initializer.expression?.getText(file), "insets.top + liquidHeaderTokens.topGap + memoryFeedTokens.expandedHeaderHeight + spacing.sm");
+      checked = true;
+    }
+    ts.forEachChild(node, visit);
+  }
+  visit(file);
+  assert.ok(checked);
+});

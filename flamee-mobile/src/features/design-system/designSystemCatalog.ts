@@ -6,7 +6,8 @@ export type DesignSystemComponentId =
   | "sheet"
   | "toast"
   | "switch"
-  | "checkbox";
+  | "checkbox"
+  | "slider";
 
 export type DesignSystemCatalogEntry = {
   id: DesignSystemComponentId;
@@ -63,5 +64,11 @@ export const designSystemCatalog: readonly DesignSystemCatalogEntry[] = [
     title: "Checkbox",
     implementation: "AppCheckbox → Tamagui.Checkbox",
     importPath: "src/shared/components/AppCheckbox",
+  },
+  {
+    id: "slider",
+    title: "Slider",
+    implementation: "AppSlider → Tamagui.Slider",
+    importPath: "src/shared/components/AppSlider",
   },
 ] as const;

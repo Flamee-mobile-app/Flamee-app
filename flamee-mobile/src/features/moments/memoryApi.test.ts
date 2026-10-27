@@ -39,3 +39,80 @@ test("feed network failures and deadlines never return invented posts", async ()
   }) });
   await assert.rejects(slow.list("token"), (error) => error instanceof MemoryApiError && error.code === "timeout");
 });
+
+test("paged feed preserves server pagination and author identity without client-generated names", async () => {
+  const record = { ...memory, description: "A real caption", created_by: "user-one", created_at: "2026-10-18T09:00:00Z", author: { id: "user-one", full_name: "An", username: "Biệt danh", avatar_url: "https://media.example.test/avatar.jpg" } };
+  const payload = { items: [record], total: 60, offset: 24, limit: 24, has_more: true };
+  const api = createMemoryApi({ baseUrl: "https://api.example.test/api/v1", fetcher: async (url) => {
+    assert.equal(url, "https://api.example.test/api/v1/memories?limit=24&offset=24");
+    return new Response(JSON.stringify({ success: true, data: payload }));
+  } });
+  assert.deepEqual(await api.list("token", { limit: 24, offset: 24 }), payload);
+});
+
+test("memory detail reads original images only when requested and rejects local media URLs", async () => {
+  const record = { id: "memory-1", title: "Memory", description: null, memory_date: "2026-10-18", location: null, images: [{ id: "image-1", url: "https://media.example.test/original.jpg", width: 1600, height: 1200 }] };
+  const api = createMemoryApi({ baseUrl: "https://api.example.test/api/v1", fetcher: async (url, options) => {
+    assert.equal(url, "https://api.example.test/api/v1/memories/memory-1");
+    assert.equal(new Headers(options?.headers).get("Authorization"), "Bearer token");
+    return new Response(JSON.stringify({ success: true, data: record }));
+  } });
+  assert.deepEqual(await api.detail("token", "memory-1"), record);
+  const invalid = createMemoryApi({ baseUrl: "https://api.example.test", fetcher: async () => new Response(JSON.stringify({ success: true, data: { ...record, images: [{ ...record.images[0], url: "file:///local.jpg" }] } })) });
+  await assert.rejects(invalid.detail("token", "memory-1"), (error) => error instanceof MemoryApiError && error.code === "response");
+});
+
+test("feed preserves a server-signed sharp cover for reuse and rejects invalid cover URLs", async () => {
+  const cover = { id: "photo-1", url: "https://media.example.test/original.jpg", thumbnail_url: memory.thumbnail_url, width: 1600, height: 1200, url_expires_at: 2_000_000_000 };
+  const api = createMemoryApi({ baseUrl: "https://api.example.test", fetcher: async () => new Response(JSON.stringify({ success: true, data: { items: [{ ...memory, cover_image: cover }], total: 1 } })) });
+  assert.deepEqual((await api.list("token")).items[0].cover_image, cover);
+  const invalid = createMemoryApi({ baseUrl: "https://api.example.test", fetcher: async () => new Response(JSON.stringify({ success: true, data: { items: [{ ...memory, cover_image: { ...cover, url: "file:///private.jpg" } }], total: 1 } })) });
+  await assert.rejects(invalid.list("token"), (error) => error instanceof MemoryApiError && error.code === "response");
+});
+
+test("create memory sends JSON and an idempotency key and validates the server owner", async () => {
+  const record = { id: "memory-1", title: "Memory", description: null, memory_date: "2026-10-18", location: null, images: [], created_by: "user-one" };
+  const api = createMemoryApi({ baseUrl: "https://api.example.test/api/v1", fetcher: async (url, options) => {
+    assert.equal(url, "https://api.example.test/api/v1/memories");
+    assert.equal(options?.method, "POST");
+    assert.equal(new Headers(options?.headers).get("Idempotency-Key"), "stable-key");
+    assert.equal(JSON.parse(String(options?.body)).title, "Memory");
+    return new Response(JSON.stringify({ success: true, data: record }), { status: 201 });
+  } });
+  assert.deepEqual(await api.create("token", { title: "Memory", category: "moment", memory_date: "2026-10-18" }, "stable-key"), record);
+});
+
+test("photo upload uses a byte-backed multipart File adapter without setting a JSON content type", async () => {
+  const bytes = new Blob([new Uint8Array([1, 2, 3])], { type: "image/jpeg" });
+  const api = createMemoryApi({ baseUrl: "https://api.example.test/api/v1", fileFromUri: () => bytes, fetcher: async (url, options) => {
+    assert.equal(url, "https://api.example.test/api/v1/memories/memory-1/images");
+    assert.equal(options?.method, "POST");
+    assert.equal(new Headers(options?.headers).get("Content-Type"), null);
+    assert.equal(new Headers(options?.headers).get("Idempotency-Key"), "stable-key");
+    assert.ok(options?.body instanceof FormData);
+    const file = options.body.get("file");
+    assert.ok(file instanceof Blob);
+    assert.deepEqual(new Uint8Array(await file.arrayBuffer()), new Uint8Array([1, 2, 3]));
+    return new Response(JSON.stringify({ success: true, data: { id: "image-1", url: "https://media.example.test/image.jpg", thumbnail_url: "https://media.example.test/thumb.jpg" } }), { status: 201 });
+  } });
+  const result = await api.upload("token", "memory-1", { uri: "file:///photo.jpg", name: "memory.jpg", type: "image/jpeg" }, "stable-key");
+  assert.equal(result.id, "image-1");
+});
+
+test("a 201 upload without readable server image URLs is not a successful upload", async () => {
+  const api = createMemoryApi({ baseUrl: "https://api.example.test", fetcher: async () => new Response(JSON.stringify({ success: true, data: { id: "image", url: null, thumbnail_url: null } }), { status: 201 }) });
+  await assert.rejects(api.upload("token", "memory", new Blob(["bytes"]), "key"), (error) => error instanceof MemoryApiError && error.code === "response");
+});
+
+test("external query cancellation reaches fetch and is not reported as a timeout", async () => {
+  const controller = new AbortController();
+  let requestSignal: AbortSignal | null | undefined;
+  const api = createMemoryApi({ baseUrl: "https://api.example.test", fetcher: async (_url, options) => {
+    requestSignal = options?.signal;
+    return new Promise<Response>((_resolve, reject) => options?.signal?.addEventListener("abort", () => reject(new Error("aborted")), { once: true }));
+  } });
+  const pending = api.list("token", { limit: 2, offset: 0 }, controller.signal);
+  controller.abort();
+  await assert.rejects(pending, (error) => error instanceof Error && error.name === "AbortError");
+  assert.equal(requestSignal?.aborted, true);
+});

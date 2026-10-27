@@ -1,3 +1,4 @@
+import { AppGradientText } from "../../../shared/components";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye } from "@tamagui/lucide-icons-2/icons/Eye";
 import { EyeOff } from "@tamagui/lucide-icons-2/icons/EyeOff";
@@ -53,7 +54,7 @@ export function RegisterForm({ visible, reducedMotion, onLogin, onAuthenticated 
 
   return <YStack>
     <LoginEntrance order={0} {...motion}>
-      <Text role="heading" aria-level={1} fontFamily="$heading" fontSize="$h4" lineHeight="$h4" fontWeight="$bold" textAlign="center" color="$textPrimary">{getMessage("vi", "registerTitle")}</Text>
+      <AppGradientText role="heading" aria-level={1} fontFamily="$heading" fontSize="$h4" lineHeight="$h4" fontWeight="$bold" textAlign="center" color="$textPrimary">{getMessage("vi", "registerTitle")}</AppGradientText>
       <XStack justifyContent="center" alignItems="center" flexWrap="wrap" gap="$xs" marginBottom="$sm">
         <Text fontFamily="$body" fontSize="$bodyS" lineHeight="$bodyS" color="$textSecondary">{getMessage("vi", "registerHaveAccount")}</Text>
         <AppTextButton tone="accent" disabled={busy} onPress={returnToLogin}>{getMessage("vi", "loginAction")}</AppTextButton>
@@ -65,7 +66,7 @@ export function RegisterForm({ visible, reducedMotion, onLogin, onAuthenticated 
       const Icon = item.icon;
       return <LoginEntrance key={item.name} order={index + 1} {...motion}>
         <Controller control={form.control} name={item.name} render={({ field, fieldState }) => <YStack marginBottom="$sm">
-          <AppField inputRef={field.ref} id={"register-" + item.name} label={getMessage("vi", item.label)}
+          <AppField inputRef={field.ref} id={"register-" + item.name} label={getMessage("vi", item.label)} showLabel={false}
             startIcon={<Icon size={18} color="$textSecondary" aria-hidden={true} />}
             placeholder={getMessage("vi", item.placeholder)} error={fieldState.error?.message}
             keyboardType={item.name === "email" ? "email-address" : "default"} inputMode={item.name === "email" ? "email" : "text"} autoCapitalize={item.name === "fullName" ? "words" : "none"} autoCorrect={false}

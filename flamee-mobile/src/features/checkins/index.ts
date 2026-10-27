@@ -4,3 +4,7 @@ export * from "./schemas";
 export * from "./types";
 export * from "./emotionCatalog";
 export * from "./mascotCatalog";
+export { MoodWeekPreview } from "./components/MoodWeekPreview";
+export { MoodEmojiIcon } from "./components/MoodEmojiIcon";
+export { moodEmojiCatalog, resolveMoodEmoji } from "./moodEmojiCatalog";
+export { moodPreviewRecords } from "./moodPreviewData";

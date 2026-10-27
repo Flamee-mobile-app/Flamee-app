@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from typing import Callable
 from fastapi import UploadFile
 
 from app.config import settings
@@ -23,7 +24,7 @@ class AvatarService:
             return user
         return replace(user, avatar_url=self.storage.sign(user.avatar_storage_path))
 
-    def upload(self, user_id: str, file: UploadFile) -> User:
+    def upload(self, user_id: str, file: UploadFile, *, schedule_cleanup: Callable | None = None) -> User:
         current = self.user_repo.get(user_id)
         if not current:
             raise NotFoundError("User không tồn tại")
@@ -43,7 +44,10 @@ class AvatarService:
             self.storage.remove([path])
             raise
         if current.avatar_storage_path and current.avatar_storage_path != path:
-            self._remove_orphan(current.avatar_storage_path)
+            if schedule_cleanup is not None:
+                schedule_cleanup(self._remove_orphan, current.avatar_storage_path)
+            else:
+                self._remove_orphan(current.avatar_storage_path)
         return self.present(updated)
 
     def delete(self, user_id: str) -> User:

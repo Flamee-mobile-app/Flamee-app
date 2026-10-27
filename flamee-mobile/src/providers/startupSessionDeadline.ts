@@ -1,14 +1,17 @@
-export async function settleBeforeStartupDeadline<T>(
+/** A deadline exposes retry UI; it never turns a still-pending restore into logout. */
+export function observeStartupSession<T>(
   operation: Promise<T>,
   timeoutMs: number,
-): Promise<T | null> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const fallback = new Promise<null>((resolve) => {
-    timer = setTimeout(() => resolve(null), timeoutMs);
+  callbacks: { onSuccess: (result: T) => void; onFailure: () => void; onDeadline: () => void },
+): () => void {
+  let active = true;
+  const timer = setTimeout(() => { if (active) callbacks.onDeadline(); }, timeoutMs);
+  void operation.then((result) => {
+    clearTimeout(timer);
+    if (active) callbacks.onSuccess(result);
+  }, () => {
+    clearTimeout(timer);
+    if (active) callbacks.onFailure();
   });
-  try {
-    return await Promise.race([operation, fallback]);
-  } finally {
-    if (timer !== undefined) clearTimeout(timer);
-  }
+  return () => { active = false; clearTimeout(timer); };
 }

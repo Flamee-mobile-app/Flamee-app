@@ -43,6 +43,48 @@ def test_memory_create_and_listing(
     assert listing["items"][0]["id"] == memory_id
 
 
+def test_memory_feed_contains_real_author_and_caption_without_private_user_fields(
+    client: TestClient, alice_headers, bob_headers, seeded_couple, fake_db
+):
+    memory_id = _create_memory(client, alice_headers, description="Our day")
+    response = client.get("/api/v1/memories", headers=bob_headers)
+    assert response.status_code == 200
+    item = response.json()["data"]["items"][0]
+    assert item["id"] == memory_id
+    assert item["description"] == "Our day"
+    assert item["created_at"]
+    assert item["author"]["id"] == item["created_by"]
+    assert item["author"]["full_name"] == "Alice"
+    assert set(item["author"]) == {"id", "full_name", "username", "avatar_url"}
+    assert "email" not in item["author"]
+    assert "password_hash" not in item["author"]
+
+
+def test_feed_does_not_expose_author_from_another_couple(
+    client: TestClient, alice_headers, bob_headers, seeded_couple, fake_db
+):
+    memory_id = _create_memory(client, alice_headers)
+    alice = next(user for user in fake_db.table("users")._data.values() if user["full_name"] == "Alice")
+    alice["couple_id"] = "another-couple"
+    item = client.get("/api/v1/memories", headers=bob_headers).json()["data"]["items"][0]
+    assert item["id"] == memory_id
+    assert item["author"] is None
+
+
+def test_feed_author_avatar_is_signed_without_exposing_storage_paths(
+    client: TestClient, alice_headers, bob_headers, seeded_couple
+):
+    upload = client.post(
+        "/api/v1/auth/me/avatar", headers=alice_headers,
+        files={"file": ("avatar.png", io.BytesIO(_TINY_PNG), "image/png")},
+    )
+    assert upload.status_code == 200, upload.text
+    _create_memory(client, alice_headers)
+    author = client.get("/api/v1/memories", headers=bob_headers).json()["data"]["items"][0]["author"]
+    assert "/sign/flamee-media/avatars/" in author["avatar_url"]
+    assert "avatar_storage_path" not in author
+
+
 def test_memory_get_returns_detail(
     client: TestClient, alice_headers, bob_headers, seeded_couple
 ):
@@ -193,6 +235,34 @@ def test_memory_list_fetches_image_metadata_once_for_the_page(
     assert image_table.select_calls == 1
     assert len(bucket.batch_sign_calls) == 1
     assert all(item["thumbnail_url"] for item in response.json()["data"]["items"])
+
+
+def test_feed_exposes_sharp_cover_and_signs_only_the_cover_not_the_album(
+    client: TestClient, alice_headers, seeded_couple, fake_db
+):
+    memory_id = _create_memory(client, alice_headers)
+    for _ in range(3):
+        _upload_image(client, alice_headers, memory_id)
+    bucket = fake_db.storage.buckets["flamee-media"]
+    bucket.batch_sign_calls = []
+
+    response = client.get("/api/v1/memories", headers=alice_headers)
+    assert response.status_code == 200
+    item = response.json()["data"]["items"][0]
+    assert item["image_count"] == 3
+    cover = item.get("cover_image")
+    assert cover is not None
+    assert "/original.jpg" in cover["url"]
+    assert cover["thumbnail_url"] == item["thumbnail_url"]
+    assert cover["width"] == cover["height"] == 1
+    assert cover["url_expires_at"] is not None
+    assert "storage_path" not in cover
+    assert len(bucket.batch_sign_calls) == 1
+    assert len(bucket.batch_sign_calls[0]) == 2
+
+    # Detail still includes every image, authorized through the existing API.
+    detail = client.get(f"/api/v1/memories/{memory_id}", headers=alice_headers)
+    assert len(detail.json()["data"]["images"]) == 3
 
 
 def test_filter_memories_by_category_and_year(

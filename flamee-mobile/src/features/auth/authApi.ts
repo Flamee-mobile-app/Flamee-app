@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export type AuthErrorCode = "configuration" | "network" | "timeout" | "credentials" | "duplicateEmail" | "validation" | "server" | "response" | "storage" | "cancelled";
+export type AuthErrorCode = "configuration" | "network" | "timeout" | "credentials" | "duplicateEmail" | "validation" | "server" | "response" | "storage" | "cancelled" | "currentPassword";
 
 export class AuthError extends Error {
   readonly code: AuthErrorCode;
@@ -40,11 +40,11 @@ export function createAuthApi({
   timeoutMs?: number;
   avatarFileFromUri?: (file: { uri: string; name: string; type: string }) => Blob;
 }) {
-  const request = async (path: string, options: { body?: unknown; formData?: FormData; token?: string; method?: "PUT" }) => {
+  const request = async (path: string, options: { body?: unknown; formData?: FormData; token?: string; method?: "PUT" | "POST" | "DELETE" }) => {
     const root = baseUrl.trim().replace(/\/+$/, "");
     if (!/^https?:\/\//.test(root)) throw new AuthError("configuration");
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const timer = setTimeout(() => controller.abort(), options.formData ? 60_000 : timeoutMs);
     try {
       const response = await fetcher(`${root}${path}`, {
         method: options.method ?? (options.body === undefined && !options.formData ? "GET" : "POST"),
@@ -57,6 +57,10 @@ export function createAuthApi({
         signal: controller.signal,
       });
       if (!response.ok) {
+        if (path === "/auth/change-password" && response.status === 400) {
+          const problem = z.object({ error: z.object({ code: z.literal("current_password_invalid") }) }).safeParse(await response.json().catch(() => null));
+          if (problem.success) throw new AuthError("currentPassword");
+        }
         if (response.status === 401) throw new AuthError("credentials");
         if (response.status === 409) throw new AuthError("duplicateEmail");
         if (response.status === 400 || response.status === 422) throw new AuthError("validation");
@@ -85,6 +89,19 @@ export function createAuthApi({
     login: (email: string, password: string) => authenticate("/auth/login", { email, password }),
     register: (email: string, password: string, fullName: string) => authenticate("/auth/register", { email, password, full_name: fullName }),
     refresh: (refreshToken: string) => authenticate("/auth/refresh", { refresh_token: refreshToken }),
+    async logout(token: string): Promise<void> {
+      const parsed = z.object({ logged_out: z.literal(true) }).safeParse(await request("/auth/logout", { token, method: "POST" }));
+      if (!parsed.success) throw new AuthError("response");
+    },
+    async removeAvatar(token: string): Promise<AuthUser> {
+      const parsed = userSchema.extend({ avatar_url: z.null() }).safeParse(await request("/auth/me/avatar", { token, method: "DELETE" }));
+      if (!parsed.success) throw new AuthError("response");
+      return parsed.data;
+    },
+    async changePassword(token: string, currentPassword: string, newPassword: string): Promise<void> {
+      const parsed = z.object({ updated: z.literal(true) }).safeParse(await request("/auth/change-password", { token, body: { current_password: currentPassword, new_password: newPassword } }));
+      if (!parsed.success) throw new AuthError("response");
+    },
     async me(token: string): Promise<AuthUser> {
       const parsed = userSchema.safeParse(await request("/auth/me", { token }));
       if (!parsed.success) throw new AuthError("response");

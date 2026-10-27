@@ -70,9 +70,9 @@ test("provides lifecycle deadlines independent from animation-driver callbacks",
 
   assert.ok(resolveStartupLifecycleDelays);
   assert.deepEqual(resolveStartupLifecycleDelays(0, false), {
-    animationComplete: 2450,
-    revealReady: 350,
-    dismissed: 650,
+    animationComplete: 900,
+    revealReady: 80,
+    dismissed: 200,
   });
   assert.deepEqual(resolveStartupLifecycleDelays(1360, true), {
     animationComplete: 0,

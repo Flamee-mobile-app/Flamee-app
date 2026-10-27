@@ -1,6 +1,6 @@
 import type { ComponentProps, ReactNode } from "react";
-import { useEffect, useRef } from "react";
-import { Image, Platform, StyleSheet, useWindowDimensions, type ImageSourcePropType } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Image, Keyboard, Platform, StyleSheet, useWindowDimensions, type ImageSourcePropType } from "react-native";
 import { Tabs } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
@@ -40,8 +40,6 @@ type BottomNavigationBarProps = ExpoTabBarProps & {
   fabAccessibilityLabel: string;
   fabAccessibilityHint: string;
   fabIcon: ImageSourcePropType;
-  fabSelected?: boolean;
-  onFabPress: () => void;
   tabRouteNames?: readonly string[];
 };
 
@@ -99,16 +97,21 @@ function NavigationTab({ focused, label, icon, iconOpacity, accessibilityLabel, 
 export function BottomNavigationBar({
   state,
   descriptors,
-  navigation,
+  emitter,
+  navigateToTab,
   fabAccessibilityLabel,
   fabAccessibilityHint,
   fabIcon,
-  fabSelected = false,
-  onFabPress,
   tabRouteNames,
 }: BottomNavigationBarProps) {
   const dimensions = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const [keyboardVisible, setKeyboardVisible] = useState(() => Keyboard.isVisible());
+  useEffect(() => {
+    const show = Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow", () => setKeyboardVisible(true));
+    const hide = Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide", () => setKeyboardVisible(false));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
   const reducedMotion = useReducedMotion();
   const fabPressProgress = useSharedValue(0);
   const layout = getBottomNavigationLayout(dimensions.width, insets.bottom);
@@ -179,10 +182,10 @@ export function BottomNavigationBar({
     const emphasis = getNavigationIconEmphasis(focused);
     const icon = options.tabBarIcon?.({ focused, color: colors.white, size: navigationTokens.tabIconSize * layout.scale });
     const handlePress = () => {
-      const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
-      if (!focused && !event.defaultPrevented) navigation.navigate(route.name, route.params);
+      const event = emitter.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
+      if (!focused && !event.defaultPrevented) navigateToTab(route.key);
     };
-    const handleLongPress = () => navigation.emit({ type: "tabLongPress", target: route.key });
+    const handleLongPress = () => emitter.emit({ type: "tabLongPress", target: route.key });
 
     return (
       <NavigationTab
@@ -197,6 +200,9 @@ export function BottomNavigationBar({
       />
     );
   });
+
+  const hideForKeyboard = descriptors[state.routes[state.index].key]?.options.tabBarHideOnKeyboard && keyboardVisible;
+  if (hideForKeyboard) return null;
 
   return (
     <Animated.View pointerEvents="box-none" style={[styles.root, getBottomNavigationOverlayStyle(layout)]}>
@@ -252,8 +258,6 @@ export function BottomNavigationBar({
             unstyled
             role="button"
             aria-label={fabAccessibilityLabel}
-            aria-pressed={fabSelected}
-            {...resolvePlatformAccessibilityProps(Platform.OS, { selected: fabSelected })}
             accessibilityHint={fabAccessibilityHint}
             alignItems="center"
             justifyContent="center"
@@ -276,7 +280,6 @@ export function BottomNavigationBar({
             }}
             onPressOut={releaseFab}
             onBlur={releaseFab}
-            onPress={onFabPress}
           >
             <Svg pointerEvents="none" width={layout.fabSize} height={layout.fabSize} style={StyleSheet.absoluteFill}>
               <Defs>
@@ -286,7 +289,7 @@ export function BottomNavigationBar({
                 </LinearGradient>
               </Defs>
               <Circle cx={layout.fabSize / 2} cy={layout.fabSize / 2} r={layout.fabSize / 2} fill="url(#bottom-navigation-fab-gradient)" />
-              <Circle cx={layout.fabSize / 2} cy={layout.fabSize / 2} r={circleRadius} stroke={fabSelected ? colors.white : "rgba(255,255,255,0.18)"} strokeWidth={fabSelected ? 2 : 1} fill="none" />
+              <Circle cx={layout.fabSize / 2} cy={layout.fabSize / 2} r={circleRadius} stroke="rgba(255,255,255,0.18)" strokeWidth={1} fill="none" />
             </Svg>
             <Image
               accessible={false}

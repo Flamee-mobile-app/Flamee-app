@@ -1,5 +1,11 @@
-import { TimelineScreen } from "../../src/features/moments/screens";
+import { useLocalSearchParams } from "expo-router";
+import { HomeScreen } from "../../src/features/home";
 
 export default function TimelineRoute() {
-  return <TimelineScreen />;
+  const { view, momentRequest, momentKind } = useLocalSearchParams<{
+    view?: string | string[];
+    momentRequest?: string;
+    momentKind?: "text" | "voice" | "photo" | "signal";
+  }>();
+  return <HomeScreen view={view} momentRequest={momentRequest} momentKind={momentKind} />;
 }

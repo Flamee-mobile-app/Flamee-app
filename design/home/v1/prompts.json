@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-27",
+  "feature": "home",
+  "tool": "built-in image_gen",
+  "basePrompt": "Generate ONE standalone premium Vietnamese mobile app screen mockup for Flamee, a real couples connection app. Use reference image for warm tactile material, friendly polished illustration and phone presentation ONLY; do NOT copy Tiny Mission content. Cross-platform premium neutral UI in a consistent slender black iPhone-like frame, straight front-facing, centered on warm stone #EEECEA studio backdrop. PORTRAIT 1024x1536 canvas, whole device visible with balanced margins, frame subtle, content fills most canvas. Status bar 9:41 and home indicator. Warm cream app background, one off-white #FFFCF8 large gently rounded content surface with subtle warm shadow. Palette: coral #FF7158, soft apricot #FCB76D, dark brown #302924, muted #70655D, warm border #E6DDD3, small sage accents. Crisp large readable Vietnamese text with correct diacritics, short copy, humanist rounded semibold headings, body comfortable equivalent 14-16pt, feature heading moderate equivalent 24pt NOT huge. Tight title-to-content gap, generous internal rhythm. No extra page eyebrow or subtitle outside content. Preserve one brand system in every image. Realistic creamy photography for memories, cute painterly flame mascot and approved soft 3D illustrated avatars for fictional Linh and Nam. Native touch-sized coral primary buttons and pale peach secondary buttons. Non-Home screens use plain dark feature-name title with back chevron for nested views; NO global Flamee logo header, NO title divider. Only Home timeline/calendar has glass top header + left, centered dropdown title, bell right. Main tabs use SAME floating coral/apricot PILL bottom nav with four white icons home/heart/flag/profile flanking a raised round center coral FAB containing a WHITE FLAME, NOT A PLUS. Center FAB never selected and implies press effect only. Indicate active regular tab with subtle pale capsule. No white bottom nav from old reference. No navigation bar on auth, pairing, full-screen check-in or settings drilldown screens. Do not invent features or successful server operations for unavailable screens. Screen content only, no captions, annotations, arrows outside device or multiple phone collage. Specific screen requirements: ",
+  "screens": [
+    {
+      "feature": "home",
+      "id": "01-timeline",
+      "title": "Dòng thời gian",
+      "status": "api",
+      "spec": "HOME feed. Correct glass header: small plus on left, center 'Dòng thời gian' with down chevron, bell on right. No big hero or extra duplicate page title. Warm cream background with two photo-led post cards. First by Linh with approved illustrated avatar, 'Hôm nay · 08:30', caption 'Một chút bình yên gửi đến cậu', large cozy realistic photo of two ceramic coffees in golden window light. Card footer small comment bubble label 'Bình luận' and '1 ảnh', no working like count. Second by Nam preview text 'Hẹn cậu một cuối tuần thật chậm' with a gentle park photo partially visible. Floating CORAL PILL NAV at bottom white home selected, heart, center WHITE FLAME FAB, flag, profile. Maintain mature soft warm style. No fake unread badge or follower counts."
+    },
+    {
+      "feature": "home",
+      "id": "02-memory-calendar",
+      "title": "Lịch kỷ niệm",
+      "status": "api",
+      "spec": "HOME calendar view using same glass header but center title 'Kỷ niệm' with down chevron, left plus, right bell. Single cream calendar surface title 'Tháng 10, 2026', subtle previous/next arrows, Monday-first 7-column calendar with weekday labels T2 T3 T4 T5 T6 T7 CN. October 1 starts Thursday, October 27 is Tuesday. A few actual-looking tiny memory PHOTO thumbnails on days 3,10,18,24,26; small peach heart/sticker on an anniversary date and fine dashed connection path between a few photo dates, generous readable date numbers. A selected day 27 coral outline, not mission progress bars or fractions. Beneath calendar small selected-day hint '27 tháng 10' and two photo previews. Same CORAL pill nav home selected, center WHITE FLAME. No timeline/calendar switch chips, use header dropdown."
+    },
+    {
+      "feature": "home",
+      "id": "03-day-memories",
+      "title": "Kỷ niệm trong ngày",
+      "status": "api",
+      "spec": "Bottom sheet over dimmed HOME calendar, following shared warm app sheet style: handle, small coral-gradient title 'Kỷ niệm trong ngày', close X. Date heading '24 tháng 10, 2026'. Two compact post rows with small approved Linh/Nam avatars, text 'Buổi chiều có cậu', 'Một góc phố quen', clear coffee/street photo thumbnails and photo count. Sheet has enough space, clean vertical list, no nested cards endlessly. Underlying correct glass Home header and CORAL pill nav with WHITE FLAME visible dimmed. No false new interactions."
+    },
+    {
+      "feature": "home",
+      "id": "04-memory-detail",
+      "title": "Chi tiết kỷ niệm",
+      "status": "api",
+      "spec": "A tall native detail sheet over dimmed Home feed. Shared app sheet handle, coral-gradient title 'Chi tiết kỷ niệm', close X. Readable date '24 tháng 10, 2026', title 'Buổi chiều có cậu', short description 'Cùng nhau chậm lại, dù chỉ qua một tấm ảnh.' One large warm realistic coffee photo with clear rounded crop, subtle '1 / 2' photo position label, second photo strip. Emphasize image viewing; do NOT invent edit/delete/like/share actions not wired yet. Home pill nav behind overlay dimmed, center flame, not plus."
+    },
+    {
+      "feature": "home",
+      "id": "05-photo-viewer",
+      "title": "Xem ảnh toàn màn hình",
+      "status": "api",
+      "spec": "Full-screen native image viewer state. Deep warm charcoal backdrop, slim close X top left, small title 'Buổi chiều có cậu' and '1 / 2', large centered photo of two coffee cups at a bright window, image contained not distorted, generous black letterbox and gesture space, subtle photo pagination dots at bottom. No bottom app nav or giant floating panel, no download/share controls if unsupported. One quiet usable media viewer in same phone frame."
+    },
+    {
+      "feature": "home",
+      "id": "06-create-post",
+      "title": "Tạo bài đăng",
+      "status": "api",
+      "spec": "Create-memory bottom sheet over dimmed HOME feed, handle and modest shared gradient title 'Chia sẻ khoảnh khắc', close X. A labelled multiline field 'Cậu muốn chia sẻ điều gì?' filled 'Một chút bình yên gửi đến cậu.' A large selected warm coffee photo preview with small remove X, a shared secondary button with photo icon 'Chọn ảnh', a coral full-width 'Đăng'. Small helper 'Ảnh sẽ được chia sẻ trong không gian của hai bạn.' No fake camera/video recording widgets, no scheduling/tags/privacy not supported. Same coral pill nav visible dimmed behind, white flame."
+    },
+    {
+      "feature": "home",
+      "id": "07-empty-feed",
+      "title": "Home chưa có kỷ niệm",
+      "status": "api-empty",
+      "spec": "HOME genuine empty state after a successful empty feed. Glass top + / 'Dòng thời gian' dropdown / bell. One warm cream empty-state surface with small illustration of an empty polaroid envelope with a tiny flame, black heading 'Chuyện của hai mình bắt đầu từ đây', short body 'Lưu lại một khoảnh khắc nhỏ đầu tiên nhé.', coral button 'Chia sẻ khoảnh khắc'. No invented posts, no fake statistics. Same coral pill nav, home active, center white flame."
+    }
+  ]
+}

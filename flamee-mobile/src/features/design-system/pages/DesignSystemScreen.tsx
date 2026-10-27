@@ -1,3 +1,4 @@
+import { AppGradientText } from "../../../shared/components";
 import { Bell, Heart, Plus, Trash2 } from "@tamagui/lucide-icons-2";
 import { useState } from "react";
 import {
@@ -11,6 +12,7 @@ import {
   AppCheckbox,
   AppChoiceTile,
   AppDialog,
+  AppSlider,
   AppSheet,
   AppField,
   AppFilterChip,
@@ -71,9 +73,9 @@ function PreviewSection({
   return (
     <YStack gap="$lg" paddingBottom={last ? 0 : "$xl"} borderBottomWidth={last ? 0 : 1} borderBottomColor="$border">
       <YStack gap="$sm">
-        <Text fontFamily="$heading" fontSize="$h4" lineHeight="$h4" fontWeight="$bold" color="$textPrimary">
+        <AppGradientText fontFamily="$heading" fontSize="$h4" lineHeight="$h4" fontWeight="$bold" color="$textPrimary">
           {entry.title}
-        </Text>
+        </AppGradientText>
         <SourceLabel id={id} />
       </YStack>
       {children}
@@ -246,7 +248,7 @@ function DialogPreview() {
         gap="$lg"
       >
         <YStack gap="$xs">
-          <Text fontFamily="$heading" fontSize="$h5" lineHeight="$h5" fontWeight="$semibold" color="$textPrimary">{getMessage(locale, "designSystemGlassTitle")}</Text>
+          <AppGradientText fontFamily="$heading" fontSize="$h5" lineHeight="$h5" fontWeight="$semibold" color="$textPrimary">{getMessage(locale, "designSystemGlassTitle")}</AppGradientText>
           <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textPrimary">{getMessage(locale, "designSystemGlassBody")}</Text>
         </YStack>
         <AppButton testID="design-dialog-trigger" fill variant="ghost" onPress={() => setOpen(true)}>
@@ -389,13 +391,30 @@ function CheckboxPreview() {
   );
 }
 
+function SliderPreview() {
+  const [intensity, setIntensity] = useState<number | null>(3);
+  const [sleepHours, setSleepHours] = useState<number | null>(7);
+  const intensityLabels = ["moodIntensity1", "moodIntensity2", "moodIntensity3", "moodIntensity4", "moodIntensity5"] as const;
+
+  return <YStack gap="$lg">
+    <AppSlider label={getMessage(locale, "moodFlowIntensitySectionTitle")} value={intensity} min={1} max={5} step={1}
+      minLabel={getMessage(locale, intensityLabels[0])} maxLabel={getMessage(locale, intensityLabels[4])}
+      getValueLabel={(value) => value === null ? getMessage(locale, "moodFlowSliderNotSelected") : formatMessage(locale, "moodFlowIntensityValue", { level: getMessage(locale, intensityLabels[value - 1]), value })}
+      onValueChange={setIntensity} />
+    <AppSlider label={getMessage(locale, "moodFlowSleepSectionTitle")} value={sleepHours} min={2} max={8} step={1}
+      minLabel={getMessage(locale, "moodFlowSleepMin")} maxLabel={getMessage(locale, "moodFlowSleepMax")}
+      getValueLabel={(value) => value === null ? getMessage(locale, "moodFlowSliderNotSelected") : value === 8 ? getMessage(locale, "moodFlowSleepPlusValue") : formatMessage(locale, "moodFlowSleepValue", { value })}
+      onValueChange={setSleepHours} />
+  </YStack>;
+}
+
 export function DesignSystemScreen() {
   return (
     <FeatureScreen title={getMessage(locale, "designSystemTitle")} withBottomNavigation={false}>
       <YStack gap="$sm" paddingBottom="$xl" borderBottomWidth={1} borderBottomColor="$border">
-        <Text fontFamily="$heading" fontSize="$h5" lineHeight="$h5" fontWeight="$semibold" color="$textPrimary">
+        <AppGradientText fontFamily="$heading" fontSize="$h5" lineHeight="$h5" fontWeight="$semibold" color="$textPrimary">
           {getMessage(locale, "designSystemIntroTitle")}
-        </Text>
+        </AppGradientText>
         <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textSecondary">
           {getMessage(locale, "designSystemIntroBody")}
         </Text>
@@ -407,7 +426,8 @@ export function DesignSystemScreen() {
       <PreviewSection id="sheet"><SheetPreview /></PreviewSection>
       <PreviewSection id="toast"><ToastPreview /></PreviewSection>
       <PreviewSection id="switch"><SwitchPreview /></PreviewSection>
-      <PreviewSection id="checkbox" last><CheckboxPreview /></PreviewSection>
+      <PreviewSection id="checkbox"><CheckboxPreview /></PreviewSection>
+      <PreviewSection id="slider" last><SliderPreview /></PreviewSection>
     </FeatureScreen>
   );
 }

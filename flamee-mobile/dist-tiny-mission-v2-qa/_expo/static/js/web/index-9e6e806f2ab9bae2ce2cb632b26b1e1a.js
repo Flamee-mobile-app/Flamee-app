@@ -1,0 +1,3 @@
+__d(function(g,r,i,a,m,e,d){"use strict";Object.defineProperty(e,'__esModule',{value:!0}),Object.defineProperty(e,"default",{enumerable:!0,get:function(){return u}});var n=r(d[0]),t=r(d[1]);function u(){return(0,t.jsx)(n.OnboardingScreen,{})}},768,[821,6]);
+__d(function(g,r,i,a,m,e,d){"use strict";Object.defineProperty(e,'__esModule',{value:!0});var t=r(d[0]);Object.keys(t).forEach(function(n){'default'===n||Object.prototype.hasOwnProperty.call(e,n)||Object.defineProperty(e,n,{enumerable:!0,get:function(){return t[n]}})})},821,[822]);
+__d(function(g,r,i,a,m,e,d){"use strict";Object.defineProperty(e,'__esModule',{value:!0}),e.OnboardingScreen=function(c){return(0,t.jsx)(n.Redirect,{href:"/(invite)"})};var n=r(d[0]),t=r(d[1])},822,[783,6]);
