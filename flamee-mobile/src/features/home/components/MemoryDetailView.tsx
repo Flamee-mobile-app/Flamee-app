@@ -8,6 +8,7 @@ import { memoryDetailOptions, memoryService, type MemoryDetail, type MemoryScope
 import { formatMemoryDate } from "../memoryFeedModel";
 import { getContainedImageFrame } from "../../../shared/layout/containedImageFrame";
 import { getMemoryPhotoPreview, reuseMemoryCover } from "../memoryPhotoModel";
+import { MemoryActions } from "./MemoryActions";
 
 type Photo = MemoryDetail["images"][number];
 const DetailPhoto = memo(function DetailPhoto({ photo, onRetry, onOpen, maxHeight }: { photo: Photo; onRetry: () => void; onOpen: (id: string) => void; maxHeight: number }) {
@@ -22,7 +23,7 @@ const DetailPhoto = memo(function DetailPhoto({ photo, onRetry, onOpen, maxHeigh
 });
 
 /** One scoped detail query on demand; photo rows use a bounded native list. */
-export function MemoryDetailView({ id, scope, summary, availableHeight, paddingBottom, enabled = true }: { id: string; scope: MemoryScope; summary: MemorySummary; availableHeight: number; paddingBottom: number; enabled?: boolean }) {
+export function MemoryDetailView({ id, scope, summary, availableHeight, paddingBottom, onDeleted, enabled = true }: { id: string; scope: MemoryScope; summary: MemorySummary; availableHeight: number; paddingBottom: number; onDeleted: () => void; enabled?: boolean }) {
   const { height } = useWindowDimensions();
   const photoHeight = Math.min(height * 0.5, availableHeight * 0.75);
   const freshUrls = useRef(false);
@@ -57,6 +58,7 @@ export function MemoryDetailView({ id, scope, summary, availableHeight, paddingB
         {query.isFetching ? <AppSkeletonGroup accessibilityLabel={getMessage("vi", "homeLoadingTitle")}><AppSkeleton height={16} width="60%" /></AppSkeletonGroup> : null}
         {query.isError ? <YStack gap="$sm"><Text role="alert" fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$accentText">{getMessage("vi", "memoryFeedLoadErrorBody")}</Text><AppButton variant="ghost" onPress={retry}>{getMessage("vi", "retry")}</AppButton></YStack> : null}
         {record.location ? <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textSecondary">{record.location}</Text> : null}
+        {query.data && enabled ? <MemoryActions record={query.data} scope={scope} onDeleted={onDeleted} /> : null}
       </YStack>} />
     {selectedPhoto && enabled ? <AppImageViewer key={`${selectedPhoto.id}-${selectedPhoto.url}`} uri={selectedPhoto.url} previewUri={selectedPhoto.thumbnail_url} title={record.title} onClose={closeViewer} onRetry={retry} /> : null}
   </>;

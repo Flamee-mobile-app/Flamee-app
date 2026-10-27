@@ -60,7 +60,7 @@ class FeedService:
         latest_mood, active_alert = None, None
         if partner_id:
             latest_mood, active_alert = (
-                self.mood_service.get_partner_latest_mood_and_alert(partner_id)
+                self.mood_service.get_partner_latest_mood_and_alert(partner_id, couple.id)
             )
             if background_tasks is not None:
                 # Daily digest chạy nền

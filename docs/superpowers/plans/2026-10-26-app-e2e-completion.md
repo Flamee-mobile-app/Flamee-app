@@ -106,6 +106,10 @@ Các đề xuất trên chưa phải quy tắc đã được người dùng duy�
 
 ## Task 3 — Home/kỷ niệm khép kín
 
+Bổ sung tiếp 2026-10-27: đã có polling foreground 5 giây và refresh focus/resume cho feed/detail; lịch cảm xúc và partner status đã đọc API có phân trang/privacy. Gửi check-in và WebSocket E2E vẫn chưa hoàn tất. Chi tiết và phần chưa phù hợp để tự triển khai tại `docs/progress/2026-10-27-app-e2e-status/IMPLEMENTATION.md`.
+
+Tiến độ local 2026-10-27: mobile đã nối PUT sửa title/description, DELETE bài/ảnh với xác nhận và guard session/cặp. Typecheck và test memory đạt; vẫn để checklist tích hợp bên dưới chưa hoàn tất vì còn retry mất response, cleanup và nghiệm thu hai máy. Quyết định còn mở của các task sau được đối chiếu tại `docs/progress/2026-10-27-app-e2e-status/DECISIONS.md`.
+
 **Files:** Sửa `src/features/moments/memoryApi.ts`, `memoryService.ts`, `src/features/home/components/MemoryComposerDialog.tsx`, `MemoryDetailView.tsx`, `HomeOverlays.tsx`, `useHomeMemories.ts`; backend `app/api/memory.py`, `app/services/memory_service.py`, `app/repositories/memory_repo.py`, media storage/processing. Test `publishMemoryPost.test.ts`, backend memory/idempotency/storage.
 
 **Interfaces:** Giữ list/detail/create/upload; bổ sung API client cho PUT/DELETE memory và DELETE ảnh theo endpoint đã có. Khôi phục create/upload theo Idempotency-Key và checkpoint; không tạo memory mới chỉ vì upload ảnh bị timeout.

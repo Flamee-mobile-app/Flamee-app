@@ -1,8 +1,12 @@
 import { moodFlowMessages } from "./moodFlowMessages.ts";
+import { memoryActionMessages } from "./memoryActionMessages.ts";
+import { serverHistoryMessages } from "./serverHistoryMessages.ts";
 import { tinyMissionMessages } from "./tinyMissionMessages.ts";
 
 export const messages = {
   vi: {
+    ...memoryActionMessages.vi,
+    ...serverHistoryMessages.vi,
     ...tinyMissionMessages.vi,
     ...moodFlowMessages.vi,
     designSystemTitle: "Bộ component Flamee",
@@ -801,6 +805,8 @@ export const messages = {
     unexpectedErrorBody: "Flamee đã giữ nguyên dữ liệu hiện tại. Anh có thể thử tải lại màn hình.",
   },
   en: {
+    ...memoryActionMessages.en,
+    ...serverHistoryMessages.en,
     ...tinyMissionMessages.en,
     ...moodFlowMessages.en,
     designSystemTitle: "Flamee component system",

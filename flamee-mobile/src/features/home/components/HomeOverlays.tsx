@@ -41,7 +41,7 @@ export const HomeOverlays = memo(forwardRef<HomeOverlayHandle, Props>(function H
     title={getMessage("vi", notification ? "memoryFeedNotifications" : "memoryFeedDetails")}
     description={notification ? getMessage("vi", "memoryFeedNotificationsUnavailable") : undefined}
     renderBody={notification ? undefined : ({ maxHeight, paddingBottom }) => selected
-      ? <MemoryDetailView key={selected.id} scope={scope} id={selected.id} summary={selected} availableHeight={maxHeight} paddingBottom={paddingBottom} enabled={state.open} />
+      ? <MemoryDetailView key={selected.id} scope={scope} id={selected.id} summary={selected} availableHeight={maxHeight} paddingBottom={paddingBottom} enabled={state.open} onDeleted={close} />
       : day ? <DayMemories records={dayRecords} day={day} availableHeight={maxHeight} paddingBottom={paddingBottom} partial={partial} onDetails={showDetails} onRetry={onRefresh} /> : null} />;
 }));
 

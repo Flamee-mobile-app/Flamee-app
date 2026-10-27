@@ -4,6 +4,7 @@ export * from "./pages/MomentsScreen";
 export * from "./schemas";
 export * from "./types";
 export { memoryService } from "./memoryService";
+export { isMemoryMutationScopeCurrent } from "./memoryMutationScope";
 export type { MemorySummary, MemoryList, MemoryDetail } from "./memoryApi";
 export { publishMemoryPost } from "./publishMemoryPost";
 export type { MemoryPostStage, MemoryPostCheckpoint } from "./publishMemoryPost";

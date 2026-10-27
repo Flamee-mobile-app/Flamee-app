@@ -31,7 +31,7 @@ export function HomeScreen({ view: routeView, checkInRequest, momentRequest }: H
   const blurTarget = useRef<AppBlurTargetView | null>(null);
   const overlays = useRef<HomeOverlayHandle | null>(null);
   const headerScroll = useRef<HeaderScrollState>({ offset: 0, travel: 0, compact: false });
-  const { query, records, invalidate } = useHomeMemories(scope, bootstrapped);
+  const { query, records, invalidate } = useHomeMemories(scope, bootstrapped, screenFocused);
 
   useFocusEffect(useCallback(() => {
     setToday(localCalendarDay(new Date()));

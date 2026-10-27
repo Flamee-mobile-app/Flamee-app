@@ -35,6 +35,7 @@ const uploadedSchema = z.object({ id: z.string().min(1), url: remoteImage, thumb
 export type MemoryCreated = z.infer<typeof createdSchema>;
 export type MemoryUpload = z.infer<typeof uploadedSchema>;
 export type MemoryCreateInput = { title: string; category: string; memory_date: string; description?: string | null };
+export type MemoryUpdateInput = { title: string; description: string | null };
 export type MemoryUploadFile = Blob | { uri: string; name: string; type: string };
 
 export class MemoryApiError extends Error {
@@ -53,7 +54,7 @@ export function createMemoryApi({ baseUrl, fetcher = fetch, timeoutMs = 12000, f
   timeoutMs?: number;
   fileFromUri?: (file: { uri: string; name: string; type: string }) => Blob;
 }) {
-  const request = async <T>(token: string, path: string, schema: z.ZodType<T>, options?: { json?: unknown; form?: FormData; key?: string; signal?: AbortSignal }): Promise<T> => {
+  const request = async <T>(token: string, path: string, schema: z.ZodType<T>, options?: { method?: "PUT" | "DELETE"; json?: unknown; form?: FormData; key?: string; signal?: AbortSignal }): Promise<T> => {
     const root = baseUrl.trim().replace(/\/+$/, "");
     if (!/^https?:\/\//.test(root)) throw new MemoryApiError("configuration");
     if (!token) throw new MemoryApiError("unauthorized");
@@ -64,12 +65,16 @@ export function createMemoryApi({ baseUrl, fetcher = fetch, timeoutMs = 12000, f
     const timer = setTimeout(() => controller.abort(), options?.form ? 60_000 : timeoutMs);
     try {
       const response = await fetcher(`${root}${path}`, {
-        method: options?.json !== undefined || options?.form ? "POST" : "GET",
+        method: options?.method ?? (options?.json !== undefined || options?.form ? "POST" : "GET"),
         headers: { Accept: "application/json", Authorization: `Bearer ${token}`, ...(options?.json !== undefined ? { "Content-Type": "application/json" } : {}), ...(options?.key ? { "Idempotency-Key": options.key } : {}) },
         body: options?.form ?? (options?.json !== undefined ? JSON.stringify(options.json) : undefined),
         signal: controller.signal,
       });
       if (!response.ok) throw new MemoryApiError(response.status === 401 ? "unauthorized" : response.status === 409 ? "conflict" : [400, 413, 422].includes(response.status) ? "validation" : "server");
+      if (options?.method === "DELETE") {
+        if (response.status !== 204) throw new MemoryApiError("response");
+        return schema.parse(undefined);
+      }
       let body: unknown;
       try { body = await response.json(); } catch { throw new MemoryApiError("response"); }
       const parsed = z.object({ success: z.literal(true), data: schema }).safeParse(body);
@@ -85,6 +90,9 @@ export function createMemoryApi({ baseUrl, fetcher = fetch, timeoutMs = 12000, f
     list: (token: string, page?: { limit: number; offset: number }, signal?: AbortSignal): Promise<MemoryList> => request(token, `/memories${page ? `?limit=${page.limit}&offset=${page.offset}` : ""}`, listSchema, { signal }),
     detail: (token: string, id: string, signal?: AbortSignal): Promise<MemoryDetail> => request(token, `/memories/${encodeURIComponent(id)}`, detailSchema, { signal }),
     create: (token: string, input: MemoryCreateInput, key: string): Promise<MemoryCreated> => request(token, "/memories", createdSchema, { json: input, key }),
+    update: (token: string, id: string, input: MemoryUpdateInput): Promise<MemoryDetail> => request(token, `/memories/${encodeURIComponent(id)}`, detailSchema, { method: "PUT", json: input }),
+    remove: (token: string, id: string): Promise<void> => request(token, `/memories/${encodeURIComponent(id)}`, z.void(), { method: "DELETE" }),
+    removeImage: (token: string, id: string, imageId: string): Promise<void> => request(token, `/memories/${encodeURIComponent(id)}/images/${encodeURIComponent(imageId)}`, z.void(), { method: "DELETE" }),
     async upload(token: string, id: string, file: MemoryUploadFile, key: string): Promise<MemoryUpload> {
       const form = new FormData();
       if ("uri" in file) {

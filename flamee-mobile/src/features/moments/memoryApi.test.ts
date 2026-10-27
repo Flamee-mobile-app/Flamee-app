@@ -4,6 +4,39 @@ import { createMemoryApi, MemoryApiError } from "./memoryApi.ts";
 
 const memory = { id: "memory-1", title: "Một ngày bên nhau", category: "moment", memory_date: "2026-10-18", location: null, is_pinned: false, thumbnail_url: "https://media.example.test/photo.jpg", image_count: 1 };
 
+test("editing sends PUT with explicit null to clear description and validates server detail", async () => {
+  const detail = { id: "memory-1", title: "Updated", description: null, memory_date: "2026-10-18", location: null, images: [] };
+  const api = createMemoryApi({ baseUrl: "https://api.example.test", fetcher: async (url, options) => {
+    assert.equal(url, "https://api.example.test/memories/memory%2F1");
+    assert.equal(options?.method, "PUT");
+    assert.equal(new Headers(options?.headers).get("Authorization"), "Bearer token");
+    assert.deepEqual(JSON.parse(options?.body as string), { title: "Updated", description: null });
+    return Response.json({ success: true, data: detail });
+  } });
+  assert.deepEqual(await api.update("token", "memory/1", { title: "Updated", description: null }), detail);
+});
+
+test("deleting a post or photo requires HTTP 204 and never parses an empty body", async () => {
+  const paths: string[] = [];
+  const api = createMemoryApi({ baseUrl: "https://api.example.test", fetcher: async (url, options) => {
+    paths.push(String(url));
+    assert.equal(options?.method, "DELETE");
+    assert.equal(options?.body, undefined);
+    return new Response(null, { status: 204 });
+  } });
+  assert.equal(await api.remove("token", "memory/1"), undefined);
+  assert.equal(await api.removeImage("token", "memory/1", "photo/1"), undefined);
+  assert.deepEqual(paths, ["https://api.example.test/memories/memory%2F1", "https://api.example.test/memories/memory%2F1/images/photo%2F1"]);
+});
+
+test("failed or unconfirmed deletions do not report success", async () => {
+  for (const status of [200, 401, 403, 404, 500]) {
+    const api = createMemoryApi({ baseUrl: "https://api.example.test", fetcher: async () => Response.json({}, { status }) });
+    await assert.rejects(api.remove("token", "memory"), MemoryApiError);
+    await assert.rejects(api.removeImage("token", "memory", "photo"), MemoryApiError);
+  }
+});
+
 test("memory feed reads the actual album API with bearer auth and no client couple ID", async () => {
   const api = createMemoryApi({ baseUrl: "https://api.example.test/api/v1/", fetcher: async (url, options) => {
     assert.equal(url, "https://api.example.test/api/v1/memories");

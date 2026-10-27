@@ -20,6 +20,7 @@ class FakeSupabaseTable:
         self._single: bool = False
         self._order_field: str | None = None
         self._order_desc: bool = False
+        self._orders: list[tuple[str, bool]] = []
         self._count_mode: str | None = None
         self._head: bool = False
         self._select_cols: str = "*"
@@ -32,6 +33,7 @@ class FakeSupabaseTable:
         self._single = False
         self._order_field = None
         self._order_desc = False
+        self._orders = []
         self._count_mode = None
         self._head = False
         self._select_cols = "*"
@@ -55,6 +57,10 @@ class FakeSupabaseTable:
 
     def like(self, field: str, pattern: str) -> "FakeSupabaseTable":
         self._query_filters.append(("like", field, pattern))
+        return self
+
+    def ilike(self, field: str, pattern: str) -> "FakeSupabaseTable":
+        self._query_filters.append(("ilike", field, pattern))
         return self
 
     def range(self, start: int, end: int) -> "FakeSupabaseTable":
@@ -82,6 +88,7 @@ class FakeSupabaseTable:
         return self
 
     def order(self, field: str, desc: bool = False) -> "FakeSupabaseTable":
+        self._orders.append((field, desc))
         self._order_field = field
         self._order_desc = desc
         return self
@@ -101,10 +108,10 @@ class FakeSupabaseTable:
                 results = [r for r in results if r.get(field) == value]
             elif op == "neq":
                 results = [r for r in results if r.get(field) != value]
-            elif op == "like":
+            elif op in ("like", "ilike"):
                 import re
                 pattern = re.escape(value).replace('%', '.*').replace('_', '.')
-                results = [r for r in results if re.fullmatch(pattern, str(r.get(field, '')))]
+                results = [r for r in results if re.fullmatch(pattern, str(r.get(field, '')), flags=re.IGNORECASE if op == "ilike" else 0)]
             elif op == "gt":
                 results = [r for r in results if r.get(field) is not None and r.get(field) > value]
             elif op == "gte":
@@ -115,8 +122,8 @@ class FakeSupabaseTable:
                 results = [r for r in results if r.get(field) is not None and r.get(field) <= value]
             elif op == "in":
                 results = [r for r in results if r.get(field) in value]
-        if self._order_field:
-            results.sort(key=lambda r: r.get(self._order_field, ""), reverse=self._order_desc)
+        for field, descending in reversed(self._orders):
+            results.sort(key=lambda r: r.get(field, ""), reverse=descending)
         if self._limit_val:
             results = results[: self._limit_val]
         if self._range_val is not None:

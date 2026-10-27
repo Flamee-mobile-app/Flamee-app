@@ -1,5 +1,27 @@
 # SDD ledger — plan: docs/superpowers/plans/2026-10-26-app-e2e-completion.md
 
+## Lịch sử cảm xúc, trạng thái đối tác và Home polling — 2026-10-27
+
+- Tiếp tục theo yêu cầu triển khai và báo cáo phần chưa làm được. Chi tiết thay đổi, kiểm tra và các mục còn lại: `docs/progress/2026-10-27-app-e2e-status/IMPLEMENTATION.md`.
+- Nối GET moods/partner latest; thêm backend limit/offset, scope couple cho trạng thái/alert/digest, projection mood_only và ưu tiên legacy is_private=true. Không sửa contract POST để bỏ mất custom feeling/sleep/attachments của UI; write flow còn chưa tích hợp.
+- Lịch tuần/tháng dùng dữ liệu server; lỗi không trở thành empty. Cache riêng account/session/couple, hủy request khi đổi scope; không persist dữ liệu cảm xúc. Ngày hiển thị theo timezone thiết bị; chưa có server timezone preference.
+- Home polling foreground 5 giây, refresh khi focus/resume, tránh chồng các tick; không tuyên bố đã có WebSocket hoặc đạt SLA 5 giây trên thiết bị.
+- Typecheck đạt; full mobile 310/312, đúng hai lỗi UI baseline. Backend full offline 138 passed, 5 deselected (không live), 13 deprecation warnings; sau sửa private flag cuối chạy lại mood/history/privacy/AI boundary: 13 passed, 5 warnings. Test fake hỗ trợ ilike/multiple order để mô phỏng đúng query, không thay API thật.
+- Không chạy migration, ghi dịch vụ thật, AI trả phí hoặc UI native/hai thiết bị. Chưa đánh dấu các mốc E2E hoàn tất. Điểm/quà/retention mở rộng vẫn theo DECISIONS.md.
+
+## Triển khai Home và rà quyết định — 2026-10-27
+
+- Đã đọc AGENTS, plan E2E, contract/acceptance, spec Tiny Mission, các phần PRD/luồng liên quan, tài liệu thiết kế Home và kiểm tra source. Ba tài liệu nền tảng bắt buộc vẫn thiếu trong checkout; xem báo cáo `docs/progress/2026-10-27-app-e2e-status/DECISIONS.md`.
+- Mobile thêm PUT sửa title/description (null để xóa nội dung), DELETE bài và DELETE ảnh. DELETE yêu cầu đúng 204; không parse JSON ở response rỗng, không coi 200 rỗng/404 là xác nhận đã xóa.
+- Chi tiết Home có form sửa, xác nhận xóa bài/ảnh, khóa double-submit, lỗi giữ form. Chỉ mở thao tác trên detail đã tải thật, không dùng cover preview như album đầy đủ. Cache được hủy read đang chạy trước mutation, cập nhật sau ack và invalidates để đọc lại feed/detail.
+- Service kiểm session/account/couple trước mỗi lần gọi, bao gồm retry xác thực, và sau response. Membership revision thay đổi trong request cũng hủy kết quả. Component bỏ kết quả khi đã unmount/đổi scope. Không tự retry mutation khi timeout; invalidate để đọc trạng thái server trước khi người dùng thử lại. Cần nghiệm thu thêm trường hợp server commit rồi mất response.
+- Cài dependency theo lockfile bằng `npm ci --ignore-scripts --no-audit --no-fund` vì checkout ban đầu thiếu node_modules; không đổi phiên bản package hay lockfile để né lỗi.
+- `npm run typecheck`: đạt sau thay đổi cuối. Bộ memory API/scope/query/publish: **34/34 đạt**, gồm 6 test mới (PUT/null, DELETE 204, lỗi xóa, phân vùng session/cặp, late ack, retry sau đổi membership).
+- Full mobile trước hai test scope cuối: **301/303 đạt**; đúng hai lỗi baseline checkInUiContract (gap đuôi bubble) và profileFeedbackContract (outlined/elevated). Không xóa assertion hoặc đổi UI ngoài phạm vi để làm xanh suite. Hai test scope thêm sau đó đều đạt trong bộ 34 test.
+- Backend `python -m pytest tests/test_memory.py tests/test_memory_storage.py tests/test_memory_idempotency.py -q`: **28 passed**; warning AnyIO BlockingPortal deprecation và pytest cache không ghi được do quyền filesystem. Không thay đổi backend runtime trong lát cắt Home.
+- Báo cáo quyết định xác nhận retention 30 ngày đã có trong spec; source break_up xóa ngay không khớp. Sửa kết luận audit cũ trong tài liệu, chưa triển khai lifecycle destructive. Điểm/quà/fanpage/timezone chung vẫn thiếu quyết định; không dùng preview để thiết lập nghiệp vụ thật.
+- **Chưa hoàn thành toàn bộ kế hoạch.** Chưa chạy UI Android/iOS/hai máy, chưa chạy live workflow/migration/AI, chưa kiểm chứng popup lồng trong sheet trên thiết bị. Realtime, check-in, Nudge, Tiny Moments, notifications, settings/lifecycle và Tiny Mission còn công việc theo bảng tiến độ. H03 chưa được tick E2E.
+
 ## Chẩn đoán kết nối đăng nhập — 2026-10-27
 
 - `.env.local` của mobile còn trỏ `192.168.1.87:8000`, địa chỉ này timeout. Wi-Fi hiện tại của máy chạy backend là `192.168.11.26`; `/health` qua localhost và IP LAN hiện tại đều trả HTTP 200.

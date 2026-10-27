@@ -1,7 +1,7 @@
 """Mood check-in & partner status endpoints."""
 from __future__ import annotations
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from supabase import Client
 
 from app.api.deps import get_couple_service, get_current_user, get_db, get_mood_service
@@ -58,10 +58,12 @@ def create_mood(
 
 @router.get("")
 def get_my_moods(
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
     current: dict = Depends(get_current_user),
     mood_service: MoodService = Depends(get_mood_service),
 ):
-    moods = mood_service.get_my_moods(current["id"])
+    moods = mood_service.get_my_moods(current["id"], limit=limit, offset=offset)
     return ok([_mood_response(m).model_dump() for m in moods])
 
 
@@ -85,7 +87,7 @@ def get_partner_latest_mood(
         return ok(None)
 
     latest_mood, active_alert = mood_service.get_partner_latest_mood_and_alert(
-        partner_id
+        partner_id, couple_id=couple_id
     )
     return ok(
         PartnerMoodStatusResponse(

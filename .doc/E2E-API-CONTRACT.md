@@ -25,8 +25,8 @@ Rà source local ngày 2026-10-26. Tài liệu này phân biệt endpoint đã t
 | OAuth/OTP | Không có luồng mobile/provider đã tích hợp | Người dùng đã chuyển sang đợt kế tiếp. Không dùng email/password để giả OAuth hoặc OTP |
 | Invite | POST/GET/DELETE `/couple/invite-code`; POST `/couple/validate-invite`, `/couple/accept-invite`; GET `/couple` | Client đã có; server chủ sở hữu từ bearer, code 6 ký tự, kiểm tra lỗi/atomic accept. Deferred link sau cài đặt/quà lời mời chưa khép kín |
 | Couple lifecycle | PUT `/couple/anniversary`, DELETE `/couple` | Chưa nối đầy đủ UI; cần kiểm retention/export/purge/thu hồi quyền trước nghiệm thu unpair |
-| Memories | GET/POST `/memories`; GET/PUT/DELETE `/memories/{id}`; POST `/memories/{id}/images`; DELETE ảnh theo router hiện có | List/detail/create/upload đã có; các thao tác sửa/xóa chưa nối client. Create/upload đang dùng Idempotency-Key |
-| Mood | POST/GET `/moods`; GET `/moods/partner/latest`; POST `/moods/alerts/{id}/read`; DELETE `/moods/{id}` | Chưa có mood API client. Backend note 140/reasons 3 khác quyết định mới; backend chỉ cho một số mood enum, không đủ GIF catalog/custom feeling hiện tại |
+| Memories | GET/POST `/memories`; GET/PUT/DELETE `/memories/{id}`; POST `/memories/{id}/images`; DELETE `/memories/{id}/images/{image_id}` | Mobile đã nối sửa title/description, xóa bài/ảnh; DELETE chỉ xác nhận HTTP 204, không parse JSON rỗng. Create/upload dùng Idempotency-Key; sửa/xóa không tự retry ngoài refresh xác thực, timeout phải đọc lại. Chưa nghiệm thu hai thiết bị |
+| Mood | POST/GET `/moods`; GET `/moods/partner/latest`; POST `/moods/alerts/{id}/read`; DELETE `/moods/{id}` | Đã nối mobile history và partner latest. GET history có limit 1–100 (default 20), offset >=0, giữ data array; owner từ bearer. Partner/digest lọc couple hiện tại, private và mood_only. Gửi check-in chưa nối: note 140/reasons 3/enum cũ chưa đủ draft mới |
 | Smart Nudge | GET `/nudges/active`; POST `/nudges/{id}/action`, `/nudges/{id}/rate` | Backend có pipeline; UI chưa nối. State action completed/snoozed/dismissed, rating thumbs_up/down; ownership và privacy phải kiểm trước AI/template fallback |
 | Tiny Moments | POST/GET `/tiny-moments` | Payload hiện `moment_type`, `content`, `nudge_id`; chưa đủ private media reference, detail/reaction/reply/read/delete/pagination/idempotency cho luồng mới |
 | Push/realtime | POST `/users/me/device-token`; WebSocket `/ws` | Có backend và native adapter rời; chưa có luồng settings/token/provider/tap và query invalidation hoàn chỉnh |
@@ -34,6 +34,8 @@ Rà source local ngày 2026-10-26. Tài liệu này phân biệt endpoint đã t
 | Preferences/export/delete | Chưa đủ endpoint/worker cho toàn bộ scope | Thiết kế cùng lifecycle ở Task 9; không gửi trường chưa hỗ trợ vào profile DTO cũ |
 
 ## Ràng buộc không được map mất dữ liệu
+
+Quyết định sản phẩm đã tìm thấy và còn thiếu được đối chiếu trong [DECISIONS.md](../docs/progress/2026-10-27-app-e2e-status/DECISIONS.md). Retention 30 ngày là yêu cầu đã có; triển khai `break_up` hiện chưa đáp ứng, không coi audit lịch sử ghi đã sửa là bằng chứng hiện tại.
 
 1. Mobile canonical privacy là `full / mood_only / private_only`, backend mood hiện là `all / mood_only / private`. Phải có DTO adapter và test từng nhánh; không đổi giá trị tùy tiện ở UI.
 2. Check-in draft có các feeling GIF như `discouraged`, `energetic`, `unbothered`, `broken_down`, `awful`, có custom feeling, sleepHours và attachment. Backend hiện thiếu một phần trường/enum. Không tự đổi `awful` thành `sad` rồi bỏ danh tính cảm xúc gốc để API nhận được.

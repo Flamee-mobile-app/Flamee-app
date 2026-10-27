@@ -7,7 +7,7 @@ import { AppButton, AppGradientText, AppProfileAvatar, AppScreen, AppSheet, AppT
 import { getMessage } from "../../../shared/localization/messages";
 import { featureTokens, moodFlowTokens } from "../../../shared/constants/tokens";
 import { useSessionStore } from "../../../shared/state/sessionStore";
-import { MoodWeekPreview, moodPreviewRecords } from "../../checkins";
+import { ServerMoodWeek, ServerPartnerMood } from "../../checkins";
 import { SmartNudgeCard } from "../../nudges";
 
 function MoodProfileAction({ label, avatarUri, fallbackSeed, note, onPress }: { label: string; avatarUri?: string | null; fallbackSeed?: string | null; note?: string | null; onPress: () => void }) {
@@ -56,7 +56,7 @@ export function MomentsScreen(_props: { composerRequest?: string; initialText?: 
         <Text fontFamily="$heading" fontSize="$h4" lineHeight="$h4" color="$textPrimary" fontWeight="$regular">{getMessage("vi", "moodHomeQuoteLead")}</Text>
         <AppGradientText size="h3" weight="bold">{getMessage("vi", "moodHomeQuoteHighlight")}</AppGradientText>
       </YStack>
-      <MoodWeekPreview records={moodPreviewRecords} onOpen={() => router.push("/mood/history")} />
+      <ServerMoodWeek onOpen={() => router.push("/mood/history")} />
       <YStack gap="$md">
         <AppGradientText size="h4" weight="bold">{getMessage("vi", "moodHomeActions")}</AppGradientText>
         <XStack gap="$md" alignItems="stretch">
@@ -70,8 +70,7 @@ export function MomentsScreen(_props: { composerRequest?: string; initialText?: 
       footer={<AppButton fill variant="ghost" onPress={() => setPartnerOpen(false)}>{getMessage("vi", "close")}</AppButton>}>
       <YStack alignItems="center" gap="$lg">
         <AppProfileAvatar uri={partner?.avatar_url} fallbackSeed={partner?.id ?? "partner"} size={moodFlowTokens.dashboardArtworkSize} accessibilityLabel={partnerLabel} />
-        <Text fontFamily="$heading" fontSize="$h5" lineHeight="$h5" fontWeight="$semibold" color="$textPrimary">{getMessage("vi", "moodPreviewUnavailable")}</Text>
-        <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textSecondary" textAlign="center">{getMessage("vi", "moodPartnerHint")}</Text>
+        <ServerPartnerMood />
       </YStack>
     </AppSheet> : null}
   </AppScreen>;

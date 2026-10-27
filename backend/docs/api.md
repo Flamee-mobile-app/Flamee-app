@@ -1,5 +1,12 @@
 # API Specification
 
+## Contract cập nhật ngày 2026-10-27 — đọc cảm xúc
+
+- `GET /api/v1/moods?limit=50&offset=0`: chỉ lịch sử của bearer user; limit 1–100 (default 20), offset >=0; trả envelope `success:true,data:[MoodResponse,...]`. Thứ tự `created_at DESC, id DESC`; trang ngắn hơn limit là hết dữ liệu tại thời điểm đọc. Offset có thể dịch khi dữ liệu thay đổi đồng thời.
+- `GET /api/v1/moods/partner/latest`: chỉ mood/alert được phép chia sẻ thuộc cặp hiện tại. Không lấy mood từ cặp cũ; private bị loại, mood_only không có note/reasons. Mobile đã nối lịch sử và popup đối tác.
+- POST mood giữ các giới hạn cũ (140 ký tự, 3 reasons, enum cũ). Khi `is_private=true`, luôn lưu `share_level=private` dù share_level bị bỏ qua/default all; không được nới privacy từ trường mâu thuẫn. UI draft mới chưa nối POST do thiếu contract đầy đủ.
+- Nguồn dữ liệu digest cũng lọc couple/private/mood_only; đây không phải bằng chứng worker digest đã hoàn thiện.
+
 ## Contract cập nhật ngày 2026-10-26 — tài khoản mobile
 
 - POST `/api/v1/auth/logout` trả `success:true, data:{logged_out:true}` khi đã thu hồi phiên. Mobile phân biệt server-confirmed với logout chỉ trên thiết bị khi mất mạng; không coi 401 là xác nhận thu hồi refresh token.

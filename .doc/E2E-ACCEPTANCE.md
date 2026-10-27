@@ -53,6 +53,10 @@ Build app/backend/schema, nền tảng/thiết bị, tài khoản test đã ẩn
 
 ## Trạng thái triển khai local
 
+Lượt bổ sung lịch sử/đối tác và Home polling ngày 2026-10-27: đã bỏ preview khỏi lịch tuần/tháng runtime, thêm API pagination, privacy theo cặp, private flag ưu tiên giữ riêng tư, polling foreground. Mobile 310/312 với hai lỗi baseline; backend 138 passed/5 deselected trước private-flag fix, sau fix bộ mood/privacy/AI boundary 13 passed. C01/C03/S01 vẫn Chưa vì chưa gửi đầy đủ check-in, kiểm timezone preference hoặc nghiệm thu hai máy. Xem `docs/progress/2026-10-27-app-e2e-status/IMPLEMENTATION.md`.
+
+Ngày 2026-10-27: đã nối mobile sửa title/description, xóa bài và xóa ảnh trên chi tiết Home; có xác nhận, khóa thao tác lặp và guard scope. Typecheck đạt; bộ memory mobile 34/34, backend memory 28/28 đạt. Full mobile checkpoint 301/303 với hai lỗi baseline; hai test scope bổ sung sau đó đạt riêng. Chưa có bằng chứng UI hai thiết bị, mất response sau commit hay realtime nên **H03 vẫn Chưa**. Chi tiết trong E2E-EXECUTION-LOG.
+
 Logout API/service đã có 10 test mới theo RED→GREEN; bộ auth/session/localSignOut liên quan 40/40 đạt. Đây là kiểm tra boundary/runtime local, chưa tick A02/A03 E2E thật. Mốc M0/M1 chưa hoàn tất vì còn contract, môi trường và kiểm chứng thiết bị.
 
 - Bổ sung gỡ avatar API/service/UI và 4 test xác nhận null/owner/stale read.

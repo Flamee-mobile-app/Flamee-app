@@ -48,7 +48,9 @@ def _normalize_share_level(value: str | None, is_private: bool) -> tuple[str, bo
             raise ValidationError(
                 f"share_level phải là một trong {sorted(VALID_SHARE_LEVELS)}"
             )
-    normalized = value or ("private" if is_private else "all")
+    # Legacy callers may send is_private=True while share_level defaults to all.
+    # Conflicting privacy fields must never widen visibility.
+    normalized = "private" if is_private else (value or "all")
     if normalized == "private":
         return "private", True
     return normalized, False
@@ -178,13 +180,13 @@ class MoodService:
             # Chỉ log debug (không log note ở đây)
             logger.debug("trigger_nudge_for_partner skipped: %s", exc)
 
-    def get_my_moods(self, user_id: str, limit: int = 20) -> List[Mood]:
-        return self.mood_repo.get_recent_moods(user_id, limit)
+    def get_my_moods(self, user_id: str, limit: int = 20, offset: int = 0) -> List[Mood]:
+        return self.mood_repo.get_recent_moods(user_id, limit, offset)
 
-    def get_partner_latest_mood_and_alert(self, partner_id: str):
+    def get_partner_latest_mood_and_alert(self, partner_id: str, couple_id: str):
         """Trả về mood mới nhất ĐÃ LỌC scope + alert (không bao gồm private)."""
-        latest_mood = self.mood_repo.get_latest_shareable_mood(partner_id)
-        active_alert = self.alert_repo.get_active_alert_for_partner(partner_id)
+        latest_mood = self.mood_repo.get_latest_shareable_mood(partner_id, couple_id)
+        active_alert = self.alert_repo.get_active_alert_for_partner(partner_id, couple_id)
         return latest_mood, active_alert
 
     def delete_mood(self, mood_id: str, user_id: str) -> bool:
@@ -332,7 +334,7 @@ class MoodService:
         background_tasks: BackgroundTasks = None,
     ) -> Optional[MoodAlert]:
         today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        digest = self.alert_repo.get_daily_digest_for_date(user_id, today_str)
+        digest = self.alert_repo.get_daily_digest_for_date(user_id, today_str, couple_id)
         if digest:
             if digest.title == "Đang tổng hợp...":
                 return None
@@ -344,7 +346,7 @@ class MoodService:
             datetime.now(timezone.utc) - timedelta(days=1)
         ).strftime("%Y-%m-%d")
         partner_moods = self.mood_repo.get_shareable_moods_by_date(
-            partner_id, yesterday_str
+            partner_id, yesterday_str, couple_id
         )
         if not partner_moods:
             return None
