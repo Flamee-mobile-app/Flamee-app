@@ -8,7 +8,6 @@ import { ScrollView, Sheet, Text, XStack, YStack } from "tamagui";
 import { buttonTokens, featureTokens, sheetTokens, spacing } from "../constants/tokens";
 import { getMessage } from "../localization/messages";
 import { AppIconButton } from "./AppIconButton";
-import { AppGlassBackdrop } from "./AppGlassBackdrop";
 import { resolveSheetInteraction } from "./sheetInteractionModel";
 import { getSheetBodyCapacity } from "../layout/sheetContentSizing";
 
@@ -105,8 +104,7 @@ export function AppSheet({ open, onOpenChange, title, description, snapPoints = 
       transitionConfig={{ type: "timing", duration: reducedMotion ? 0 : 220 }} onAnimationComplete={(event) => { if (!event.open) completeClose(); }}
       moveOnKeyboardChange disableDrag={interaction.pinned} dismissOnSnapToBottom={interaction.dismissOnSnapToBottom} dismissOnOverlayPress={dismissible} zIndex={sheetTokens.zIndex}>
       <Sheet.Overlay backgroundColor="$textPrimary" opacity={sheetTokens.overlayOpacity} enterStyle={{ opacity: 0 }} exitStyle={{ opacity: 0 }} />
-      <Sheet.Frame backgroundColor={blurTarget ? "transparent" : "$surface"} overflow="hidden" borderTopLeftRadius="$xl" borderTopRightRadius="$xl" padding="$xl" paddingBottom={footer ? 0 : "$xl"} gap={footer ? "$md" : "$lg"} role="dialog" aria-modal={true} aria-label={title}>
-        {blurTarget ? <AppGlassBackdrop blurTarget={blurTarget} /> : null}
+      <Sheet.Frame backgroundColor="$white" overflow="hidden" borderTopLeftRadius="$xl" borderTopRightRadius="$xl" padding="$xl" paddingBottom={footer ? 0 : "$xl"} gap={footer ? "$md" : "$lg"} role="dialog" aria-modal={true} aria-label={title}>
         {interaction.showHandle ? <Sheet.Handle backgroundColor="$border" /> : null}
         <YStack flexShrink={0} width="100%" maxWidth={featureTokens.maxWidth} alignSelf="center" onLayout={fitContent ? (event) => setHeaderHeight(Math.round(event.nativeEvent.layout.height)) : undefined}>{header}</YStack>
         <YStack flex={fitContent ? undefined : 1} flexShrink={fitContent ? 1 : undefined} minHeight={0} maxHeight={fitContent ? bodyCapacity : undefined} onLayout={!fitContent && onBodyHeightChange ? reportBodyHeight : undefined}>

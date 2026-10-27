@@ -1,5 +1,11 @@
 # SDD ledger — plan: docs/superpowers/plans/2026-10-26-app-e2e-completion.md
 
+## Chẩn đoán kết nối đăng nhập — 2026-10-27
+
+- `.env.local` của mobile còn trỏ `192.168.1.87:8000`, địa chỉ này timeout. Wi-Fi hiện tại của máy chạy backend là `192.168.11.26`; `/health` qua localhost và IP LAN hiện tại đều trả HTTP 200.
+- Cập nhật riêng host trong `EXPO_PUBLIC_API_URL` sang `http://192.168.11.26:8000/api/v1`, giữ nguyên API prefix. Không đổi tài khoản, mật khẩu, dữ liệu hoặc schema.
+- Chưa xác minh đăng nhập bằng tài khoản của người dùng hoặc kết nối từ điện thoại; health chỉ chứng minh backend truy cập được từ máy phát triển. Cần reload app sau khi Metro nhận lại biến môi trường; khởi động lại Expo nếu client vẫn giữ URL cũ.
+
 ## Bắt đầu sau khi duyệt kế hoạch
 
 - Người dùng đã duyệt kế hoạch; triển khai local trong workspace hiện tại.

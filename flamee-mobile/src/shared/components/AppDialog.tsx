@@ -1,6 +1,5 @@
 import type { PropsWithChildren, RefObject, ReactNode } from "react";
-import { KeyboardAvoidingView, Platform, StyleSheet, type View } from "react-native";
-import { BlurView } from "expo-blur";
+import { KeyboardAvoidingView, Platform, type View } from "react-native";
 import { Dialog, ScrollView, Text, VisuallyHidden, YStack } from "tamagui";
 import { glassTokens, spacing } from "../constants/tokens";
 import { AppDialogContent } from "./AppDialogContent";
@@ -23,12 +22,9 @@ type Props = PropsWithChildren<{
   headerAction?: ReactNode;
 }>;
 
-export function AppDialog({ open, onOpenChange, title, description, dismissible = true, blurTarget, titleAlign = "left", hideDescription = false, avoidKeyboard = false, surfaceTone = "glass", titleTone = "brand", hideTitle = false, headerAction, children }: Props) {
+export function AppDialog({ open, onOpenChange, title, description, dismissible = true, titleAlign = "left", hideDescription = false, avoidKeyboard = false, surfaceTone = "solid", titleTone = "brand", hideTitle = false, headerAction, children }: Props) {
   const descriptionNode = <Dialog.Description fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textSecondary">{description}</Dialog.Description>;
   const content = <AppDialogContent key="content" testID="app-dialog-surface" maxHeight="85%" gap={hideTitle && hideDescription ? 0 : "$lg"} {...getDialogSurfacePresentation(surfaceTone)}>
-    {surfaceTone === "glass" && blurTarget && Platform.OS !== "web" ? <YStack position="absolute" top={0} right={0} bottom={0} left={0} borderRadius="$xl" overflow="hidden" pointerEvents="none">
-      <BlurView blurTarget={blurTarget} intensity={glassTokens.nativeDialogBlur} tint="systemUltraThinMaterialLight" blurMethod="dimezisBlurViewSdk31Plus" style={StyleSheet.absoluteFill} />
-    </YStack> : null}
     <YStack gap="$sm" position="relative" zIndex={1}>
       <VisuallyHidden><Dialog.Title fontFamily="$heading" fontSize="$h4" lineHeight="$h4">{title}</Dialog.Title></VisuallyHidden>
       {!hideTitle ? titleTone === "plain" ? <Text textAlign={titleAlign} fontFamily="$heading" fontSize="$h4" lineHeight="$h4" fontWeight="$bold" color="$textPrimary" aria-hidden>{title}</Text> : <AppGradientText align={titleAlign} aria-hidden>{title}</AppGradientText> : null}

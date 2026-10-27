@@ -75,7 +75,7 @@ function AppToastItem({ item, cardWidth }: { item: AppToastMessage; cardWidth: n
     width={cardWidth}
     maxWidth={toastTokens.maxWidth}
     minHeight={toastTokens.minHeight}
-    backgroundColor="$surface"
+    backgroundColor="$white"
     borderRadius={toastTokens.radius}
     borderWidth={0}
     outlineWidth={0}

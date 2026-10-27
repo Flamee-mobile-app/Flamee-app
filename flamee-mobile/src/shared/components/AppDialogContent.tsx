@@ -2,7 +2,7 @@ import { Platform } from "react-native";
 import { Dialog, styled } from "tamagui";
 import { glassTokens } from "../constants/tokens";
 
-// Translucency works on both platforms; backdropFilter adds real blur on web.
+// Popup surfaces are opaque white on every platform.
 export const AppDialogContent = styled(Dialog.Content, {
   name: "AppDialogContent",
   unstyled: true,
@@ -14,10 +14,10 @@ export const AppDialogContent = styled(Dialog.Content, {
   borderWidth: 0,
   borderColor: "transparent",
   borderRadius: "$xl",
-  backgroundColor: "$glassDialog",
-  backdropFilter: glassTokens.dialogBackdrop,
-  backgroundImage: glassTokens.dialogSheen,
-  boxShadow: Platform.OS === "web" ? glassTokens.dialogReflection : undefined,
+  backgroundColor: "$white",
+  backdropFilter: "none",
+  backgroundImage: "none",
+  boxShadow: "none",
   padding: "$xl",
   gap: "$lg",
   shadowColor: Platform.OS === "web" ? undefined : glassTokens.dialogShadow.shadowColor,
