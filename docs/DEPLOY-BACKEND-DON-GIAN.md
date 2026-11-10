@@ -6,7 +6,7 @@
 Push main → test BE/SQL → build Docker → gửi image bằng SSH → EC2 chạy API
 ```
 
-Workflow: [backend-simple.yml](../.github/workflows/backend-simple.yml). Đã chuẩn bị/kiểm local, chưa chạy trên EC2/GitHub thật. HTTP/IP dành cho nghiệm thu bằng tài khoản test; thêm HTTPS trước khi dùng dữ liệu người dùng thật.
+Workflow: [backend-simple.yml](../.github/workflows/backend-simple.yml). Backend đã chạy thật tại `32.236.230.247:8000`; xem [kết quả EC2](progress/2026-11-10-ec2-backend/README.md). HTTP/IP dành cho nghiệm thu bằng tài khoản test; thêm HTTPS trước khi dùng dữ liệu người dùng thật.
 
 Workflow hỗ trợ cả `main` và nhánh triển khai hiện tại `cloud-implement`. Khi Run workflow, chọn nhánh có source cần triển khai; chỉ bật một nhánh deploy cho mỗi đợt để tránh hai bản thay nhau chạy trên cùng EC2.
 

@@ -1,0 +1,25 @@
+{
+  "run_id": "ec2-5030ef7fb0",
+  "base_url": "http://32.236.230.247:8000",
+  "complete": true,
+  "checks": [
+    "register a",
+    "register b",
+    "register c",
+    "login real account",
+    "read authenticated profile",
+    "create invite",
+    "accept invite",
+    "partner reads same couple",
+    "unpaired third account cannot read missions",
+    "read real daily assignments",
+    "partner cannot complete personal mission",
+    "complete/retry 0",
+    "complete/retry 1",
+    "wallet has one credit",
+    "ledger has one award",
+    "read real reward catalog",
+    "frontend localhost CORS"
+  ],
+  "couple_id": "5f57a4d3-6d54-4bf6-9ab9-a780cb9f6083"
+}
