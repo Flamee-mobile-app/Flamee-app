@@ -16,7 +16,18 @@ services:
     environment:
       FLAMEE_DEBUG: "false"
     command: ["python", "-m", "app.maintenance", "--interval", "60"]
-    healthcheck: {disable: true}
+    # Explicit process liveness: this worker has no HTTP server. Compose --wait
+    # must not inherit the API image's HTTP healthcheck or a disabled check.
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import pathlib; assert any(b'app.maintenance' in p.read_bytes().split(bytes([0])) for p in pathlib.Path('/proc').glob('[0-9]*/cmdline') if p.exists())"
+      interval: 10s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
     depends_on:
       api: {condition: service_healthy}
     restart: unless-stopped

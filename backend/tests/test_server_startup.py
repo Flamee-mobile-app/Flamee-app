@@ -1,5 +1,6 @@
 """Start the real ASGI server on loopback without database writes."""
 from pathlib import Path
+import os
 import socket
 import subprocess
 import sys
@@ -15,6 +16,11 @@ def test_uvicorn_startup_and_public_http_contract():
     process = subprocess.Popen(
         [sys.executable, '-B', '-m', 'uvicorn', 'app.main:app', '--host', '127.0.0.1', '--port', str(port)],
         cwd=Path(__file__).resolve().parents[1],
+        # Startup/auth smoke must not depend on an untracked developer .env.
+        # These values initialize the SDK; unauthenticated requests never query it.
+        env={**os.environ, 'FLAMEE_DEBUG': 'true',
+             'FLAMEE_SUPABASE_URL': 'https://ci-not-a-project.supabase.invalid',
+             'FLAMEE_SUPABASE_SERVICE_KEY': 'ci-only-not-a-real-key'},
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
     )
     try:
