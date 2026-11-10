@@ -29,15 +29,29 @@ def test_production_rejects_unsafe_secret(secret):
         config.assert_production_safe()
 
 
-def test_production_requires_oauth_client():
-    with pytest.raises(ValueError, match="FLAMEE_GOOGLE_OAUTH_CLIENT_ID"):
-        make_settings(debug=False, secret_key="test-secret-" * 4).assert_production_safe()
+def test_production_can_run_email_auth_without_google():
+    make_settings(debug=False, secret_key="test-secret-" * 4,
+        supabase_url='https://project.supabase.co', supabase_service_key='test-service-key',
+        cors_origins=['https://app.example.com']).assert_production_safe()
 
 
 def test_production_accepts_configured_credentials():
     make_settings(
-        debug=False, secret_key="test-secret-" * 4, google_oauth_client_id="test-client"
+        debug=False, secret_key="test-secret-" * 4, google_oauth_client_id="test-client",
+        supabase_url='https://project.supabase.co', supabase_service_key='test-service-key',
+        cors_origins=['https://app.example.com'],
     ).assert_production_safe()
+
+
+@pytest.mark.parametrize('overrides', [
+    {'supabase_url': ''}, {'supabase_service_key': ''}, {'cors_origins': ['*']},
+])
+def test_production_rejects_missing_database_or_wildcard_cors(overrides):
+    options = dict(debug=False, secret_key='test-secret-' * 4,
+        supabase_url='https://project.supabase.co', supabase_service_key='test-service-key',
+        cors_origins=['https://app.example.com'])
+    with pytest.raises(ValueError):
+        make_settings(**(options | overrides)).assert_production_safe()
 
 
 def test_ai_providers_can_be_constructed_without_network():

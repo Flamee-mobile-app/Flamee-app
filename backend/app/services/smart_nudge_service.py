@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import logging
 import time
+from concurrent.futures import ThreadPoolExecutor
+from threading import BoundedSemaphore
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
@@ -39,6 +41,8 @@ MAX_SNOOZE_COUNT = 1  # Snooze tối đa 1 lần (Plan mục 4)
 
 # Giới hạn độ dài Nudge SLA cho 1 lần gọi AI
 AI_SLA_SECONDS = 6.0
+_provider_pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix='flamee-nudge-ai')
+_provider_capacity = BoundedSemaphore(2)
 
 
 class SmartNudgeService:
@@ -78,20 +82,14 @@ class SmartNudgeService:
 
         # 2. Quota: tối đa 3 nudges/ngày cho receiver
         now = datetime.now(timezone.utc)
-        today_prefix = now.strftime("%Y-%m-%d")
-        count_today = self.nudge_repo.count_nudges_today(
-            couple_id=couple_id,
-            receiver_id=partner_id,
-            date_prefix=today_prefix,
-        )
-        if count_today >= DAILY_QUOTA:
-            return None
+        # The insertion RPC enforces receiver-local quota atomically. Do not
+        # suppress on a UTC-date count, which differs around local midnight.
 
         # 3. Cooldown: chỉ áp dụng khi nudge gần nhất status='new'
         latest = self.nudge_repo.get_latest_nudge(
             couple_id=couple_id, receiver_id=partner_id
         )
-        if latest and latest.created_at and latest.status == "new":
+        if latest and latest.created_at:
             try:
                 created_dt = datetime.fromisoformat(
                     latest.created_at.replace("Z", "+00:00")
@@ -134,7 +132,7 @@ class SmartNudgeService:
         now_iso = now.isoformat()
         expires_at = (now + timedelta(hours=EXPIRY_HOURS)).isoformat()
 
-        nudge = self.nudge_repo.create(
+        nudge = self.nudge_repo.create_guarded(dict(
             id=nudge_id,
             couple_id=couple_id,
             receiver_id=partner_id,
@@ -153,10 +151,13 @@ class SmartNudgeService:
             helplines=helplines,
             version=1,
             snooze_count=0,
-        )
+        ))
+
+        if nudge is None:
+            return None
 
         # 6. Realtime tới receiver
-        self._safe_send_to_user(partner_id, "nudge.new", nudge.to_dict())
+        self._safe_send_to_user(partner_id, "nudge.new", {"id": nudge.id, "version": nudge.version}, couple_id=couple_id)
         return nudge
 
     # ------------------------------------------------------------------
@@ -202,16 +203,17 @@ class SmartNudgeService:
                 '{"observation":"...","action_type":"...","draft":"...","reason":"...","tone":"..."}'
             )
 
-            import concurrent.futures
-
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
-                future = ex.submit(
-                    ai.chat_sync,
-                    system=system_prompt,
-                    user=user_message,
-                    json_mode=True,
-                )
-                raw = future.result(timeout=AI_SLA_SECONDS)
+            if not _provider_capacity.acquire(blocking=False):
+                return None
+            try:
+                future = _provider_pool.submit(ai.chat_sync, system=system_prompt, user=user_message, json_mode=True)
+            except Exception:
+                _provider_capacity.release()
+                raise
+            future.add_done_callback(lambda _: _provider_capacity.release())
+            # Do not wait for executor shutdown after timing out. Capacity stays
+            # bounded while the provider's own transport timeout finishes work.
+            raw = future.result(timeout=AI_SLA_SECONDS)
 
             data = _parse_json_object(raw)
             if not isinstance(data, dict):
@@ -233,99 +235,41 @@ class SmartNudgeService:
         self, couple_id: str, user_id: str
     ) -> SmartNudge | None:
         """Lấy Smart Nudge đang hiệu lực cho user."""
-        nudge = self.nudge_repo.get_active_nudge(
-            couple_id=couple_id, receiver_id=user_id
-        )
+        now = datetime.now(timezone.utc)
+        for nudge in self.nudge_repo.get_active_nudges(couple_id, user_id):
+            if nudge.expires_at and datetime.fromisoformat(nudge.expires_at.replace("Z", "+00:00")) <= now:
+                continue
+            if nudge.snoozed_until and datetime.fromisoformat(nudge.snoozed_until.replace("Z", "+00:00")) > now:
+                continue
+            return self.get_nudge(nudge.id, user_id)
+        return None
+
+    def get_nudge(self, nudge_id: str, user_id: str) -> SmartNudge:
+        nudge = self.nudge_repo.get(nudge_id)
         if nudge is None:
-            return None
-
-        # Kiểm tra snooze
-        if nudge.snoozed_until:
-            try:
-                snooze_dt = datetime.fromisoformat(
-                    nudge.snoozed_until.replace("Z", "+00:00")
-                )
-                if datetime.now(timezone.utc) < snooze_dt:
-                    return None
-            except ValueError:
-                pass
-
-        # Hết hạn → mark expired
-        if nudge.expires_at:
-            try:
-                exp_dt = datetime.fromisoformat(
-                    nudge.expires_at.replace("Z", "+00:00")
-                )
-                if datetime.now(timezone.utc) >= exp_dt:
-                    self.nudge_repo.update(nudge.id, status="expired")
-                    return None
-            except ValueError:
-                pass
-
+            raise NotFoundError("Nudge not found")
+        if nudge.receiver_id != user_id or self.db is None:
+            raise ForbiddenError("Nudge unavailable")
+        user = self.db.table("users").select("couple_id").eq("id", user_id).maybe_single().execute()
+        couple = self.db.table("couples").select("*").eq("id", nudge.couple_id).maybe_single().execute()
+        if not user or not user.data or user.data.get("couple_id") != nudge.couple_id or not couple or not couple.data or couple.data.get("status") != "active" or user_id not in (couple.data.get("partner1_id"), couple.data.get("partner2_id")):
+            raise ForbiddenError("Nudge unavailable")
+        partner_id = couple.data['partner2_id'] if couple.data['partner1_id'] == user_id else couple.data['partner1_id']
+        partner = self.db.table("users").select("couple_id").eq("id", partner_id).maybe_single().execute()
+        if not partner or not partner.data or partner.data.get("couple_id") != nudge.couple_id:
+            raise ForbiddenError("Nudge unavailable")
+        if nudge.status == "new" and nudge.expires_at and datetime.fromisoformat(nudge.expires_at.replace("Z", "+00:00")) <= datetime.now(timezone.utc):
+            nudge.status = "expired"
         return nudge
 
-    def handle_nudge_action(
-        self,
-        nudge_id: str,
-        user_id: str,
-        action: str,
-    ) -> SmartNudge:
-        """User xử lý nudge: completed / snoozed / dismissed.
-
-        Authorization: chỉ chủ sở hữu (receiver) mới được thao tác.
-        """
-        nudge = self.nudge_repo.get(nudge_id)
-        if nudge is None:
-            raise NotFoundError("Nudge không tồn tại")
-        if nudge.receiver_id != user_id:
-            raise ForbiddenError("Bạn không có quyền thao tác nudge này")
-
-        now = datetime.now(timezone.utc)
-        updates: dict[str, Any] = {"status": action}
-
-        if action == "snoozed":
-            # Plan mục 4: snooze chỉ 1 lần
-            if nudge.snooze_count >= MAX_SNOOZE_COUNT:
-                raise ForbiddenError(
-                    f"Bạn đã snooze nudge này tối đa {MAX_SNOOZE_COUNT} lần"
-                )
-            updates["snoozed_until"] = (now + timedelta(hours=SNOOZE_HOURS)).isoformat()
-            updates["status"] = "new"
-            updates["snooze_count"] = nudge.snooze_count + 1
-
-        updated = self.nudge_repo.update(nudge.id, **updates)
-        self._safe_send_to_user(user_id, "nudge.updated", updated.to_dict())
+    def handle_nudge_action(self, nudge_id: str, user_id: str, action: str, version: int | None = None) -> SmartNudge:
+        updated = self.nudge_repo.mutate(nudge_id, user_id, action, version=version)
+        self._safe_send_to_user(user_id, "nudge.updated", {"id": updated.id, "version": updated.version}, couple_id=updated.couple_id)
         return updated
 
-    def rate_nudge(
-        self,
-        nudge_id: str,
-        user_id: str,
-        rating: str,
-        feedback_reason: str | None = None,
-    ) -> bool:
-        """Ghi nhận 👍/👎 cho nudge; chỉ chủ sở hữu mới rate được."""
-        if self.db is None:
-            return False
-
-        nudge = self.nudge_repo.get(nudge_id)
-        if nudge is None or nudge.receiver_id != user_id:
-            raise ForbiddenError("Bạn không có quyền đánh giá nudge này")
-
-        try:
-            self.db.table("smart_nudge_ratings").insert(
-                {
-                    "id": generate_uuid(),
-                    "nudge_id": nudge_id,
-                    "user_id": user_id,
-                    "rating": rating,
-                    "feedback_reason": feedback_reason,
-                    "created_at": datetime.now(timezone.utc).isoformat(),
-                }
-            ).execute()
-            return True
-        except Exception:
-            return False
+    def rate_nudge(self, nudge_id: str, user_id: str, rating: str, feedback_reason: str | None = None) -> bool:
+        self.nudge_repo.mutate(nudge_id, user_id, "rate", rating=rating, feedback=feedback_reason)
+        return True
 
     # ------------------------------------------------------------------
     # Tiny Moments
@@ -384,11 +328,11 @@ class SmartNudgeService:
             pass
         return "Người thương"
 
-    def _safe_send_to_user(self, user_id: str, event: str, payload: dict) -> None:
+    def _safe_send_to_user(self, user_id: str, event: str, payload: dict, *, couple_id: str) -> None:
         try:
             from app.services.websocket_service import ws_manager
 
-            ws_manager.sync_send_to_user(user_id, event, payload)
+            ws_manager.sync_send_to_user(user_id, event, payload, couple_id=couple_id)
         except Exception:
             pass
 

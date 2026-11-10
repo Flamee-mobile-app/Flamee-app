@@ -27,6 +27,9 @@ class MediaStorage:
         if present:
             self.bucket.remove(present)
 
+    def download(self, path: str) -> bytes:
+        return self.bucket.download(path)
+
     def sign(
         self, path: str, expires_in: int = SIGNED_URL_TTL_SECONDS
     ) -> str:

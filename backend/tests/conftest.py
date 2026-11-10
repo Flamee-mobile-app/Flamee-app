@@ -55,6 +55,10 @@ class FakeSupabaseTable:
         self._query_filters.append(("neq", field, value))
         return self
 
+    def is_(self, field: str, value: Any) -> "FakeSupabaseTable":
+        self._query_filters.append(('is',field,value))
+        return self
+
     def like(self, field: str, pattern: str) -> "FakeSupabaseTable":
         self._query_filters.append(("like", field, pattern))
         return self
@@ -108,6 +112,9 @@ class FakeSupabaseTable:
                 results = [r for r in results if r.get(field) == value]
             elif op == "neq":
                 results = [r for r in results if r.get(field) != value]
+            elif op == 'is':
+                expected={'null':None,'true':True,'false':False}.get(value,value)
+                results=[r for r in results if r.get(field) is expected]
             elif op in ("like", "ilike"):
                 import re
                 pattern = re.escape(value).replace('%', '.*').replace('_', '.')
@@ -187,6 +194,9 @@ class FakeSupabaseClient:
                     self.objects.pop(path, None)
                 return MagicMock()
 
+            def download(self, path):
+                return self.objects[path]
+
             def get_public_url(self, path: str) -> str:
                 return f"https://fake-supabase.co/storage/v1/object/public/{path}"
 
@@ -226,6 +236,53 @@ class FakeSupabaseClient:
         class RpcResult:
             def execute(self_inner):
                 from datetime import datetime
+
+                if name == 'mutate_smart_nudge':
+                    from tests.fake_nudge_rpc import mutate_nudge
+                    response = MagicMock()
+                    response.data = mutate_nudge(client, params)
+                    return response
+
+                if name == 'create_smart_nudge_guarded':
+                    from tests.fake_nudge_rpc import create_nudge
+                    response = MagicMock()
+                    response.data = create_nudge(client, params['p_payload'])
+                    return response
+
+                if name == 'dissolve_couple':
+                    from tests.fake_couple_retention import dissolve
+                    response = MagicMock()
+                    response.data = dissolve(client, params)
+                    return response
+
+                if name == 'mutate_tiny_moment':
+                    from tests.fake_tiny_moment_rpc import mutate
+                    response = MagicMock()
+                    response.data = mutate(client, params)
+                    return response
+
+                if name == 'discard_tiny_moment_media':
+                    row=client.table('tiny_moment_media')._data.get(params['p_media_id'])
+                    response=MagicMock()
+                    if not row:response.data={'outcome':'missing'}
+                    elif row['owner_id']!=params['p_user_id'] or row.get('claimed_by'):response.data={'outcome':'forbidden'}
+                    else:
+                        row['discarded_at']='2026-11-10T00:00:00Z'
+                        response.data={'outcome':'ok','media':dict(row)}
+                    return response
+
+                if name == 'finalize_tiny_moment_media':
+                    row=client.table('tiny_moment_media')._data.get(params['p_media_id'])
+                    response=MagicMock()
+                    pair=client.table('couples')._data.get(row['couple_id']) if row else None
+                    users=client.table('users')._data
+                    if not row or row['owner_id']!=params['p_user_id'] or not pair or pair['status']!='active' or any(users[member].get('couple_id')!=pair['id'] for member in (pair['partner1_id'],pair['partner2_id'])):
+                        response.data={'outcome':'forbidden'}
+                    elif row.get('discarded_at'):response.data={'outcome':'conflict'}
+                    else:
+                        row['ready_at']=row.get('ready_at') or '2026-11-10T00:00:00Z'
+                        response.data={'outcome':'ok','media':dict(row)}
+                    return response
 
                 if name == "rotate_auth_session":
                     from app.utils.time import now_utc, to_iso

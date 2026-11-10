@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import httpx
 
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
@@ -24,8 +25,13 @@ async def domain_error_handler(request: Request, exc: DomainError) -> JSONRespon
     )
 
 
+async def upstream_error_handler(request: Request, exc: httpx.RequestError) -> JSONResponse:
+    return JSONResponse(status_code=503, content=_error_payload(
+        'upstream_unavailable', 'A required service is temporarily unavailable.'))
+
+
 async def postgrest_api_error_handler(request: Request, exc: APIError) -> JSONResponse:
-    if exc.code == "PGRST204":
+    if exc.code in {"PGRST202", "PGRST204", "PGRST205", "42P01", "42883"}:
         return JSONResponse(
             status_code=503,
             content=_error_payload(
@@ -85,6 +91,7 @@ def _code_from_status(status_code: int) -> str:
 
 
 def register_exception_handlers(app: FastAPI) -> None:
+    app.add_exception_handler(httpx.RequestError, upstream_error_handler)
     app.add_exception_handler(APIError, postgrest_api_error_handler)
     app.add_exception_handler(DomainError, domain_error_handler)
     app.add_exception_handler(RequestValidationError, validation_error_handler)

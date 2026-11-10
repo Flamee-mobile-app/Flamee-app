@@ -11,11 +11,23 @@ from app.schemas.user import (
     UpdatePasswordRequest,
     UpdateDeviceTokenRequest
 )
+from app.schemas.user import UpdatePreferencesRequest
 
 router = APIRouter(prefix="/users", tags=["user"])
 
 def get_user_service(db: Client = Depends(get_db)) -> UserService:
     return UserService(db)
+
+
+@router.get('/me/preferences')
+def get_preferences(current: dict = Depends(get_current_user), user_service: UserService = Depends(get_user_service)):
+    return ok(user_service.get_preferences(current['id']).model_dump())
+
+
+@router.put('/me/preferences')
+def update_preferences(payload: UpdatePreferencesRequest, current: dict = Depends(get_current_user),
+                       user_service: UserService = Depends(get_user_service)):
+    return ok(user_service.update_preferences(current['id'], payload).model_dump())
 
 @router.get("/me")
 def get_my_profile(

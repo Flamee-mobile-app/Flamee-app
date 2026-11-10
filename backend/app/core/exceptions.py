@@ -48,6 +48,11 @@ class FeatureUnavailableError(DomainError):
     status_code = 501
 
 
+class ServiceUnavailableError(DomainError):
+    code = 'service_unavailable'
+    status_code = 503
+
+
 class InviteError(ConflictError):
     """A stable invite-flow outcome that clients can handle explicitly."""
 

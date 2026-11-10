@@ -1,0 +1,26 @@
+services:
+  api:
+    image: ${FLAMEE_BACKEND_IMAGE:?Missing backend image}
+    env_file: ${FLAMEE_BACKEND_ENV_FILE:?Missing server backend.env path}
+    environment:
+      FLAMEE_DEBUG: "false"
+    ports: ["8000:8000"]
+    restart: unless-stopped
+    init: true
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+  maintenance:
+    image: ${FLAMEE_BACKEND_IMAGE:?Missing backend image}
+    env_file: ${FLAMEE_BACKEND_ENV_FILE:?Missing server backend.env path}
+    environment:
+      FLAMEE_DEBUG: "false"
+    command: ["python", "-m", "app.maintenance", "--interval", "60"]
+    healthcheck: {disable: true}
+    depends_on:
+      api: {condition: service_healthy}
+    restart: unless-stopped
+    init: true
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}

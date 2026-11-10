@@ -60,8 +60,11 @@ def test_break_up_keeps_couple_with_dissolved_status(
         "/api/v1/couple/accept-invite", json={"code": code}, headers=bob_headers
     )
     # Break up
-    r = client.delete("/api/v1/couple", headers=alice_headers)
+    pair = client.get('/api/v1/couple', headers=alice_headers).json()['data']['id']
+    r = client.request("DELETE", "/api/v1/couple", headers=alice_headers, json={'couple_id': pair, 'confirm': True})
     assert r.status_code == 200
+    assert r.json()['data']['status'] == 'dissolved'
+    assert r.json()['data']['purge_after']
     # Sau break_up, couple_id của user bị reset → /couple trả 404
     couple_resp = client.get("/api/v1/couple", headers=alice_headers)
     assert couple_resp.status_code == 404

@@ -1,9 +1,24 @@
 """Hidden mood context must never reach any AI/moderation/template boundary."""
 from unittest.mock import Mock
+import time
 
 import pytest
 
 from app.services import smart_nudge_service as module
+
+
+def test_provider_timeout_does_not_wait_for_executor_shutdown(monkeypatch):
+    provider = Mock()
+    def slow(**kwargs):
+        time.sleep(0.4)
+        return '{}'
+    provider.chat_sync.side_effect = slow
+    monkeypatch.setattr(module, 'get_ai_provider', lambda: provider)
+    monkeypatch.setattr(module, 'AI_SLA_SECONDS', 0.02)
+    service = module.SmartNudgeService(Mock(), Mock())
+    started = time.monotonic()
+    assert service._generate_with_provider(3, [], None, 'all', 'Partner') is None
+    assert time.monotonic() - started < 0.25
 
 
 @pytest.mark.parametrize("level", ["mood_only", "private"])

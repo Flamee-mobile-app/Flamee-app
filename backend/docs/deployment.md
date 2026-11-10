@@ -2,6 +2,11 @@
 
 > Hướng dẫn từ setup local đến deploy lên cloud (Railway/Render/Fly.io).
 
+> Hướng dẫn đang áp dụng ngày10/11/2026:
+> [Docker Compose, TLS và Android](../../docs/DEPLOY-DOCKER-VA-ANDROID.md).
+> Dockerfile API/web và Compose đã có trong repo. Những ví dụ framework/database
+> bên dưới là lịch sử, không dùng để deploy backend Supabase hiện tại.
+
 > Cập nhật 2026-10-14: các ví dụ SQLite/SQLAlchemy bên dưới là tài liệu lịch sử,
 > không phản ánh backend hiện tại dùng Supabase. Setup đang áp dụng và lệnh chạy
 > hằng ngày nằm ở [backend/README.md](../README.md) và

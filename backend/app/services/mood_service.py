@@ -6,6 +6,8 @@ import logging
 import uuid
 from datetime import datetime, timezone
 from typing import List, Optional
+from zoneinfo import ZoneInfo
+from postgrest.exceptions import APIError
 
 from fastapi import BackgroundTasks
 from supabase import Client
@@ -13,7 +15,8 @@ from supabase import Client
 from app.ai.safety import detect_crisis_signals
 from app.config import settings
 from app.core.constants import MoodType
-from app.core.exceptions import ValidationError
+from app.core.exceptions import ValidationError, ConflictError
+from app.schemas.mood import CreateMoodRequest, MAX_REASONS, MAX_NOTE_LEN
 from app.models.mood import Mood, MoodAlert
 from app.repositories.mood_repo import MoodAlertRepository, MoodRepository
 from app.utils.ids import generate_uuid
@@ -37,10 +40,6 @@ NEGATIVE_MOODS = {
 }
 
 VALID_SHARE_LEVELS = {"all", "mood_only", "private"}
-
-MAX_REASONS = 3
-MAX_NOTE_LEN = 140
-
 
 def _normalize_share_level(value: str | None, is_private: bool) -> tuple[str, bool]:
     if value is not None:
@@ -67,7 +66,7 @@ class MoodService:
     # ------------------------------------------------------------------
     def create_mood(
         self,
-        couple_id: str,
+        couple_id: Optional[str],
         user_id: str,
         mood: str,
         intensity: int,
@@ -77,12 +76,20 @@ class MoodService:
         mood_score: int = 3,
         reasons: Optional[List[str]] = None,
         share_level: str = "all",
+        draft_version: int = 1,
+        custom_emotion_label: Optional[str] = None,
+        mascot_sticker_id: Optional[str] = None,
+        sleep_hours: Optional[int] = None,
+        attachments: Optional[list[dict]] = None,
+        timezone_name: str = "UTC",
+        request_key: Optional[str] = None,
     ) -> Mood:
-        # Validate sớm — DB không raise khi thiếu cột
-        if mood not in {m.value for m in MoodType}:
-            raise ValidationError(
-                f"mood phải là một trong: {[m.value for m in MoodType]}"
-            )
+        # Shared DTO validation also protects non-HTTP service callers.
+        CreateMoodRequest(mood=mood, intensity=intensity, mood_score=mood_score,
+            note=note, reasons=reasons, share_level=share_level, is_private=is_private,
+            draft_version=draft_version, custom_emotion_label=custom_emotion_label,
+            mascot_sticker_id=mascot_sticker_id, sleep_hours=sleep_hours,
+            attachments=attachments or [], timezone=timezone_name)
         if not 1 <= mood_score <= 5:
             raise ValidationError("mood_score phải nằm trong 1..5")
         if not 1 <= intensity <= 10:
@@ -94,8 +101,9 @@ class MoodService:
 
         share_level, is_private = _normalize_share_level(share_level, is_private)
 
-        mood_id = f"mood_{uuid.uuid4().hex[:12]}"
-        now_iso = datetime.now(timezone.utc).isoformat()
+        mood_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"flamee-mood:{user_id}:{request_key}")) if request_key else generate_uuid()
+        now = now_utc()
+        now_iso = now.isoformat()
 
         mood_data = {
             "id": mood_id,
@@ -108,9 +116,32 @@ class MoodService:
             "mood_score": mood_score,
             "reasons": reasons or [],
             "share_level": share_level,
+            "draft_version": draft_version,
+            "custom_emotion_label": custom_emotion_label,
+            "mascot_sticker_id": mascot_sticker_id,
+            "sleep_hours": sleep_hours,
+            "attachments": attachments or [],
+            "timezone": timezone_name,
+            "local_date": now.astimezone(ZoneInfo(timezone_name)).date().isoformat(),
             "created_at": now_iso,
         }
-        new_mood = self.mood_repo.create_mood(mood_data)
+        def replay(existing: Mood) -> Mood:
+            if any(getattr(existing, key) != value for key, value in mood_data.items()
+                   if key not in {"created_at", "local_date"}):
+                raise ConflictError("Mã yêu cầu đã được dùng cho nội dung khác", code="idempotency_conflict")
+            return existing
+
+        existing = self.mood_repo.get_by_id(mood_id) if request_key else None
+        if existing:
+            return replay(existing)
+        try:
+            new_mood = self.mood_repo.create_mood(mood_data)
+        except APIError as error:
+            if request_key and error.code == "23505":
+                existing = self.mood_repo.get_by_id(mood_id)
+                if existing:
+                    return replay(existing)
+            raise
 
         # Smart Nudge chỉ tạo khi KHÔNG private
         if share_level != "private" and couple_id and background_tasks:
@@ -125,6 +156,9 @@ class MoodService:
                 share_level=share_level,
             )
 
+        if share_level != 'private' and couple_id:
+            from app.services.websocket_service import ws_manager
+            ws_manager.sync_broadcast_to_couple(couple_id, 'mood.updated', {'id': new_mood.id})
         return new_mood
 
     def _trigger_nudge_for_partner(
@@ -148,12 +182,18 @@ class MoodService:
             if not res or not res.data:
                 return
             couple = res.data
+            if sender_id not in {couple.get("partner1_id"), couple.get("partner2_id")}:
+                return
             partner_id = (
                 couple.get("partner2_id")
                 if couple.get("partner1_id") == sender_id
                 else couple.get("partner1_id")
             )
             if not partner_id:
+                return
+            # Background work must not use a relationship ended after submission.
+            members = self.db.table("users").select("id,couple_id").in_("id", [sender_id, partner_id]).execute()
+            if not members or len(members.data) != 2 or any(member.get("couple_id") != couple_id for member in members.data):
                 return
 
             from app.repositories.smart_nudge_repo import (

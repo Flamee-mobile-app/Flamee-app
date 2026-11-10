@@ -6,7 +6,9 @@ from supabase import Client
 
 from app.ai.factory import get_ai_provider  # re-export
 from app.core.constants import USERS
-from app.core.exceptions import AuthError
+from app.core.exceptions import AuthError, ServiceUnavailableError
+import httpx
+from postgrest.exceptions import APIError
 from app.core.security import decode_token
 from app.database import get_supabase
 from app.repositories.auth_session_repo import AuthSessionRepository
@@ -50,8 +52,10 @@ def _check_session_active(db: Client, jti: str | None, user_id: str) -> None:
             raise AuthError("Token đã hết hạn")
     except AuthError:
         raise
+    except (httpx.RequestError,APIError):
+        raise
     except Exception:
-        raise AuthError("Unable to verify session") from None
+        raise ServiceUnavailableError('Authentication is temporarily unavailable',code='auth_unavailable') from None
 
 
 def get_current_user(

@@ -44,6 +44,11 @@ class MemoryService:
         self.image_repo = image_repo
         self.storage = MediaStorage(db)
 
+    @staticmethod
+    def _notify(couple_id: str, event: str, memory_id: str) -> None:
+        from app.services.websocket_service import ws_manager
+        ws_manager.sync_broadcast_to_couple(couple_id, event, {'id': memory_id})
+
     def create_memory(
         self,
         user_id: str,
@@ -71,7 +76,9 @@ class MemoryService:
             updated_at=now_iso,
         )
         try:
-            return self.memory_repo.create(**fields)
+            saved = self.memory_repo.create(**fields)
+            self._notify(couple_id, 'memory.created', saved.id)
+            return saved
         except APIError as error:
             if request_key and error.code == "23505":
                 existing = self.memory_repo.get(memory_id)
@@ -166,7 +173,9 @@ class MemoryService:
             raise NotFoundError("Memory không tồn tại")
         patch = payload.model_dump(exclude_unset=True)
         patch["updated_at"] = to_iso(now_utc())
-        return self.memory_repo.update(memory_id, **patch)
+        saved = self.memory_repo.update(memory_id, **patch)
+        self._notify(couple_id, 'memory.updated', memory_id)
+        return saved
 
     def delete_memory(self, couple_id: str, memory_id: str) -> None:
         memory = self.memory_repo.get(memory_id)
@@ -180,6 +189,7 @@ class MemoryService:
         )
         self.image_repo.delete_by_memory(memory_id)
         self.memory_repo.delete(memory_id)
+        self._notify(couple_id, 'memory.deleted', memory_id)
 
     def upload_image(
         self,
@@ -241,6 +251,7 @@ class MemoryService:
                 if existing and existing.memory_id == memory_id and existing.uploaded_by == user_id:
                     return self._present_images([existing])[0]
             raise
+        self._notify(couple_id, 'memory.updated', memory_id)
         return self._present_images([image])[0]
 
     def delete_image(
@@ -253,7 +264,9 @@ class MemoryService:
         if not image or image.memory_id != memory_id:
             raise NotFoundError("Image không tồn tại")
         self.storage.remove([image.storage_path, image.thumbnail_path])
-        return self.image_repo.delete(image_id)
+        deleted = self.image_repo.delete(image_id)
+        self._notify(couple_id, 'memory.updated', memory_id)
+        return deleted
 
     def _present_images(self, images: list[MemoryImage], *, signed: dict[str, str] | None = None, expires_at: str | None = None) -> list[MemoryImage]:
         expires_at = expires_at or to_iso(now_utc() + timedelta(seconds=SIGNED_URL_TTL_SECONDS))

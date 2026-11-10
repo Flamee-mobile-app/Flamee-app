@@ -13,7 +13,7 @@ import asyncio
 import json
 import logging
 import threading
-from typing import Any
+from typing import Any, Awaitable, Callable
 
 from fastapi import WebSocket
 
@@ -26,6 +26,7 @@ class ConnectionManager:
     def __init__(self) -> None:
         self._user_connections: dict[str, set[WebSocket]] = {}
         self._couple_users: dict[str, set[str]] = {}
+        self._connection_scope: dict[WebSocket, tuple[str, str | None, Callable[[], Awaitable[bool]]]] = {}
         self._lock = threading.RLock()
         self._loop: asyncio.AbstractEventLoop | None = None
         # Một thread-local flag để tránh re-entrancy
@@ -40,9 +41,14 @@ class ConnectionManager:
         websocket: WebSocket,
         user_id: str,
         couple_id: str | None = None,
+        *,
+        validate: Callable[[], Awaitable[bool]],
+        accepted: bool = False,
     ) -> None:
-        await websocket.accept()
+        if not accepted:
+            await websocket.accept()
         with self._lock:
+            self._connection_scope[websocket] = (user_id, couple_id, validate)
             self._user_connections.setdefault(user_id, set()).add(websocket)
             if couple_id:
                 self._couple_users.setdefault(couple_id, set()).add(user_id)
@@ -60,6 +66,8 @@ class ConnectionManager:
         couple_id: str | None = None,
     ) -> None:
         with self._lock:
+            scope = self._connection_scope.pop(websocket, None)
+            couple_id = scope[1] if scope else couple_id
             conns = self._user_connections.get(user_id)
             if conns is not None:
                 conns.discard(websocket)
@@ -67,7 +75,7 @@ class ConnectionManager:
                     self._user_connections.pop(user_id, None)
             if couple_id:
                 users = self._couple_users.get(couple_id)
-                if users is not None and not conns:
+                if users is not None and not any(value[0] == user_id and value[1] == couple_id for value in self._connection_scope.values()):
                     users.discard(user_id)
                     if not users:
                         self._couple_users.pop(couple_id, None)
@@ -76,18 +84,34 @@ class ConnectionManager:
     # Send (async — gọi từ event loop)
     # ------------------------------------------------------------------
     async def send_to_user(
-        self, user_id: str, event: str, data: Any
+        self, user_id: str, event: str, data: Any, *, couple_id: str | None = None
     ) -> None:
-        payload = json.dumps(
-            {"event": event, "data": data}, ensure_ascii=False
-        )
+        allowed = {'nudge.new', 'nudge.updated', 'tiny_moment.new', 'tiny_moment.updated',
+                   'mood.updated', 'mood.new', 'memory.created', 'memory.updated', 'memory.deleted',
+                   'couple.updated', 'couple.dissolved', 'mission.updated', 'wallet.updated', 'reward.updated'}
+        if event not in allowed:
+            return
+        minimal = {key: data[key] for key in ('id', 'version') if isinstance(data, dict) and key in data
+                   and (key == 'id' and isinstance(data[key], str) and len(data[key]) <= 128
+                        or key == 'version' and type(data[key]) is int)}
+        payload = json.dumps({"event": event, "data": minimal}, ensure_ascii=False)
         with self._lock:
             conns = list(self._user_connections.get(user_id, set()))
         for ws in conns:
+            scope = self._connection_scope.get(ws)
+            if not scope or couple_id is not None and scope[1] != couple_id:
+                continue
             try:
+                if not await asyncio.wait_for(scope[2](), timeout=5):
+                    await ws.close(code=4001)
+                    self.disconnect(ws, user_id)
+                    continue
                 await ws.send_text(payload)
-            except Exception as exc:
-                logger.warning("WS send_to_user failed: %s", exc)
+            except Exception:
+                try:
+                    await ws.close(code=4001)
+                except Exception:
+                    pass
                 self.disconnect(ws, user_id)
 
     async def broadcast_to_couple(
@@ -102,15 +126,15 @@ class ConnectionManager:
         for uid in uids:
             if uid == exclude_user_id:
                 continue
-            await self.send_to_user(uid, event, data)
+            await self.send_to_user(uid, event, data, couple_id=couple_id)
 
     # ------------------------------------------------------------------
     # Sync wrappers (gọi từ BackgroundTask — thread pool)
     # ------------------------------------------------------------------
     def sync_send_to_user(
-        self, user_id: str, event: str, data: Any
+        self, user_id: str, event: str, data: Any, *, couple_id: str | None = None
     ) -> None:
-        _schedule_async(self.send_to_user(user_id, event, data), self._loop)
+        _schedule_async(self.send_to_user(user_id, event, data, couple_id=couple_id), self._loop)
 
     def sync_broadcast_to_couple(
         self,

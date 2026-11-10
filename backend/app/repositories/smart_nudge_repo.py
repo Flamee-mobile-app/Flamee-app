@@ -5,11 +5,37 @@ from typing import Any, Optional
 
 from app.models.smart_nudge import SmartNudge, TinyMoment
 from app.repositories.base import BaseRepository
+from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
 
 
 class SmartNudgeRepository(BaseRepository[SmartNudge]):
     table = "smart_nudges"
     model_cls = SmartNudge
+
+    def create_guarded(self, fields: dict) -> SmartNudge | None:
+        payload = self.model_cls(**fields).to_dict()
+        result = self.db.rpc('create_smart_nudge_guarded', {'p_payload': payload}).execute().data
+        if not isinstance(result, dict):
+            raise RuntimeError('Invalid nudge generation acknowledgement')
+        if result.get('outcome') == 'suppressed':
+            return None
+        if result.get('outcome') != 'created':
+            raise RuntimeError('Invalid nudge generation outcome')
+        return self.model_cls.from_dict(result['nudge'])
+
+    def mutate(self, nudge_id, user_id, action, version=None, rating=None, feedback=None):
+        result = self.db.rpc('mutate_smart_nudge', {
+            'p_nudge_id': nudge_id, 'p_user_id': user_id, 'p_action': action,
+            'p_version': version, 'p_rating': rating, 'p_feedback': feedback,
+        }).execute().data
+        outcome = result.get('outcome') if isinstance(result, dict) else None
+        if outcome == 'not_found':
+            raise NotFoundError('Nudge not found')
+        if outcome in ('forbidden', 'snooze_limit'):
+            raise ForbiddenError('Nudge is not available for this action')
+        if outcome != 'ok':
+            raise ConflictError('Nudge changed or expired; reload before acting', code='nudge_state_conflict')
+        return self.model_cls.from_dict(result['nudge'])
 
     def get_active_nudge(
         self, couple_id: str, receiver_id: str

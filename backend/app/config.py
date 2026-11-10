@@ -68,8 +68,10 @@ class Settings(BaseSettings):
             raise ValueError(
                 "FLAMEE_SECRET_KEY must be non-default and at least 32 characters in production"
             )
-        if not self.google_oauth_client_id.strip():
-            raise ValueError("FLAMEE_GOOGLE_OAUTH_CLIENT_ID is required in production")
+        if not self.supabase_url.startswith('https://') or not self.supabase_service_key.strip():
+            raise ValueError('Production requires HTTPS FLAMEE_SUPABASE_URL and FLAMEE_SUPABASE_SERVICE_KEY')
+        if '*' in self.cors_origins:
+            raise ValueError('Production requires explicit FLAMEE_CORS_ORIGINS')
 
 
 settings = Settings()

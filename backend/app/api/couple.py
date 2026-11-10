@@ -18,6 +18,7 @@ from app.schemas.couple import (
     InvitePreviewResponse,
     MemberInfo,
     UpdateAnniversaryRequest,
+    DissolveCoupleRequest,
 )
 from app.services.couple_service import CoupleService
 
@@ -120,8 +121,8 @@ def update_anniversary(
 
 @router.delete("")
 def delete_couple(
+    payload: DissolveCoupleRequest,
     current: dict = Depends(get_current_user),
     db: Client = Depends(get_db),
 ):
-    _service(db).break_up(current["id"])
-    return ok({"message": "Đã hủy ghép đôi thành công"})
+    return ok(_service(db).break_up(current["id"], payload.couple_id))

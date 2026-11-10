@@ -41,7 +41,10 @@ def test_missing_or_unavailable_session_store_fails_closed(client, fake_db):
     data = register(client)
     headers = {'Authorization': 'Bearer ' + data['access_token']}
     with patch('app.api.deps.AuthSessionRepository.get_by_jti', side_effect=RuntimeError('offline')):
-        assert client.get('/api/v1/auth/me', headers=headers).status_code == 401
+        # Fail closed without misreporting a provider outage as revoked credentials.
+        response = client.get('/api/v1/auth/me', headers=headers)
+        assert response.status_code == 503
+        assert response.json()['error']['code'] == 'auth_unavailable'
     fake_db.table('auth_sessions')._data.clear()
     assert client.get('/api/v1/auth/me', headers=headers).status_code == 401
 

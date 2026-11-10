@@ -10,6 +10,7 @@ from app.models.user import User
 from app.repositories.user_repo import UserRepository
 from app.schemas.auth import (
     AuthResponse,
+    GoogleLoginRequest,
     RefreshRequest,
     ChangePasswordRequest,
     ForgotPasswordRequest,
@@ -21,6 +22,7 @@ from app.schemas.auth import (
 )
 from app.services.auth_service import AuthService
 from app.services.avatar_service import AvatarService
+from app.services.google_auth import create_google_challenge, login_with_google
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -63,6 +65,17 @@ def login(payload: LoginRequest, db: Client = Depends(get_db)):
 @router.post("/refresh")
 def refresh(payload: RefreshRequest, db: Client = Depends(get_db)):
     user, tokens = _auth_service(db).refresh(payload.refresh_token)
+    return ok(AuthResponse(user=UserResponse.from_model(_present_user(db, user)), **tokens).model_dump())
+
+
+@router.post("/google/challenge")
+def google_challenge():
+    return ok(create_google_challenge())
+
+
+@router.post("/google")
+def google_login(payload: GoogleLoginRequest, db: Client = Depends(get_db)):
+    user, tokens = login_with_google(db, payload.id_token, payload.challenge)
     return ok(AuthResponse(user=UserResponse.from_model(_present_user(db, user)), **tokens).model_dump())
 
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.models.user import User
 from app.schemas.common import Username
@@ -18,6 +18,12 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=1, max_length=128)
+
+
+class GoogleLoginRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    id_token: str = Field(min_length=1, max_length=16384)
+    challenge: str = Field(min_length=1, max_length=2048)
 
 
 class UserResponse(BaseModel):

@@ -1,4 +1,6 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from typing import Literal
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from typing import Optional
 from app.schemas.common import Username
 
@@ -48,3 +50,48 @@ class UpdatePasswordRequest(BaseModel):
 
 class UpdateDeviceTokenRequest(BaseModel):
     fcm_token: str = Field(..., description="Firebase Cloud Messaging Token")
+
+
+CarePreference = Literal['encouragement', 'voice', 'photo', 'call', 'space', 'gift']
+
+
+class PreferencesValue(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    timezone: str = Field(default='Asia/Ho_Chi_Minh', min_length=1, max_length=100)
+    locale: Literal['vi', 'en'] = 'vi'
+    care_preferences: list[CarePreference] = Field(default_factory=list, max_length=6)
+    care_note: str = Field(default='', max_length=140)
+    partner_nickname: str = Field(default='', max_length=40)
+    relationship_type: Literal['long_distance', 'same_city'] | None = None
+
+    @field_validator('timezone')
+    @classmethod
+    def valid_timezone(cls, value):
+        try:
+            ZoneInfo(value)
+        except (ZoneInfoNotFoundError, ValueError):
+            raise ValueError('Invalid IANA timezone') from None
+        return value
+
+    @field_validator('care_preferences')
+    @classmethod
+    def unique_preferences(cls, value):
+        if len(value) != len(set(value)):
+            raise ValueError('Duplicate care preference')
+        return value
+
+
+class UpdatePreferencesRequest(PreferencesValue):
+    revision: int = Field(ge=0, strict=True)
+    complete_onboarding: bool = False
+
+    @model_validator(mode='after')
+    def require_relationship(self):
+        if self.complete_onboarding and self.relationship_type is None:
+            raise ValueError('Relationship type required to complete onboarding')
+        return self
+
+
+class PreferencesResponse(PreferencesValue):
+    revision: int = Field(ge=0)
+    onboarding_completed_at: str | None = None

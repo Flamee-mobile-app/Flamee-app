@@ -11,6 +11,17 @@ from app.models.mood import Mood, MoodAlert
 SHAREABLE_LEVELS = ("all", "mood_only")
 
 
+def project_shared_mood(mood: Mood) -> Mood:
+    if mood.share_level == "mood_only":
+        mood.note = None
+        mood.reasons = None
+        mood.custom_emotion_label = None
+        mood.mascot_sticker_id = None
+        mood.sleep_hours = None
+        mood.attachments = []
+    return mood
+
+
 class MoodRepository:
     def __init__(self, db: Client) -> None:
         self.db = db
@@ -18,6 +29,10 @@ class MoodRepository:
     def create_mood(self, mood_data: dict) -> Mood:
         res = self.db.table("moods").insert(mood_data).execute()
         return Mood(**res.data[0])
+
+    def get_by_id(self, mood_id: str) -> Optional[Mood]:
+        res = self.db.table("moods").select("*").eq("id", mood_id).maybe_single().execute()
+        return Mood(**res.data) if res and res.data else None
 
     def get_recent_moods(self, user_id: str, limit: int = 3, offset: int = 0) -> List[Mood]:
         res = (
@@ -48,9 +63,7 @@ class MoodRepository:
         )
         moods = [Mood(**m) for m in res.data]
         for mood in moods:
-            if mood.share_level == "mood_only":
-                mood.note = None
-                mood.reasons = None
+            project_shared_mood(mood)
         return moods
 
     def get_moods_by_date(self, user_id: str, date_str: str) -> List[Mood]:
@@ -94,10 +107,7 @@ class MoodRepository:
         if not res.data:
             return None
         mood = Mood(**res.data[0])
-        if mood.share_level == "mood_only":
-            mood.note = None
-            mood.reasons = None
-        return mood
+        return project_shared_mood(mood)
 
     def delete_mood(self, mood_id: str, user_id: str) -> bool:
         """Chỉ xóa nếu mood thuộc về user — bảo vệ quyền sở hữu."""

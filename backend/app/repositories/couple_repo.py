@@ -9,6 +9,9 @@ class CoupleRepository(BaseRepository[Couple]):
     table = COUPLES
     model_cls = Couple
 
+    def dissolve_atomic(self, user_id: str, couple_id: str) -> dict:
+        return self.db.rpc('dissolve_couple', {'p_user_id': user_id, 'p_couple_id': couple_id}).execute().data
+
     def accept_invite_atomic(
         self,
         *,

@@ -1,7 +1,8 @@
 """Mood check-in & partner status endpoints."""
 from __future__ import annotations
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
+from typing import Annotated
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query, status
 from supabase import Client
 
 from app.api.deps import get_couple_service, get_current_user, get_db, get_mood_service
@@ -27,14 +28,15 @@ def _mood_response(mood) -> MoodResponse:
 def create_mood(
     payload: CreateMoodRequest,
     background_tasks: BackgroundTasks,
+    request_key: Annotated[str | None, Header(alias="Idempotency-Key", min_length=1, max_length=120, pattern=r"^[A-Za-z0-9_-]+$")] = None,
     current: dict = Depends(get_current_user),
     mood_service: MoodService = Depends(get_mood_service),
 ):
     couple_id = current.get("couple_id")
-    if not couple_id:
+    if payload.draft_version == 2 and not request_key:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Bạn cần ghép đôi trước khi sử dụng tính năng này.",
+            status_code=422,
+            detail="Draft v2 cần Idempotency-Key",
         )
 
     try:
@@ -49,6 +51,13 @@ def create_mood(
             mood_score=payload.mood_score,
             reasons=payload.reasons,
             share_level=payload.share_level,
+            draft_version=payload.draft_version,
+            custom_emotion_label=payload.custom_emotion_label,
+            mascot_sticker_id=payload.mascot_sticker_id,
+            sleep_hours=payload.sleep_hours,
+            attachments=[item.model_dump() for item in payload.attachments],
+            timezone_name=payload.timezone,
+            request_key=request_key,
         )
     except ValidationError as exc:
         raise HTTPException(status_code=400, detail=str(exc))

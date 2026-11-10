@@ -43,7 +43,7 @@ def _create_paired_couple(client: TestClient) -> tuple[str, str, str]:
 
 def test_google_login_does_not_accept_mock_identity(client, fake_db):
     response = client.post('/api/v1/auth/google', json={'id_token': 'mock-token', 'email': 'test@example.com'})
-    assert response.status_code == 404
+    assert response.status_code == 422  # Route exists; missing signed challenge is rejected.
     assert fake_db.table('users')._data == {}
 
 
@@ -153,16 +153,14 @@ def test_tiny_moments(client: TestClient):
     # Alice gửi một cái ôm cho Bob
     r_moment = client.post(
         "/api/v1/tiny-moments",
-        headers=headers_alice,
+        headers={**headers_alice, 'Idempotency-Key': 'signal-regression'},
         json={
-            "couple_id": couple_id,
-            "sender_id": "dummy",
             "moment_type": "signal",
-            "content": "Cái ôm ấm áp 🤗",
+            "content": "miss_you",
         },
     )
     assert r_moment.status_code == 201
-    assert r_moment.json()["data"]["content"] == "Cái ôm ấm áp 🤗"
+    assert r_moment.json()["data"]["content"] == "miss_you"
 
     # Lấy danh sách moments
     r_list = client.get("/api/v1/tiny-moments", headers=headers_alice)

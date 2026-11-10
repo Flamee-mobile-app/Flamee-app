@@ -1,5 +1,6 @@
 """Flamee FastAPI application entrypoint."""
 from __future__ import annotations
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,6 +10,8 @@ from app.api.couple import router as couple_router
 from app.api.feed import router as feed_router
 from app.api.memory import router as memory_router
 from app.api.mood import router as mood_router
+from app.api.mission import router as mission_router
+from app.api.reward import router as reward_router
 from app.api.smart_nudge import router as smart_nudge_router
 from app.api.subscription import router as subscription_router
 from app.api.user import router as user_router
@@ -19,11 +22,20 @@ from app.core.handlers import register_exception_handlers
 API_PREFIX = "/api/v1"
 
 
+@asynccontextmanager
+async def lifespan(application: FastAPI):
+    try:
+        yield
+    finally:
+        from app.database import reset_supabase
+        reset_supabase()
+
+
 def create_app() -> FastAPI:
     # Production guard — fail fast nếu secret_key mặc định hoặc thiếu OAuth client_id
     settings.assert_production_safe()
 
-    application = FastAPI(title="Flamee API", version="0.3.0")
+    application = FastAPI(title="Flamee API", version="0.3.0", lifespan=lifespan)
     application.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
@@ -39,6 +51,8 @@ def create_app() -> FastAPI:
         feed_router,
         memory_router,
         mood_router,
+        mission_router,
+        reward_router,
         smart_nudge_router,
         subscription_router,
         user_router,

@@ -1,0 +1,62 @@
+name: Backend - simple EC2 deploy
+
+on:
+  pull_request:
+    paths: ['backend/**', 'deploy/backend-simple/**', 'deploy/tests/test_simple_backend.py', 'deploy/ci_smoke.py', '.github/workflows/backend-simple.yml']
+  push:
+    branches: [main, cloud-implement]
+    paths: ['backend/**', 'deploy/backend-simple/**', 'deploy/tests/test_simple_backend.py', 'deploy/ci_smoke.py', '.github/workflows/backend-simple.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flamee-backend-simple-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  backend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.7-pg16-trixie
+        env:
+          POSTGRES_PASSWORD: flamee-ci-local-only
+          POSTGRES_DB: flamee_ci
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d flamee_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      FLAMEE_TEST_POSTGRES_DSN: postgresql://postgres:flamee-ci-local-only@127.0.0.1:5432/flamee_ci
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements-runtime.txt
+            backend/requirements-dev.txt
+      - run: python -m pip install -r backend/requirements-dev.txt
+      - working-directory: backend
+        run: python -m pytest -m "not live_workflow and not live_readonly" -q --tb=short
+      - run: docker build -t flamee-api:ci -t "flamee-backend:$GITHUB_SHA" backend
+      - run: python deploy/ci_smoke.py api
+      - name: Check deploy failure gates
+        run: docker run --rm --entrypoint python -v "$PWD:/checks:ro" flamee-api:ci /checks/deploy/tests/test_simple_backend.py
+      - name: Package tested image
+        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/cloud-implement') && github.event_name != 'pull_request' && vars.BACKEND_DEPLOY_ENABLED == 'true'
+        run: docker save "flamee-backend:$GITHUB_SHA" | gzip > backend-image.tar.gz
+      - name: Deploy backend via SSH
+        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/cloud-implement') && github.event_name != 'pull_request' && vars.BACKEND_DEPLOY_ENABLED == 'true'
+        env:
+          BACKEND_HOST: ${{ secrets.BACKEND_HOST }}
+          BACKEND_USER: ec2-user
+          BACKEND_SSH_KEY: ${{ secrets.BACKEND_SSH_KEY }}
+          BACKEND_KNOWN_HOSTS: ${{ secrets.BACKEND_KNOWN_HOSTS }}
+        run: python deploy/backend-simple/ssh_deploy.py
