@@ -31,12 +31,23 @@ class Memory:
 class MemoryImage:
     id: str
     memory_id: str
-    url: str
+    url: str | None
     thumbnail_url: str | None
     uploaded_by: str
     width: int | None
     height: int | None
     created_at: str
+    # M-04: lưu bucket + object_key để dọn dẹp chính xác
+    bucket: str = "memories"
+    object_key: str | None = None
+    thumb_bucket: str = "memories"
+    thumb_object_key: str | None = None
+    # M-06: thời điểm hết hạn của signed_url
+    url_expires_at: str | None = None
+    storage_path: str | None = None
+    thumbnail_path: str | None = None
+    mime_type: str | None = None
+    size_bytes: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

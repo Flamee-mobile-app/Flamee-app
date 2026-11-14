@@ -11,8 +11,11 @@ class Couple:
     partner2_id: str | None
     anniversary: str | None
     status: str
-    created_at: str
-    updated_at: str
+    subscription_tier: str = "free"
+    subscription_expires_at: str | None = None
+    streak_count: int = 0
+    created_at: str = ""
+    updated_at: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

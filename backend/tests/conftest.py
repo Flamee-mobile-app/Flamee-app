@@ -16,30 +16,59 @@ class FakeSupabaseTable:
         self._data: dict[str, dict] = {}
         self._query_filters: list = []
         self._limit_val: int | None = None
+        self._range_val: tuple[int, int] | None = None
         self._single: bool = False
         self._order_field: str | None = None
         self._order_desc: bool = False
+        self._orders: list[tuple[str, bool]] = []
         self._count_mode: str | None = None
+        self._head: bool = False
         self._select_cols: str = "*"
+        self.select_calls: int = 0
 
     def _reset_query(self) -> "FakeSupabaseTable":
         self._query_filters = []
         self._limit_val = None
+        self._range_val = None
         self._single = False
         self._order_field = None
         self._order_desc = False
+        self._orders = []
         self._count_mode = None
+        self._head = False
         self._select_cols = "*"
         return self
 
-    def select(self, cols: str = "*", count: str | None = None) -> "FakeSupabaseTable":
+    def select(self, cols: str = "*", count: str | None = None, head: bool = False) -> "FakeSupabaseTable":
+        self.select_calls += 1
         self._reset_query()
         self._select_cols = cols
         self._count_mode = count
+        self._head = head
         return self
 
     def eq(self, field: str, value: Any) -> "FakeSupabaseTable":
         self._query_filters.append(("eq", field, value))
+        return self
+
+    def neq(self, field: str, value: Any) -> "FakeSupabaseTable":
+        self._query_filters.append(("neq", field, value))
+        return self
+
+    def is_(self, field: str, value: Any) -> "FakeSupabaseTable":
+        self._query_filters.append(('is',field,value))
+        return self
+
+    def like(self, field: str, pattern: str) -> "FakeSupabaseTable":
+        self._query_filters.append(("like", field, pattern))
+        return self
+
+    def ilike(self, field: str, pattern: str) -> "FakeSupabaseTable":
+        self._query_filters.append(("ilike", field, pattern))
+        return self
+
+    def range(self, start: int, end: int) -> "FakeSupabaseTable":
+        self._range_val = (start, end)
         return self
 
     def gt(self, field: str, value: Any) -> "FakeSupabaseTable":
@@ -63,6 +92,7 @@ class FakeSupabaseTable:
         return self
 
     def order(self, field: str, desc: bool = False) -> "FakeSupabaseTable":
+        self._orders.append((field, desc))
         self._order_field = field
         self._order_desc = desc
         return self
@@ -80,6 +110,15 @@ class FakeSupabaseTable:
         for op, field, value in self._query_filters:
             if op == "eq":
                 results = [r for r in results if r.get(field) == value]
+            elif op == "neq":
+                results = [r for r in results if r.get(field) != value]
+            elif op == 'is':
+                expected={'null':None,'true':True,'false':False}.get(value,value)
+                results=[r for r in results if r.get(field) is expected]
+            elif op in ("like", "ilike"):
+                import re
+                pattern = re.escape(value).replace('%', '.*').replace('_', '.')
+                results = [r for r in results if re.fullmatch(pattern, str(r.get(field, '')), flags=re.IGNORECASE if op == "ilike" else 0)]
             elif op == "gt":
                 results = [r for r in results if r.get(field) is not None and r.get(field) > value]
             elif op == "gte":
@@ -90,20 +129,25 @@ class FakeSupabaseTable:
                 results = [r for r in results if r.get(field) is not None and r.get(field) <= value]
             elif op == "in":
                 results = [r for r in results if r.get(field) in value]
-        if self._order_field:
-            results.sort(key=lambda r: r.get(self._order_field, ""), reverse=self._order_desc)
+        for field, descending in reversed(self._orders):
+            results.sort(key=lambda r: r.get(field, ""), reverse=descending)
         if self._limit_val:
             results = results[: self._limit_val]
+        if self._range_val is not None:
+            start, end = self._range_val
+            results = results[start:end + 1]
         return results
 
     def execute(self) -> Any:
         results = self._apply_filters()
         resp = MagicMock()
-        if self._single:
+        if self._head:
+            resp.data = []
+        elif self._single:
             resp.data = results[0] if results else None
         else:
             resp.data = results
-        resp.count = len(list(self._data.values())) if self._count_mode else None
+        resp.count = len(results) if self._count_mode else None
         self._reset_query()
         return resp
 
@@ -129,20 +173,174 @@ class FakeSupabaseClient:
 
     def __init__(self) -> None:
         self._tables: dict[str, FakeSupabaseTable] = {}
-        
+        self.rpc_calls: list[tuple[str, dict]] = []
+
         class FakeBucket:
-            def upload(self, *args, **kwargs):
+            def __init__(self, name: str) -> None:
+                self.name = name
+                self.objects: dict[str, bytes] = {}
+                self.upload_calls: list[str] = []
+                self.remove_calls: list[list[str]] = []
+                self.batch_sign_calls: list[list[str]] = []
+
+            def upload(self, path, file, file_options=None):
+                self.upload_calls.append(path)
+                self.objects[path] = file
                 return MagicMock()
-            def remove(self, *args, **kwargs):
+
+            def remove(self, paths):
+                self.remove_calls.append(list(paths))
+                for path in paths:
+                    self.objects.pop(path, None)
                 return MagicMock()
+
+            def download(self, path):
+                return self.objects[path]
+
             def get_public_url(self, path: str) -> str:
                 return f"https://fake-supabase.co/storage/v1/object/public/{path}"
 
+            def create_signed_url(self, path: str, expires_in: int):
+                if path not in self.objects:
+                    return {}
+                return {
+                    "signedURL": f"https://fake-supabase.co/storage/v1/object/sign/{self.name}/{path}?ttl={expires_in}"
+                }
+
+            def create_signed_urls(self, paths: list[str], expires_in: int):
+                self.batch_sign_calls.append(list(paths))
+                return [
+                    {
+                        "path": path,
+                        "signedURL": f"https://fake-supabase.co/storage/v1/object/sign/{self.name}/{path}?ttl={expires_in}",
+                    }
+                    for path in paths
+                    if path in self.objects
+                ]
+
         class FakeStorage:
+            def __init__(self) -> None:
+                self.buckets: dict[str, FakeBucket] = {}
+
             def from_(self, bucket: str) -> FakeBucket:
-                return FakeBucket()
-                
+                if bucket not in self.buckets:
+                    self.buckets[bucket] = FakeBucket(bucket)
+                return self.buckets[bucket]
+
         self.storage = FakeStorage()
+
+    def rpc(self, name: str, params: dict):
+        self.rpc_calls.append((name, params))
+        client = self
+
+        class RpcResult:
+            def execute(self_inner):
+                from datetime import datetime
+
+                if name == 'mutate_smart_nudge':
+                    from tests.fake_nudge_rpc import mutate_nudge
+                    response = MagicMock()
+                    response.data = mutate_nudge(client, params)
+                    return response
+
+                if name == 'create_smart_nudge_guarded':
+                    from tests.fake_nudge_rpc import create_nudge
+                    response = MagicMock()
+                    response.data = create_nudge(client, params['p_payload'])
+                    return response
+
+                if name == 'dissolve_couple':
+                    from tests.fake_couple_retention import dissolve
+                    response = MagicMock()
+                    response.data = dissolve(client, params)
+                    return response
+
+                if name == 'mutate_tiny_moment':
+                    from tests.fake_tiny_moment_rpc import mutate
+                    response = MagicMock()
+                    response.data = mutate(client, params)
+                    return response
+
+                if name == 'discard_tiny_moment_media':
+                    row=client.table('tiny_moment_media')._data.get(params['p_media_id'])
+                    response=MagicMock()
+                    if not row:response.data={'outcome':'missing'}
+                    elif row['owner_id']!=params['p_user_id'] or row.get('claimed_by'):response.data={'outcome':'forbidden'}
+                    else:
+                        row['discarded_at']='2026-11-10T00:00:00Z'
+                        response.data={'outcome':'ok','media':dict(row)}
+                    return response
+
+                if name == 'finalize_tiny_moment_media':
+                    row=client.table('tiny_moment_media')._data.get(params['p_media_id'])
+                    response=MagicMock()
+                    pair=client.table('couples')._data.get(row['couple_id']) if row else None
+                    users=client.table('users')._data
+                    if not row or row['owner_id']!=params['p_user_id'] or not pair or pair['status']!='active' or any(users[member].get('couple_id')!=pair['id'] for member in (pair['partner1_id'],pair['partner2_id'])):
+                        response.data={'outcome':'forbidden'}
+                    elif row.get('discarded_at'):response.data={'outcome':'conflict'}
+                    else:
+                        row['ready_at']=row.get('ready_at') or '2026-11-10T00:00:00Z'
+                        response.data={'outcome':'ok','media':dict(row)}
+                    return response
+
+                if name == "rotate_auth_session":
+                    from app.utils.time import now_utc, to_iso
+                    rows = client.table("auth_sessions")._data
+                    row = rows.get(params["p_session_id"])
+                    valid = bool(row and row.get("revoked_at") is None
+                        and row.get("refresh_token") == params["p_old_hash"]
+                        and datetime.fromisoformat(row["refresh_expires_at"]) > now_utc())
+                    if valid:
+                        row.update(jti=params["p_jti"], expires_at=params["p_expires_at"],
+                            refresh_token=params["p_new_hash"],
+                            refresh_expires_at=params["p_refresh_expires_at"], updated_at=to_iso(now_utc()))
+                    response = MagicMock()
+                    response.data = valid
+                    return response
+
+                result = {"outcome": "invite_not_found"}
+                invites = client.table("invite_codes")._data
+                invite = next((row for row in invites.values() if row["code"] == params["p_code"]), None)
+                if invite:
+                    status = invite["status"]
+                    if status == "cancelled":
+                        result = {"outcome": "invite_cancelled"}
+                    elif status == "accepted":
+                        result = {"outcome": "invite_used"}
+                    elif datetime.fromisoformat(invite["expires_at"]) <= datetime.fromisoformat(params["p_now"]):
+                        invite["status"] = "expired"
+                        result = {"outcome": "invite_expired"}
+                    elif invite["user_id"] == params["p_invitee_id"]:
+                        result = {"outcome": "self_invite"}
+                    else:
+                        users = client.table("users")._data
+                        inviter = users.get(invite["user_id"])
+                        invitee = users.get(params["p_invitee_id"])
+                        if invitee and invitee.get("couple_id"):
+                            result = {"outcome": "already_paired"}
+                        elif inviter and inviter.get("couple_id"):
+                            result = {"outcome": "inviter_already_paired"}
+                        else:
+                            couple_id = params["p_couple_id"]
+                            client.table("couples")._data[couple_id] = {
+                                "id": couple_id,
+                                "partner1_id": invite["user_id"],
+                                "partner2_id": params["p_invitee_id"],
+                                "anniversary": None,
+                                "status": "active",
+                                "created_at": params["p_now"],
+                                "updated_at": params["p_now"],
+                            }
+                            invite.update(status="accepted", used_by=params["p_invitee_id"])
+                            inviter.update(couple_id=couple_id, updated_at=params["p_now"])
+                            invitee.update(couple_id=couple_id, updated_at=params["p_now"])
+                            result = {"outcome": "accepted", "couple_id": couple_id}
+                response = MagicMock()
+                response.data = result
+                return response
+
+        return RpcResult()
 
     def table(self, name: str) -> FakeSupabaseTable:
         if name not in self._tables:
@@ -229,6 +427,32 @@ class FakeSupabaseClient:
 def fake_db():
     """A fresh, in-memory FakeSupabaseClient for each test."""
     return FakeSupabaseClient()
+
+
+@pytest.fixture(autouse=True)
+def no_external_network(monkeypatch, request):
+    """Unit tests must never use credentials from the developer's .env."""
+    import socket
+    from app.config import settings
+
+    if request.node.get_closest_marker("live_readonly") or (
+        request.node.get_closest_marker("live_workflow")
+        and __import__("os").environ.get("FLAMEE_TEST_LIVE_WORKFLOW") == "1"
+    ):
+        return
+
+    monkeypatch.setattr(settings, "openai_api_key", "")
+    monkeypatch.setattr(settings, "gemini_api_key", "")
+
+    original_connect = socket.socket.connect
+
+    def blocked(sock, address):
+        # Windows asyncio builds its internal socketpair over loopback TCP.
+        if isinstance(address, tuple) and address[0] in {"127.0.0.1", "::1"}:
+            return original_connect(sock, address)
+        raise RuntimeError("External network is disabled in unit tests")
+
+    monkeypatch.setattr(socket.socket, "connect", blocked)
 
 
 @pytest.fixture

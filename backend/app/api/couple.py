@@ -15,8 +15,10 @@ from app.schemas.couple import (
     CoupleResponse,
     CreateInviteResponse,
     GetInviteResponse,
+    InvitePreviewResponse,
     MemberInfo,
     UpdateAnniversaryRequest,
+    DissolveCoupleRequest,
 )
 from app.services.couple_service import CoupleService
 
@@ -75,6 +77,31 @@ def accept_invite(
     return _build_couple_response(current["id"], db)
 
 
+@router.post("/validate-invite")
+def validate_invite(
+    payload: AcceptInviteRequest,
+    current: dict = Depends(get_current_user),
+    db: Client = Depends(get_db),
+):
+    invite, inviter = _service(db).validate_invite(current["id"], payload.code)
+    return ok(
+        InvitePreviewResponse(
+            code=invite.code,
+            expires_at=invite.expires_at,
+            inviter=inviter,
+        ).model_dump()
+    )
+
+
+@router.delete("/invite-code")
+def revoke_invite(
+    current: dict = Depends(get_current_user),
+    db: Client = Depends(get_db),
+):
+    invite = _service(db).revoke_invite(current["id"])
+    return ok(GetInviteResponse.from_model(invite).model_dump())
+
+
 @router.get("")
 def get_couple(
     current: dict = Depends(get_current_user),
@@ -94,8 +121,8 @@ def update_anniversary(
 
 @router.delete("")
 def delete_couple(
+    payload: DissolveCoupleRequest,
     current: dict = Depends(get_current_user),
     db: Client = Depends(get_db),
 ):
-    _service(db).break_up(current["id"])
-    return ok({"message": "Đã hủy ghép đôi thành công"})
+    return ok(_service(db).break_up(current["id"], payload.couple_id))

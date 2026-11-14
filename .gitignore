@@ -1,0 +1,15 @@
+.local-tools/
+*.pem
+*.key
+.env.*
+!.env.example
+!**/.env.example
+backend-image.tar.gz
+__pycache__/
+*.pyc
+.env
+.env.*.local
+deploy/.env
+deploy/.env.production
+deploy/artifacts/
+deploy/*.log

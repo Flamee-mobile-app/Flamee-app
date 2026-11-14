@@ -46,7 +46,6 @@ MEMORY_IMAGES = "memory_images"
 
 # Auth / token constants
 OTP_LENGTH = 6
-INVITE_CODE_PREFIX = "FLM"
 INVITE_CODE_LENGTH = 6
 
 # Moods considered negative (for mood insights later)

@@ -1,0 +1,316 @@
+import assert from "node:assert/strict";
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import type { AddressInfo } from "node:net";
+import test from "node:test";
+import { createAuthApi, AuthError } from "./authApi.ts";
+import { createAuthService } from "./authService.ts";
+
+const user = { id: "server-account-a", email: "an@example.com", full_name: "An", avatar_url: null, couple_id: null, created_at: "2026-10-14T00:00:00Z" };
+
+function credentials(initial: string | null = null) {
+  let stored = initial;
+  return {
+    read: async () => stored,
+    write: async (token: string) => { stored = token; },
+    clear: async () => { stored = null; },
+  };
+}
+
+async function withServer(handler: (req: IncomingMessage, res: ServerResponse, body: unknown) => unknown, run: (baseUrl: string) => Promise<void>) {
+  const server = createServer(async (req, res) => {
+    const chunks: Buffer[] = [];
+    for await (const chunk of req) chunks.push(Buffer.from(chunk));
+    res.setHeader("Content-Type", "application/json");
+    const raw = Buffer.concat(chunks).toString();
+    const contentType = req.headers["content-type"] ?? "";
+    const body = raw && contentType.includes("application/json") ? JSON.parse(raw) : raw || null;
+    if (req.url === "/api/v1/auth/logout") {
+      assert.equal(req.method, "POST");
+      assert.match(req.headers.authorization ?? "", /^Bearer .+/);
+      res.end(JSON.stringify({ success: true, data: { logged_out: true } }));
+      return;
+    }
+    await handler(req, res, body);
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  try { await run(`http://127.0.0.1:${(server.address() as AddressInfo).port}/api/v1`); }
+  finally {
+    server.closeAllConnections();
+    await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+  }
+}
+
+test("register sends the backend contract and starts only the returned account", async () => {
+  await withServer((req, res, body) => {
+    assert.equal(req.url, "/api/v1/auth/register");
+    assert.equal(req.method, "POST");
+    assert.deepEqual(body, { email: "an@example.com", password: "Secret123", full_name: "An" });
+    res.statusCode = 201;
+    res.end(JSON.stringify({ success: true, data: { user, access_token: "test-token" } }));
+  }, async (baseUrl) => {
+    const store = credentials();
+    const auth = createAuthService({ api: createAuthApi({ baseUrl }), credentials: store });
+    const session = await auth.register("an@example.com", "Secret123", "An");
+    assert.equal(session.accountId, "server-account-a");
+    assert.equal(session.user.full_name, "An");
+    assert.equal(await store.read(), null);
+    assert.equal(auth.getAccessToken(), "test-token");
+    assert.ok(!("access_token" in session));
+    assert.deepEqual(await auth.getCurrentSession(), session);
+  });
+});
+
+test("remembered login restores identity through authenticated me and sign-out clears it", async () => {
+  await withServer((req, res, body) => {
+    if (req.url === "/api/v1/auth/login") {
+      assert.deepEqual(body, { email: "an@example.com", password: "Secret123" });
+      res.end(JSON.stringify({ success: true, data: { user, access_token: "remembered-token" } }));
+    } else {
+      assert.equal(req.url, "/api/v1/auth/me");
+      assert.equal(req.headers.authorization, "Bearer remembered-token");
+      assert.equal(req.method, "GET");
+      res.end(JSON.stringify({ success: true, data: user }));
+    }
+  }, async (baseUrl) => {
+    const store = credentials();
+    const api = createAuthApi({ baseUrl });
+    await createAuthService({ api, credentials: store }).login("an@example.com", "Secret123", true);
+    assert.equal(await store.read(), "remembered-token");
+    const restarted = createAuthService({ api, credentials: store });
+    assert.equal((await restarted.getCurrentSession())?.accountId, "server-account-a");
+    await restarted.signOut();
+    assert.equal(restarted.getAccessToken(), null);
+    assert.equal(await store.read(), null);
+    assert.equal(await restarted.getCurrentSession(), null);
+  });
+});
+
+test("unremembered login removes old credentials instead of restoring the previous account", async () => {
+  await withServer((_req, res) => res.end(JSON.stringify({ success: true, data: { user, access_token: "new-token" } })), async (baseUrl) => {
+    const store = credentials("old-account-token");
+    const api = createAuthApi({ baseUrl });
+    const auth = createAuthService({ api, credentials: store });
+    await auth.login("an@example.com", "Secret123", false);
+    assert.equal(await store.read(), null);
+    assert.equal(await createAuthService({ api, credentials: store }).getCurrentSession(), null);
+  });
+});
+
+test("wrong credentials and duplicate email never manufacture a mobile session", async () => {
+  await withServer((req, res) => {
+    res.statusCode = req.url?.endsWith("register") ? 409 : 401;
+    res.end(JSON.stringify({ success: false, error: { code: "not_allowed", message: "fixture" } }));
+  }, async (baseUrl) => {
+    const store = credentials();
+    const auth = createAuthService({ api: createAuthApi({ baseUrl }), credentials: store });
+    await assert.rejects(auth.login("an@example.com", "wrong"), (error) => error instanceof AuthError && error.code === "credentials");
+    await assert.rejects(auth.register("an@example.com", "Secret123", "An"), (error) => error instanceof AuthError && error.code === "duplicateEmail");
+    assert.equal(await auth.getCurrentSession(), null);
+    assert.equal(await store.read(), null);
+  });
+});
+
+test("expired stored token is removed while network/server failures preserve it for retry", async () => {
+  let status = 503;
+  await withServer((_req, res) => { res.statusCode = status; res.end("{}"); }, async (baseUrl) => {
+    const store = credentials("expired-token");
+    const auth = createAuthService({ api: createAuthApi({ baseUrl }), credentials: store });
+    await assert.rejects(auth.getCurrentSession(), (error) => error instanceof AuthError && error.code === "server");
+    assert.equal(await store.read(), "expired-token");
+    status = 401;
+    assert.equal(await auth.getCurrentSession(), null);
+    assert.equal(await store.read(), null);
+  });
+});
+
+test("malformed successful response cannot create an authenticated identity", async () => {
+  await withServer((_req, res) => res.end(JSON.stringify({ success: true, data: { access_token: "token-without-user" } })), async (baseUrl) => {
+    const auth = createAuthService({ api: createAuthApi({ baseUrl }), credentials: credentials() });
+    await assert.rejects(auth.login("an@example.com", "Secret123"), (error) => error instanceof AuthError && error.code === "response");
+    assert.equal(await auth.getCurrentSession(), null);
+  });
+});
+
+test("a login response arriving after sign-out cannot resurrect credentials or session", async () => {
+  let release: () => void = () => undefined;
+  let arrived: () => void = () => undefined;
+  const ready = new Promise<void>((resolve) => { arrived = resolve; });
+  const held = new Promise<void>((resolve) => { release = resolve; });
+  await withServer(async (_req, res) => {
+    arrived(); await held;
+    res.end(JSON.stringify({ success: true, data: { user, access_token: "late-token" } }));
+  }, async (baseUrl) => {
+    const store = credentials();
+    const auth = createAuthService({ api: createAuthApi({ baseUrl }), credentials: store });
+    const login = auth.login("an@example.com", "Secret123", true);
+    const rejection = assert.rejects(login, (error) => error instanceof AuthError && error.code === "cancelled");
+    await ready; await auth.signOut(); release(); await rejection;
+    assert.equal(await store.read(), null);
+    assert.equal(await auth.getCurrentSession(), null);
+  });
+});
+
+test("a storage failure does not open a session", async () => {
+  await withServer((_req, res) => res.end(JSON.stringify({ success: true, data: { user, access_token: "token" } })), async (baseUrl) => {
+    const store = credentials();
+    const auth = createAuthService({ api: createAuthApi({ baseUrl }), credentials: { ...store, write: async () => { throw new Error("storage failure"); } } });
+    await assert.rejects(auth.login("an@example.com", "Secret123", true), (error) => error instanceof AuthError && error.code === "storage");
+    assert.equal(await auth.getCurrentSession(), null);
+  });
+});
+
+test("preserves a server nickname separately from the full name in the auth session", async () => {
+  const nickname = "🌤".repeat(40);
+  await withServer((_req, res) => res.end(JSON.stringify({
+    success: true, data: { user: { ...user, username: nickname }, access_token: "test-token" },
+  })), async (baseUrl) => {
+    const auth = createAuthService({ api: createAuthApi({ baseUrl }), credentials: credentials() });
+    const session = await auth.login("an@example.com", "Secret123");
+    assert.equal(session.user.username, nickname);
+    assert.equal(session.user.full_name, "An");
+    assert.equal((await auth.getCurrentSession())?.user.username, nickname);
+  });
+});
+
+test("profile session changes only after a matching server acknowledgement", async () => {
+  let wrongOwner = false;
+  await withServer((req, res) => {
+    const data = req.method === "PUT" ? { ...user, id: wrongOwner ? "other-account" : user.id, username: "Mây" } : { user, access_token: "token" };
+    res.end(JSON.stringify({ success: true, data }));
+  }, async (baseUrl) => {
+    const auth = createAuthService({ api: createAuthApi({ baseUrl }), credentials: credentials() });
+    await auth.login(user.email, "Secret123");
+    assert.equal((await auth.updateProfile({ full_name: "An", username: "Mây" })).user.username, "Mây");
+    wrongOwner = true;
+    await assert.rejects(auth.updateProfile({ full_name: "An", username: "Other" }), (error) => error instanceof AuthError && error.code === "response");
+    assert.equal((await auth.getCurrentSession())?.user.username, "Mây");
+  });
+});
+
+test("profile update arriving after logout cannot restore an account", async () => {
+  let release: () => void = () => undefined;
+  let arrived: () => void = () => undefined;
+  const ready = new Promise<void>((resolve) => { arrived = resolve; });
+  const held = new Promise<void>((resolve) => { release = resolve; });
+  await withServer(async (req, res) => {
+    if (req.method === "PUT") {
+      arrived(); await held;
+      res.end(JSON.stringify({ success: true, data: { ...user, username: "Late" } }));
+    } else res.end(JSON.stringify({ success: true, data: { user, access_token: "token" } }));
+  }, async (baseUrl) => {
+    const auth = createAuthService({ api: createAuthApi({ baseUrl }), credentials: credentials() });
+    await auth.login(user.email, "Secret123");
+    const update = auth.updateProfile({ full_name: "An", username: "Late" });
+    const rejection = assert.rejects(update, (error) => error instanceof AuthError && error.code === "cancelled");
+    await ready; await auth.signOut(); release(); await rejection;
+    assert.equal(await auth.getCurrentSession(), null);
+  });
+});
+
+test("avatar upload uses authenticated multipart and updates only the active session", async () => {
+  const avatarUrl = "https://storage.example/avatar-signed.jpg";
+  const renewedAvatarUrl = "https://storage.example/avatar-signed.jpg?token=renewed";
+  const publishedAvatars: (string | null)[] = [];
+  await withServer((req, res, body) => {
+    if (req.url === "/api/v1/auth/login") {
+      res.end(JSON.stringify({ success: true, data: { user, access_token: "avatar-token" } }));
+      return;
+    }
+    if (req.method === "GET") {
+      assert.equal(req.url, "/api/v1/auth/me");
+      res.end(JSON.stringify({ success: true, data: { ...user, avatar_url: renewedAvatarUrl } }));
+      return;
+    }
+    assert.equal(req.url, "/api/v1/auth/me/avatar");
+    assert.equal(req.method, "POST");
+    assert.equal(req.headers.authorization, "Bearer avatar-token");
+    assert.match(req.headers["content-type"] ?? "", /^multipart\/form-data; boundary=/);
+    assert.match(String(body), /name="file"/);
+    res.end(JSON.stringify({ success: true, data: { ...user, avatar_url: avatarUrl } }));
+  }, async (baseUrl) => {
+    const auth = createAuthService({
+      api: createAuthApi({ baseUrl }),
+      credentials: credentials(),
+      onSessionChanged: (session) => { publishedAvatars.push(session?.user.avatar_url ?? null); },
+    });
+    await auth.login(user.email, "Secret123");
+
+    const updated = await auth.updateAvatar(new Blob(["avatar-bytes"], { type: "image/jpeg" }));
+
+    assert.equal(updated.user.avatar_url, avatarUrl);
+    assert.equal(auth.getSessionSnapshot()?.user.avatar_url, avatarUrl);
+    assert.equal(publishedAvatars.at(-1), avatarUrl, "navigation must receive the server-confirmed URL without waiting for the edit screen");
+    assert.equal((await auth.refreshCurrentSession())?.user.avatar_url, renewedAvatarUrl);
+    assert.equal(publishedAvatars.at(-1), renewedAvatarUrl, "navigation must receive renewed signed URLs when the profile refreshes");
+    await auth.signOut();
+    assert.equal(publishedAvatars.at(-1), null);
+  });
+});
+
+test("avatar upload rejects a response without a remote URL and preserves the active session", async () => {
+  await withServer((req, res) => {
+    if (req.url === "/api/v1/auth/login") {
+      res.end(JSON.stringify({ success: true, data: { user, access_token: "avatar-token" } }));
+      return;
+    }
+    res.end(JSON.stringify({ success: true, data: { ...user, avatar_url: null } }));
+  }, async (baseUrl) => {
+    const auth = createAuthService({ api: createAuthApi({ baseUrl }), credentials: credentials() });
+    await auth.login(user.email, "Secret123");
+
+    await assert.rejects(
+      auth.updateAvatar(new Blob(["avatar-bytes"], { type: "image/jpeg" })),
+      (error) => error instanceof AuthError && error.code === "response",
+    );
+    assert.equal(auth.getSessionSnapshot()?.user.avatar_url, null);
+  });
+});
+
+test("local avatar uploads send file bytes instead of the React Native URI descriptor", async () => {
+  const readFiles: string[] = [];
+  let uploadedBody = "";
+  await withServer((_req, res, body) => {
+    uploadedBody = String(body);
+    res.end(JSON.stringify({ success: true, data: { ...user, avatar_url: "https://storage.example/avatar.jpg" } }));
+  }, async (baseUrl) => {
+    const api = createAuthApi({
+      baseUrl,
+      avatarFileFromUri: (file) => {
+        readFiles.push(file.uri);
+        return new Blob(["actual-avatar-file-bytes"], { type: file.type });
+      },
+    });
+    await api.uploadAvatar("token", { uri: "file:///selected-avatar.jpg", name: "avatar.jpg", type: "image/jpeg" });
+    assert.deepEqual(readFiles, ["file:///selected-avatar.jpg"]);
+    assert.match(uploadedBody, /actual-avatar-file-bytes/);
+    assert.doesNotMatch(uploadedBody, /\[object Object\]/);
+  });
+});
+
+test("a profile refresh started before avatar save cannot replace the confirmed avatar", async () => {
+  let release: () => void = () => undefined;
+  let arrived: () => void = () => undefined;
+  const ready = new Promise<void>((resolve) => { arrived = resolve; });
+  const held = new Promise<void>((resolve) => { release = resolve; });
+  const avatarUrl = "https://storage.example/new-avatar.jpg";
+  await withServer(async (req, res) => {
+    if (req.url === "/api/v1/auth/login") {
+      res.end(JSON.stringify({ success: true, data: { user, access_token: "avatar-token" } }));
+    } else if (req.method === "GET") {
+      arrived();
+      await held;
+      res.end(JSON.stringify({ success: true, data: user }));
+    } else {
+      res.end(JSON.stringify({ success: true, data: { ...user, avatar_url: avatarUrl } }));
+    }
+  }, async (baseUrl) => {
+    const auth = createAuthService({ api: createAuthApi({ baseUrl }), credentials: credentials() });
+    await auth.login(user.email, "Secret123");
+    const refresh = auth.refreshCurrentSession();
+    await ready;
+    await auth.updateAvatar(new Blob(["avatar-bytes"], { type: "image/jpeg" }));
+    release();
+    assert.equal((await refresh)?.user.avatar_url, avatarUrl);
+    assert.equal(auth.getSessionSnapshot()?.user.avatar_url, avatarUrl);
+  });
+});

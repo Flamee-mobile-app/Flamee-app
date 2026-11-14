@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, File, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, Header, Query, UploadFile, status
 from supabase import Client
 
 from app.api.deps import get_current_user, get_db
@@ -40,29 +40,33 @@ def _ensure_couple_id(user: dict) -> str:
 def list_memories(
     category: str | None = Query(default=None),
     year: int | None = Query(default=None, ge=1900, le=2999),
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
     current: dict = Depends(get_current_user),
     db: Client = Depends(get_db),
 ):
     couple_id = _ensure_couple_id(current)
-    items, total = _service(db).list_memories(
-        couple_id, category=category, year=year
+    items, total, has_more = _service(db).list_memories(
+        couple_id, category=category, year=year, limit=limit, offset=offset
     )
     return ok(
-        MemoryListResponse(items=items, total=total).model_dump()
+        MemoryListResponse(
+            items=items, total=total, limit=limit, offset=offset, has_more=has_more
+        ).model_dump()
     )
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_memory(
     payload: CreateMemoryRequest,
+    idempotency_key: str | None = Header(default=None, min_length=1, max_length=120, pattern=r"^[A-Za-z0-9_-]+$"),
     current: dict = Depends(get_current_user),
     db: Client = Depends(get_db),
 ):
     couple_id = _ensure_couple_id(current)
-    memory = _service(db).create_memory(
-        current["id"], couple_id, payload
-    )
-    images = MemoryImageRepository(db).find_by_memory(memory.id)
+    service = _service(db)
+    memory = service.create_memory(current["id"], couple_id, payload, request_key=idempotency_key)
+    images = service.get_memory_images(couple_id, memory)
     return ok(MemoryResponse.build(memory, images).model_dump())
 
 
@@ -85,10 +89,11 @@ def update_memory(
     db: Client = Depends(get_db),
 ):
     couple_id = _ensure_couple_id(current)
-    memory = _service(db).update_memory(
+    service = _service(db)
+    memory = service.update_memory(
         couple_id, memory_id, payload
     )
-    images = MemoryImageRepository(db).find_by_memory(memory.id)
+    _, images = service.get_memory(couple_id, memory.id)
     return ok(MemoryResponse.build(memory, images).model_dump())
 
 
@@ -109,12 +114,13 @@ def delete_memory(
 def upload_image(
     memory_id: str,
     file: UploadFile = File(...),
+    idempotency_key: str | None = Header(default=None, min_length=1, max_length=120, pattern=r"^[A-Za-z0-9_-]+$"),
     current: dict = Depends(get_current_user),
     db: Client = Depends(get_db),
 ):
     couple_id = _ensure_couple_id(current)
     image = _service(db).upload_image(
-        current["id"], couple_id, memory_id, file
+        current["id"], couple_id, memory_id, file, request_key=idempotency_key
     )
     return ok(MemoryImageResponse.from_model(image).model_dump())
 

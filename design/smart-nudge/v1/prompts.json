@@ -1,0 +1,15 @@
+{
+  "date": "2026-10-27",
+  "feature": "smart-nudge",
+  "tool": "built-in image_gen",
+  "basePrompt": "Generate ONE standalone premium Vietnamese mobile app screen mockup for Flamee, a real couples connection app. Use reference image for warm tactile material, friendly polished illustration and phone presentation ONLY; do NOT copy Tiny Mission content. Cross-platform premium neutral UI in a consistent slender black iPhone-like frame, straight front-facing, centered on warm stone #EEECEA studio backdrop. PORTRAIT 1024x1536 canvas, whole device visible with balanced margins, frame subtle, content fills most canvas. Status bar 9:41 and home indicator. Warm cream app background, one off-white #FFFCF8 large gently rounded content surface with subtle warm shadow. Palette: coral #FF7158, soft apricot #FCB76D, dark brown #302924, muted #70655D, warm border #E6DDD3, small sage accents. Crisp large readable Vietnamese text with correct diacritics, short copy, humanist rounded semibold headings, body comfortable equivalent 14-16pt, feature heading moderate equivalent 24pt NOT huge. Tight title-to-content gap, generous internal rhythm. No extra page eyebrow or subtitle outside content. Preserve one brand system in every image. Realistic creamy photography for memories, cute painterly flame mascot and approved soft 3D illustrated avatars for fictional Linh and Nam. Native touch-sized coral primary buttons and pale peach secondary buttons. Non-Home screens use plain dark feature-name title with back chevron for nested views; NO global Flamee logo header, NO title divider. Only Home timeline/calendar has glass top header + left, centered dropdown title, bell right. Main tabs use SAME floating coral/apricot PILL bottom nav with four white icons home/heart/flag/profile flanking a raised round center coral FAB containing a WHITE FLAME, NOT A PLUS. Center FAB never selected and implies press effect only. Indicate active regular tab with subtle pale capsule. No white bottom nav from old reference. No navigation bar on auth, pairing, full-screen check-in or settings drilldown screens. Do not invent features or successful server operations for unavailable screens. Screen content only, no captions, annotations, arrows outside device or multiple phone collage. Specific screen requirements: ",
+  "screens": [
+    {
+      "feature": "smart-nudge",
+      "id": "01-unavailable",
+      "title": "Gợi ý quan tâm chưa khả dụng",
+      "status": "unavailable",
+      "spec": "Nested Smart Nudge screen back and plain black title 'Gợi ý quan tâm'. One warm cream surface with a little flame gently offering an envelope and a heart. Headline 'Một chút quan tâm đúng lúc', body 'Gợi ý dựa trên cảm xúc của người ấy đang được hoàn thiện.', small neutral status 'Chưa khả dụng', secondary peach 'Quay lại'. Do not invent a live AI recommendation, partner private note, functional send/snooze/rating controls. No nav, no chat interface or fabricated AI assistant avatar."
+    }
+  ]
+}

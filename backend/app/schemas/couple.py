@@ -2,9 +2,16 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+from typing import Literal
 
 from app.models.couple import Couple, InviteCode
+
+
+class DissolveCoupleRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    couple_id: str = Field(min_length=1, max_length=128)
+    confirm: Literal[True]
 
 
 class CreateInviteResponse(BaseModel):
@@ -12,6 +19,7 @@ class CreateInviteResponse(BaseModel):
     expires_at: str
     status: str
     is_pending: bool = True
+    created_at: str | None = None
 
     @classmethod
     def from_model(cls, ic: InviteCode) -> "CreateInviteResponse":
@@ -20,6 +28,7 @@ class CreateInviteResponse(BaseModel):
             expires_at=ic.expires_at,
             status=ic.status,
             is_pending=ic.status == "pending",
+            created_at=getattr(ic, "created_at", None),
         )
 
 
@@ -28,6 +37,7 @@ class GetInviteResponse(BaseModel):
     expires_at: str
     status: str
     is_pending: bool
+    created_at: str | None = None
 
     @classmethod
     def from_model(cls, ic: InviteCode) -> "GetInviteResponse":
@@ -36,17 +46,29 @@ class GetInviteResponse(BaseModel):
             expires_at=ic.expires_at,
             status=ic.status,
             is_pending=ic.status == "pending",
+            created_at=getattr(ic, "created_at", None),
         )
 
 
 class AcceptInviteRequest(BaseModel):
-    code: str = Field(min_length=4, max_length=64)
+    code: str = Field(min_length=6, max_length=6, pattern=r"^[A-Z0-9]{6}$")
+
+    @field_validator("code", mode="before")
+    @classmethod
+    def normalize_code(cls, value: object) -> object:
+        return value.strip().upper() if isinstance(value, str) else value
 
 
 class MemberInfo(BaseModel):
     id: str
     full_name: str
     avatar_url: str | None = None
+
+
+class InvitePreviewResponse(BaseModel):
+    code: str
+    expires_at: str
+    inviter: MemberInfo
 
 
 class CoupleResponse(BaseModel):

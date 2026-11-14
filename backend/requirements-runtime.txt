@@ -1,0 +1,17 @@
+# Deployment runtime aligned with the versions used by the verified local API.
+# requirements.txt is the older development manifest; do not use it for this image.
+fastapi==0.141.1
+uvicorn[standard]==0.52.4
+pydantic==2.13.5
+pydantic-settings==2.16.0
+python-multipart==0.0.32
+PyJWT==2.15.1
+passlib[bcrypt]==1.7.4
+bcrypt==4.3.0
+email-validator==2.3.0
+google-auth==2.61.0
+requests==2.34.2
+supabase==2.33.0
+httpx==0.28.1
+Pillow==12.3.0
+tzdata==2026.3

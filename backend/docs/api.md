@@ -1,5 +1,23 @@
 # API Specification
 
+## Contract cập nhật ngày 2026-10-27 — đọc cảm xúc
+
+- `GET /api/v1/moods?limit=50&offset=0`: chỉ lịch sử của bearer user; limit 1–100 (default 20), offset >=0; trả envelope `success:true,data:[MoodResponse,...]`. Thứ tự `created_at DESC, id DESC`; trang ngắn hơn limit là hết dữ liệu tại thời điểm đọc. Offset có thể dịch khi dữ liệu thay đổi đồng thời.
+- `GET /api/v1/moods/partner/latest`: chỉ mood/alert được phép chia sẻ thuộc cặp hiện tại. Không lấy mood từ cặp cũ; private bị loại, mood_only không có note/reasons. Mobile đã nối lịch sử và popup đối tác.
+- POST mood giữ các giới hạn cũ (140 ký tự, 3 reasons, enum cũ). Khi `is_private=true`, luôn lưu `share_level=private` dù share_level bị bỏ qua/default all; không được nới privacy từ trường mâu thuẫn. UI draft mới chưa nối POST do thiếu contract đầy đủ.
+- Nguồn dữ liệu digest cũng lọc couple/private/mood_only; đây không phải bằng chứng worker digest đã hoàn thiện.
+
+## Contract cập nhật ngày 2026-10-26 — tài khoản mobile
+
+- POST `/api/v1/auth/logout` trả `success:true, data:{logged_out:true}` khi đã thu hồi phiên. Mobile phân biệt server-confirmed với logout chỉ trên thiết bị khi mất mạng; không coi 401 là xác nhận thu hồi refresh token.
+- POST `/api/v1/auth/change-password` nhận `current_password`, `new_password`, trả `data:{updated:true}` sau khi đổi và thu hồi các phiên. Mobile phải yêu cầu đăng nhập lại sau xác nhận.
+- Sai mật khẩu hiện tại trả **400** với `error.code=current_password_invalid`, không còn dùng 401. PUT `/api/v1/users/me/password` dùng cùng quy tắc lỗi. 401 vẫn dành cho phiên/token không hợp lệ, để client không refresh hoặc đăng xuất nhầm khi người dùng gõ sai mật khẩu.
+- DELETE `/api/v1/auth/me/avatar` trả user đã có `avatar_url:null`; mobile chỉ chuyển sang fallback sau khi kiểm đúng account và response này.
+- Forgot/reset password vẫn trả 501 cho tới khi có kênh xác minh thật; không phát OTP mô phỏng.
+- Theo quyết định người dùng, bản E2E đầu tiên dùng email/mật khẩu; Google/Apple/OTP để đợt sau. UI đổi mật khẩu giữ tối thiểu 8 ký tự như màn đăng ký; backend hiện chấp nhận tối thiểu 6 ký tự, không hạ validation UI trong đợt này.
+
+Các phần bên dưới là tài liệu hiện có; contract cập nhật ở trên ưu tiên khi mô tả khác phần tài khoản cũ.
+
 > MVP: 5 modules, ~33 endpoints. Ngắn gọn, đủ dùng.
 > Auto-generated OpenAPI docs ở `/docs` (Swagger UI) khi chạy FastAPI.
 
@@ -94,79 +112,73 @@ Lấy thông tin user hiện tại (cần Bearer token).
 { "current_password": "OldPass123", "new_password": "NewPass456" }
 ```
 
-### `POST /auth/forgot-password`
-Gửi OTP reset (MVP: in-memory, không gửi email thật).
-```json
-// Request
-{ "email": "user@example.com" }
+### `POST /auth/forgot-password` và `POST /auth/reset-password`
 
-// Response 200
-{ "success": true, "data": { "otp": "123456", "expires_in": 600 } }
-```
-
-### `POST /auth/reset-password`
-Reset mật khẩu bằng OTP.
-```json
-// Request
-{ "email": "user@example.com", "otp": "123456", "new_password": "NewPass456" }
-```
+Tạm thời trả **501**, `error.code = "feature_unavailable"` cho payload hợp lệ. Không cấp hoặc trả OTP, không lưu OTP trong bộ nhớ và không đổi mật khẩu qua luồng này. Cần triển khai kênh gửi xác minh thật, giới hạn lần thử và token dùng một lần trước khi mở lại. Đổi mật khẩu khi đã đăng nhập vẫn giữ hành vi thật hiện có.
 
 ---
 
-## 3. Module: Profile (4 endpoints)
+## 3. Module: Profile
 
-### `GET /profile`
-Lấy profile của user hiện tại.
+### `GET /auth/me` hoặc `GET /users/me`
+Lấy profile của user hiện tại. `avatar_url`, nếu có, là signed URL ngắn hạn do
+server tạo từ private storage path.
 
-### `PUT /profile`
-Cập nhật profile.
+### `PUT /auth/me` hoặc `PUT /users/me`
+Cập nhật trường text của profile. Không nhận URL avatar do client cung cấp.
 ```json
 // Request
 {
   "full_name": "Nguyễn Văn B",
-  "avatar_url": "https://...",
+  "username": "Bông",
   "birth_date": "1995-05-20",
-  "gender": "male",
-  "preferences": {
-    "hobbies": ["reading", "coffee"],
-    "food": ["vietnamese", "japanese"],
-    "music": ["ballad"],
-    "movie": ["romance"],
-    "travel": ["beach"]
-  }
+  "gender": "male"
 }
 ```
 
-### `GET /profile/partner`
-Lấy profile của partner (chỉ khi đã match couple).
-
-### `POST /profile/avatar`
-Upload avatar (multipart form-data).
+### `POST /auth/me/avatar`
+Upload hoặc thay avatar (multipart form-data, field `file`).
 ```bash
-curl -X POST /profile/avatar \
+curl -X POST /api/v1/auth/me/avatar \
   -H "Authorization: Bearer ..." \
   -F "file=@avatar.jpg"
 ```
 
+Server kiểm tra bytes ảnh thật, center-crop ảnh vuông tối đa 512 px, bỏ metadata,
+lưu JPEG vào bucket private và trả profile với signed URL tối đa 15 phút.
+
+### `DELETE /auth/me/avatar`
+Gỡ avatar hiện tại và dọn object private do pipeline quản lý.
+
 ---
 
-## 4. Module: Couple & Invite (5 endpoints)
+## 4. Module: Couple & Invite
 
 ### `POST /couple/invite-code`
 Tạo invite code (1 user chỉ có 1 code active).
 ```json
 // Response 201
-{ "success": true, "data": { "code": "FLM-A1B2C3", "expires_at": "..." } }
+{ "success": true, "data": { "code": "A1B2C3", "expires_at": "...", "status": "pending", "is_pending": true } }
 ```
 
 ### `GET /couple/invite-code`
 Lấy invite code hiện tại của tôi.
 
+### `DELETE /couple/invite-code`
+Thu hồi invite code pending hiện tại của tôi.
+
+### `POST /couple/validate-invite`
+Kiểm tra mã và lấy preview người mời, không tạo couple.
+```json
+// Request
+{ "code": "A1B2C3" }
+```
+
 ### `POST /couple/accept-invite`
 Accept invite code (gửi từ partner).
 ```json
 // Request
-{ "code": "FLM-A1B2C3" }
+{ "code": "A1B2C3" }
 
 // Response 200
 { "success": true, "data": { "couple": { "id": "...", "members": [...] } } }
@@ -202,11 +214,10 @@ Cập nhật ngày kỉ niệm.
 ## 5. Module: Memory (7 endpoints)
 
 ### `GET /memories`
-Lấy danh sách memories (phân trang).
+Lấy danh sách memories. Hiện API chưa có pagination; `category` và `year` là hai
+bộ lọc hiện có. Metadata ảnh được lấy một lần và signed URL được ký theo batch.
 ```
 Query params:
-  page: int = 1
-  limit: int = 20
   year: int = 2025
   category: str = "anniversary"
 ```
@@ -236,13 +247,16 @@ Cập nhật memory.
 Xóa memory.
 
 ### `POST /memories/{id}/images`
-Upload nhiều ảnh cho memory.
+Upload một ảnh cho memory bằng field multipart `file`.
 ```bash
 curl -X POST /memories/abc/images \
   -H "Authorization: Bearer ..." \
-  -F "files=@photo1.jpg" \
-  -F "files=@photo2.jpg"
+  -F "file=@photo1.jpg"
 ```
+
+Server đọc stream có giới hạn, giải mã ảnh thật, bỏ EXIF, tạo JPEG lớn tối đa
+1600 px và thumbnail tối đa 480 px. Database lưu private paths cùng MIME, kích
+thước pixel và byte size; response trả signed URL ngắn hạn.
 
 ### `DELETE /memories/{id}/images/{image_id}`
 Xóa 1 ảnh.
@@ -451,7 +465,7 @@ Nhắc date plan ngày mai. Chạy mỗi tối 20:00.
 | Module | Endpoints |
 |--------|-----------|
 | Auth | 6 |
-| Profile | 4 |
+| Profile | GET/PUT aliases + 2 avatar endpoints |
 | Couple & Invite | 5 |
 | Memory | 7 |
 | Mood + AI | 8 |
@@ -474,12 +488,12 @@ User A                                    User B
   ├─ POST /auth/register                     ├─ POST /auth/register
   │                                          │
   ├─ POST /couple/invite-code                │
-  │  → code: FLM-A1B2C3                      │
+  │  → code: A1B2C3                          │
   │                                          │
   │ ─── (gửi code qua email/SMS) ────>       │
   │                                          │
   │                                          ├─ POST /couple/accept-invite
-  │                                          │  { code: "FLM-A1B2C3" }
+  │                                          │  { code: "A1B2C3" }
   │                                          │  → couple created
   │                                          │
   │ ←── (couple matched) ──                   │

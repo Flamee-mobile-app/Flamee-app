@@ -1,11 +1,105 @@
-from pydantic import BaseModel, Field
-from typing import Optional
+"""Schemas cho Mood check-in và Mood Alerts."""
+from __future__ import annotations
+
+from typing import Optional, Literal
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+from app.core.constants import MoodType
+from app.models.mood import Mood, MoodAlert
+
+# === Validation limits (phải khớp mood_service) ===
+MAX_NOTE_LEN = 60
+MAX_REASONS = 50
+SHARE_LEVELS = ("all", "mood_only", "private")
+ALLOWED_MOODS = tuple(m.value for m in MoodType) + (
+    "discouraged", "energetic", "unbothered", "broken_down", "awful",
+    "overwhelmed", "uncertain", "loved", "hopeful", "custom",
+)
+
+
+class MoodAttachment(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    kind: Literal["gif", "emoji", "sticker"]
+    id: str = Field(min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$")
+
 
 class CreateMoodRequest(BaseModel):
-    mood: str = Field(..., description="Cảm xúc (ví dụ: happy, sad, angry, relaxed, excited)")
-    intensity: int = Field(..., ge=1, le=10, description="Mức độ cảm xúc từ 1 đến 10")
-    note: Optional[str] = Field(None, description="Ghi chú chi tiết về cảm xúc")
-    is_private: bool = Field(False, description="Chỉ mình tôi xem")
+    model_config = ConfigDict(extra="forbid")
+    draft_version: Literal[1, 2] = 1
+    custom_emotion_label: Optional[str] = Field(default=None, min_length=1, max_length=32)
+    mascot_sticker_id: Optional[str] = Field(default=None, min_length=1, max_length=64)
+    sleep_hours: Optional[int] = Field(default=None, ge=2, le=8, strict=True)
+    attachments: list[MoodAttachment] = Field(default_factory=list, max_length=3)
+    timezone: str = Field(default="UTC", max_length=64)
+    mood: str = Field(
+        default="happy",
+        min_length=1,
+        max_length=32,
+        description="Tên cảm xúc (love, happy, sad, ...)",
+    )
+    intensity: int = Field(default=5, ge=1, le=10)
+    note: Optional[str] = Field(default=None, max_length=MAX_NOTE_LEN)
+    is_private: bool = False
+    mood_score: int = Field(default=3, ge=1, le=5)
+    reasons: Optional[list[str]] = Field(default=None, max_length=MAX_REASONS)
+    share_level: str = Field(default="all")
+
+    @field_validator("timezone")
+    @classmethod
+    def _validate_timezone(cls, value: str) -> str:
+        try:
+            ZoneInfo(value)
+        except (ZoneInfoNotFoundError, ValueError):
+            raise ValueError("timezone phải là IANA timezone hợp lệ")
+        return value
+
+    @field_validator("reasons")
+    @classmethod
+    def _validate_reasons(cls, values: Optional[list[str]]) -> Optional[list[str]]:
+        if values is not None and (len(values) != len(set(values)) or any(
+            not value or len(value) > 64 or not all(c.isalnum() or c in "_-" for c in value)
+            for value in values
+        )):
+            raise ValueError("reasons phải là ID không trùng, dài 1..64 ký tự")
+        return values
+
+    @model_validator(mode="after")
+    def _validate_draft(self):
+        if self.draft_version == 2 and "mood_score" not in self.model_fields_set:
+            raise ValueError("draft v2 cần mood_score do người dùng chọn")
+        if self.draft_version == 2 and self.intensity > 5:
+            raise ValueError("intensity draft v2 phải nằm trong 1..5")
+        if self.mood == "custom" and not (self.custom_emotion_label or "").strip():
+            raise ValueError("custom feeling cần label")
+        if self.mood != "custom" and self.custom_emotion_label is not None:
+            raise ValueError("custom label chỉ dùng cho custom feeling")
+        kinds = [attachment.kind for attachment in self.attachments]
+        if len(kinds) != len(set(kinds)):
+            raise ValueError("Chỉ một attachment mỗi loại")
+        return self
+
+    @field_validator("mood")
+    @classmethod
+    def _validate_mood(cls, v: str) -> str:
+        """Enum mood — chỉ chấp nhận giá trị trong MoodType."""
+        cleaned = v.strip().lower()
+        if cleaned not in ALLOWED_MOODS:
+            raise ValueError(
+                f"mood phải là một trong {list(ALLOWED_MOODS)}"
+            )
+        return cleaned
+
+    @field_validator("share_level")
+    @classmethod
+    def _validate_share_level(cls, v: str) -> str:
+        if v not in SHARE_LEVELS:
+            raise ValueError(
+                f"share_level phải là một trong {list(SHARE_LEVELS)}"
+            )
+        return v
+
 
 class MoodResponse(BaseModel):
     id: str
@@ -14,7 +108,17 @@ class MoodResponse(BaseModel):
     note: Optional[str]
     is_private: bool
     created_at: str
-    
+    mood_score: int = 3
+    reasons: Optional[list[str]] = None
+    share_level: str = "all"
+    draft_version: int = 1
+    custom_emotion_label: Optional[str] = None
+    mascot_sticker_id: Optional[str] = None
+    sleep_hours: Optional[int] = None
+    attachments: list[MoodAttachment] = Field(default_factory=list)
+    timezone: str = "UTC"
+    local_date: Optional[str] = None
+
     @classmethod
     def from_model(cls, model) -> "MoodResponse":
         return cls(
@@ -23,8 +127,16 @@ class MoodResponse(BaseModel):
             intensity=model.intensity,
             note=model.note,
             is_private=model.is_private,
-            created_at=model.created_at
+            created_at=model.created_at,
+            mood_score=getattr(model, "mood_score", 3),
+            reasons=getattr(model, "reasons", None),
+            share_level=getattr(model, "share_level", "all"),
+            **{key: getattr(model, key) for key in (
+                "draft_version", "custom_emotion_label", "mascot_sticker_id",
+                "sleep_hours", "attachments", "timezone", "local_date",
+            )},
         )
+
 
 class MoodAlertResponse(BaseModel):
     id: str
@@ -34,7 +146,7 @@ class MoodAlertResponse(BaseModel):
     advice: str
     is_read: bool
     created_at: str
-    
+
     @classmethod
     def from_model(cls, model) -> "MoodAlertResponse":
         return cls(
@@ -44,8 +156,9 @@ class MoodAlertResponse(BaseModel):
             message=model.message,
             advice=model.advice,
             is_read=model.is_read,
-            created_at=model.created_at
+            created_at=model.created_at,
         )
+
 
 class PartnerMoodStatusResponse(BaseModel):
     partner_id: str

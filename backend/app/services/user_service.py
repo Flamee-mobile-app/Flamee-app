@@ -5,11 +5,34 @@ from app.core.security import hash_password
 from app.core.exceptions import NotFoundError, ValidationError
 from app.repositories.user_repo import UserRepository
 from app.models.user import User
+from app.services.auth_service import AuthService
+from app.repositories.preferences_repo import PreferencesRepository
+from app.schemas.user import PreferencesResponse, PreferencesValue, UpdatePreferencesRequest
+from app.utils.time import now_utc
 
 class UserService:
     def __init__(self, db: Client):
         self.db = db
         self.user_repo = UserRepository(db)
+
+    def get_preferences(self, user_id: str) -> PreferencesResponse:
+        repo = PreferencesRepository(self.db)
+        record = repo.get(user_id)
+        if record is None:
+            user = self.get_user(user_id)
+            values = PreferencesValue(timezone=user.timezone).model_dump()
+            record = repo.create(user_id, {**values, 'revision': 0, 'onboarding_completed_at': None})
+        return PreferencesResponse.model_validate({key: value for key, value in record.items()
+                                                   if key in PreferencesResponse.model_fields})
+
+    def update_preferences(self, user_id: str, payload: UpdatePreferencesRequest) -> PreferencesResponse:
+        current = self.get_preferences(user_id)
+        values = payload.model_dump(exclude={'revision', 'complete_onboarding'})
+        values.update(revision=payload.revision + 1, updated_at=now_utc().isoformat(),
+                      onboarding_completed_at=current.onboarding_completed_at or (now_utc().isoformat() if payload.complete_onboarding else None))
+        record = PreferencesRepository(self.db).update(user_id, payload.revision, values)
+        return PreferencesResponse.model_validate({key: value for key, value in record.items()
+                                                   if key in PreferencesResponse.model_fields})
         
     def get_user(self, user_id: str) -> User:
         user = self.user_repo.get(user_id)
@@ -17,21 +40,15 @@ class UserService:
             raise NotFoundError("Không tìm thấy người dùng.")
         return user
         
-    def update_profile(self, user_id: str, full_name: str = None, avatar_url: str = None, birth_date: str = None, gender: str = None) -> User:
-        patch = {"updated_at": datetime.utcnow().isoformat() + "Z"}
-        if full_name is not None: patch["full_name"] = full_name
-        if avatar_url is not None: patch["avatar_url"] = avatar_url
-        if birth_date is not None: patch["birth_date"] = birth_date
-        if gender is not None: patch["gender"] = gender
+    def update_profile(self, user_id: str, full_name: str = None, birth_date: str = None, gender: str = None, username: str | None = None, nickname: str | None = None, timezone: str | None = None) -> User:
+        return AuthService(self.user_repo).update_profile(
+            user_id, full_name, birth_date, gender, username, nickname, timezone,
+        )
         
-        return self.user_repo.update(user_id, **patch)
-        
-    def update_password(self, user_id: str, new_password: str) -> User:
-        if len(new_password) < 6:
-            raise ValidationError("Mật khẩu phải có ít nhất 6 ký tự.")
-            
-        hashed = hash_password(new_password)
-        return self.user_repo.update(user_id, password_hash=hashed, updated_at=datetime.utcnow().isoformat() + "Z")
+    def update_password(self, user_id: str, current_password: str, new_password: str) -> None:
+        from app.services.auth_service import AuthService
+
+        AuthService(self.user_repo).change_password(user_id, current_password, new_password)
         
     def update_fcm_token(self, user_id: str, fcm_token: str) -> User:
         return self.user_repo.update(user_id, fcm_token=fcm_token, updated_at=datetime.utcnow().isoformat() + "Z")

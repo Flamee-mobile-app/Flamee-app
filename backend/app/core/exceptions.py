@@ -41,3 +41,20 @@ class ConflictError(DomainError):
 class ValidationError(DomainError):
     code = "validation_error"
     status_code = 400
+
+
+class FeatureUnavailableError(DomainError):
+    code = "feature_unavailable"
+    status_code = 501
+
+
+class ServiceUnavailableError(DomainError):
+    code = 'service_unavailable'
+    status_code = 503
+
+
+class InviteError(ConflictError):
+    """A stable invite-flow outcome that clients can handle explicitly."""
+
+    def __init__(self, code: str, message: str) -> None:
+        super().__init__(message, code=code)

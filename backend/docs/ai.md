@@ -1,5 +1,11 @@
 # AI Module & Smart Logic
 
+> Kiểm thử thực tế 2026-10-18: xem [báo cáo BE E2E](BE-E2E-2026-10-18.md).
+> Runtime dùng `app/ai/factory.py` và hỗ trợ Gemini/OpenAI; các ví dụ kiến trúc
+> bên dưới có phần là thiết kế lịch sử. Với `mood_only`, service loại bỏ cả
+> `note` và `reasons` trước moderation, generation và template fallback;
+> `private` không tạo nudge. Test hồi quy: `tests/test_nudge_ai_boundary.py`.
+
 > Phần "thông minh" của Flamee. Tách riêng khỏi CRUD để dễ bảo trì và swap provider.
 
 ---

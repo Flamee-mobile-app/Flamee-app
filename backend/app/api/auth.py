@@ -1,17 +1,19 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, UploadFile, status
 from supabase import Client
 
 from app.api.deps import get_current_user, get_db
 from app.api.response import ok
+from app.core.exceptions import FeatureUnavailableError
 from app.models.user import User
 from app.repositories.user_repo import UserRepository
 from app.schemas.auth import (
     AuthResponse,
+    GoogleLoginRequest,
+    RefreshRequest,
     ChangePasswordRequest,
     ForgotPasswordRequest,
-    ForgotPasswordResponse,
     LoginRequest,
     RegisterRequest,
     ResetPasswordRequest,
@@ -19,6 +21,8 @@ from app.schemas.auth import (
     UserResponse,
 )
 from app.services.auth_service import AuthService
+from app.services.avatar_service import AvatarService
+from app.services.google_auth import create_google_challenge, login_with_google
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -27,18 +31,22 @@ def _auth_service(db: Client) -> AuthService:
     return AuthService(UserRepository(db))
 
 
+def _present_user(db: Client, user: User) -> User:
+    return AvatarService(db, UserRepository(db)).present(user)
+
+
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 def register(
     payload: RegisterRequest,
     db: Client = Depends(get_db),
 ):
     user, token = _auth_service(db).register(
-        payload.email, payload.password, payload.full_name
+        payload.email, payload.password, payload.full_name, username=payload.username
     )
     return ok(
         AuthResponse(
-            user=UserResponse.from_model(user),
-            access_token=token,
+            user=UserResponse.from_model(_present_user(db, user)),
+            **token,
         ).model_dump()
     )
 
@@ -48,24 +56,42 @@ def login(payload: LoginRequest, db: Client = Depends(get_db)):
     user, token = _auth_service(db).login(payload.email, payload.password)
     return ok(
         AuthResponse(
-            user=UserResponse.from_model(user),
-            access_token=token,
+            user=UserResponse.from_model(_present_user(db, user)),
+            **token,
         ).model_dump()
     )
+
+
+@router.post("/refresh")
+def refresh(payload: RefreshRequest, db: Client = Depends(get_db)):
+    user, tokens = _auth_service(db).refresh(payload.refresh_token)
+    return ok(AuthResponse(user=UserResponse.from_model(_present_user(db, user)), **tokens).model_dump())
+
+
+@router.post("/google/challenge")
+def google_challenge():
+    return ok(create_google_challenge())
+
+
+@router.post("/google")
+def google_login(payload: GoogleLoginRequest, db: Client = Depends(get_db)):
+    user, tokens = login_with_google(db, payload.id_token, payload.challenge)
+    return ok(AuthResponse(user=UserResponse.from_model(_present_user(db, user)), **tokens).model_dump())
+
+
+@router.post("/logout")
+def logout(current: dict = Depends(get_current_user), db: Client = Depends(get_db)):
+    _auth_service(db).logout(current["id"], current["__jti__"])
+    return ok({"logged_out": True})
 
 
 @router.get("/me")
-def me(current: dict = Depends(get_current_user)):
-    return ok(
-        UserResponse(
-            id=current["id"],
-            email=current["email"],
-            full_name=current.get("full_name", ""),
-            avatar_url=current.get("avatar_url"),
-            couple_id=current.get("couple_id"),
-            created_at=current.get("created_at", ""),
-        ).model_dump()
-    )
+def me(
+    current: dict = Depends(get_current_user),
+    db: Client = Depends(get_db),
+):
+    user = _present_user(db, User.from_dict(current))
+    return ok(UserResponse.from_model(user).model_dump())
 
 
 @router.post("/change-password")
@@ -83,23 +109,15 @@ def change_password(
 @router.post("/forgot-password")
 def forgot_password(
     payload: ForgotPasswordRequest,
-    db: Client = Depends(get_db),
 ):
-    otp, expires_in = _auth_service(db).forgot_password(payload.email)
-    return ok(
-        ForgotPasswordResponse(otp=otp, expires_in=expires_in).model_dump()
-    )
+    raise FeatureUnavailableError("Khôi phục mật khẩu chưa khả dụng; chưa có kênh gửi mã xác minh.")
 
 
 @router.post("/reset-password")
 def reset_password(
     payload: ResetPasswordRequest,
-    db: Client = Depends(get_db),
 ):
-    _auth_service(db).reset_password(
-        payload.email, payload.otp, payload.new_password
-    )
-    return ok({"updated": True})
+    raise FeatureUnavailableError("Khôi phục mật khẩu chưa khả dụng; mật khẩu chưa được thay đổi.")
 
 
 @router.put("/me")
@@ -111,8 +129,30 @@ def update_profile(
     user = _auth_service(db).update_profile(
         user_id=current["id"],
         full_name=payload.full_name,
-        avatar_url=payload.avatar_url,
         birth_date=payload.birth_date,
         gender=payload.gender,
+        username=payload.username,
+        nickname=payload.nickname,
+        timezone=payload.timezone,
     )
+    return ok(UserResponse.from_model(_present_user(db, user)).model_dump())
+
+
+@router.post("/me/avatar")
+def upload_avatar(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    current: dict = Depends(get_current_user),
+    db: Client = Depends(get_db),
+):
+    user = AvatarService(db).upload(current["id"], file, schedule_cleanup=background_tasks.add_task)
+    return ok(UserResponse.from_model(user).model_dump())
+
+
+@router.delete("/me/avatar")
+def delete_avatar(
+    current: dict = Depends(get_current_user),
+    db: Client = Depends(get_db),
+):
+    user = AvatarService(db).delete(current["id"])
     return ok(UserResponse.from_model(user).model_dump())

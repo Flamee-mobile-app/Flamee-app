@@ -1,3 +1,5 @@
-import { StartScreen } from '@/features/auth';
+import { EntryRouteScreen } from "../src/providers/EntryRouteScreen";
 
-export default StartScreen;
+export default function IndexRoute() {
+  return <EntryRouteScreen />;
+}

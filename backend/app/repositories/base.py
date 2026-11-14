@@ -79,7 +79,10 @@ class BaseRepository(Generic[T]):
     def create(self, **fields: Any) -> T:
         instance = self.model_cls(**fields)
         resp = self.db.table(self.table).insert(instance.to_dict()).execute()
-        return self.model_cls.from_dict(resp.data[0])
+        data = getattr(resp, "data", None) or []
+        if not data:
+            raise RuntimeError(f"Insert into {self.table} returned no data")
+        return self.model_cls.from_dict(data[0])
 
     def update(self, id: str, **patch: Any) -> T:
         resp = self.db.table(self.table).update(patch).eq("id", id).execute()

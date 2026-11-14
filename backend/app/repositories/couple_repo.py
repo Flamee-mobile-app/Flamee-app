@@ -9,6 +9,31 @@ class CoupleRepository(BaseRepository[Couple]):
     table = COUPLES
     model_cls = Couple
 
+    def dissolve_atomic(self, user_id: str, couple_id: str) -> dict:
+        return self.db.rpc('dissolve_couple', {'p_user_id': user_id, 'p_couple_id': couple_id}).execute().data
+
+    def accept_invite_atomic(
+        self,
+        *,
+        invitee_id: str,
+        code: str,
+        couple_id: str,
+        now_iso: str,
+    ) -> dict:
+        response = self.db.rpc(
+            "accept_couple_invite",
+            {
+                "p_invitee_id": invitee_id,
+                "p_code": code,
+                "p_couple_id": couple_id,
+                "p_now": now_iso,
+            },
+        ).execute()
+        data = response.data
+        if isinstance(data, list):
+            return data[0] if data else {"outcome": "invite_not_found"}
+        return data or {"outcome": "invite_not_found"}
+
 
 
 class InviteCodeRepository(BaseRepository[InviteCode]):
@@ -30,7 +55,8 @@ class InviteCodeRepository(BaseRepository[InviteCode]):
             .maybe_single()
             .execute()
         )
-        return self.model_cls.from_dict(resp.data) if resp.data else None
+        data = getattr(resp, "data", None)
+        return self.model_cls.from_dict(data) if data else None
 
     def find_latest_by_user(self, user_id: str) -> InviteCode | None:
         """Return the most recently created invite code for `user_id`, if any."""
@@ -43,4 +69,5 @@ class InviteCodeRepository(BaseRepository[InviteCode]):
             .maybe_single()
             .execute()
         )
-        return self.model_cls.from_dict(resp.data) if resp.data else None
+        data = getattr(resp, "data", None)
+        return self.model_cls.from_dict(data) if data else None

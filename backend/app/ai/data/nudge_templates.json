@@ -1,0 +1,103 @@
+{
+  "1": {
+    "work": {
+      "observation": "{partner_name} đang rất áp lực và kiệt sức vì công việc.",
+      "action_type": "voice",
+      "draft": "Anh biết hôm nay em đã gánh vác rất nhiều việc khó khăn. Tối nay về cứ thả lỏng nhé, để anh gọi cho em nghe một chút ❤️",
+      "reason": "Khi đối phương kiệt sức vì công việc, nghe giọng người thương giúp giảm căng thẳng rất nhanh.",
+      "tone": "supportive"
+    },
+    "health": {
+      "observation": "{partner_name} đang cảm thấy cơ thể rất mệt mỏi và kiệt sức.",
+      "action_type": "text",
+      "draft": "Em uống thuốc và nằm nghỉ ngơi đi nhé, đừng ráng làm việc nữa. Anh sẽ đặt phần cháo ấm giao tới cho em nhé!",
+      "reason": "Sức khỏe sa sút khiến tâm lý nhạy cảm, sự chăm sóc chu đáo mang lại cảm giác an tâm.",
+      "tone": "gentle"
+    },
+    "family": {
+      "observation": "{partner_name} đang có chuyện buồn hoặc áp lực lớn từ gia đình.",
+      "action_type": "call",
+      "draft": "Dù có chuyện gì xảy ra thì anh vẫn luôn ở đây bên cạnh em. Em không cần phải gồng mình một mình đâu — gọi cho anh nhé.",
+      "reason": "Vấn đề gia đình là điểm đau nhạy cảm, chỉ cần sự hiện diện và lắng nghe chân thành.",
+      "tone": "gentle"
+    },
+    "pressure": {
+      "observation": "{partner_name} đang đối mặt với áp lực rất nặng nề vượt ngưỡng chịu đựng.",
+      "action_type": "call",
+      "draft": "Nếu thấy ngột ngạt quá thì dừng lại hít thở một chút nhé. Anh gọi cho em nghe giọng một chút nha?",
+      "reason": "Âm thanh giọng nói của người thương giúp kích hoạt hệ thần kinh phó giao cảm, giảm căng thẳng nhanh chóng.",
+      "tone": "supportive"
+    },
+    "default": {
+      "observation": "{partner_name} đang có một ngày rất tồi tệ và tâm trạng chạm đáy.",
+      "action_type": "text",
+      "draft": "Hôm nay em vất vả nhiều rồi, có chuyện gì cứ trút hết với anh nhé, anh luôn lắng nghe em.",
+      "reason": "Sự sẵn sàng lắng nghe giúp đối phương giải tỏa cảm xúc dồn nén.",
+      "tone": "supportive"
+    }
+  },
+  "2": {
+    "work": {
+      "observation": "{partner_name} vừa chia sẻ: một ngày làm việc mệt mỏi và nhiều deadline.",
+      "action_type": "text",
+      "draft": "Hôm nay vất vả rồi người yêu ơi! Tối nay mình đi ăn món em thích để nạp lại năng lượng nhé 🧋",
+      "reason": "Gợi ý tiếp sức bằng đồ ăn hoặc một ly trà sữa ngọt ngào giúp giải phóng dopamine xua tan mệt mỏi.",
+      "tone": "playful"
+    },
+    "health": {
+      "observation": "{partner_name} cảm thấy trong người hơi uể oải, không được khỏe.",
+      "action_type": "text",
+      "draft": "Em nhớ uống nhiều nước ấm và ngủ sớm một chút nhé. Cần gì cứ ới anh ngay nha!",
+      "reason": "Lời nhắc nhở chăm sóc bản thân thể hiện sự quan tâm tinh tế đến từng chi tiết.",
+      "tone": "gentle"
+    },
+    "weather": {
+      "observation": "{partner_name} cảm thấy tụt năng lượng vì thời tiết u ám khó chịu.",
+      "action_type": "text",
+      "draft": "Thời tiết hôm nay dở hơi quá nhưng nhớ là luôn có anh yêu em ấm áp nè! Cố lên chút nữa là về rồi.",
+      "reason": "Một chút hài hước tích cực xua tan sự khó chịu do thời tiết mang lại.",
+      "tone": "playful"
+    },
+    "default": {
+      "observation": "{partner_name} đang hơi mệt mỏi và cần được tiếp thêm năng lượng.",
+      "action_type": "text",
+      "draft": "Gửi em một nghìn cái ôm ấm áp tiếp sức cho buổi chiều nè! Cố lên nhé bảo bối ❤️",
+      "reason": "Tín hiệu yêu thương ngắn gọn giúp đối phương thấy mình luôn được nghĩ tới.",
+      "tone": "gentle"
+    }
+  },
+  "3": {
+    "default": {
+      "observation": "{partner_name} có một ngày bình yên, ổn định.",
+      "action_type": "text",
+      "draft": "Hôm nay của em thế nào rồi? Có chuyện gì vui hay thú vị kể anh nghe với nha!",
+      "reason": "Duy trì kết nối tự nhiên và chia sẻ những câu chuyện nhỏ trong ngày.",
+      "tone": "gentle"
+    }
+  },
+  "4": {
+    "work": {
+      "observation": "{partner_name} vừa hoàn thành tốt công việc và đang cảm thấy vui vẻ!",
+      "action_type": "text",
+      "draft": "Người yêu anh giỏi quá! Tối nay nhất định phải thưởng cho em một chầu ăn mừng mới được 🎉",
+      "reason": "Công nhận nỗ lực và chia vui với thành tích của đối phương làm tăng sự gắn kết tích cực.",
+      "tone": "celebratory"
+    },
+    "default": {
+      "observation": "{partner_name} đang có tâm trạng rất tích cực và tràn đầy năng lượng.",
+      "action_type": "text",
+      "draft": "Thấy em vui là một ngày của anh cũng bừng sáng luôn rồi! Tối nay mình hẹn hò chút không nè?",
+      "reason": "Cộng hưởng năng lượng tích cực và tạo cơ hội hẹn hò gắn kết.",
+      "tone": "celebratory"
+    }
+  },
+  "5": {
+    "default": {
+      "observation": "{partner_name} đang cảm thấy vô cùng hạnh phúc và tuyệt vời!",
+      "action_type": "text",
+      "draft": "Hôm nay em rạng rỡ quá chừng! Hạnh phúc của em chính là niềm vui lớn nhất của anh đó ❤️",
+      "reason": "Khuếch đại cảm xúc hạnh phúc tột đỉnh và lưu giữ khoảnh khắc đáng nhớ.",
+      "tone": "celebratory"
+    }
+  }
+}

@@ -1,0 +1,84 @@
+import type { ReactNode } from "react";
+import { Platform } from "react-native";
+import { Button } from "tamagui";
+import { buttonTokens, noteComposerLayoutTokens } from "../constants/tokens";
+import { useButtonInteraction } from "./useButtonInteraction";
+import { getIconButtonPresentation, getIconButtonRadius, resolvePlatformAccessibilityProps, type IconButtonTone } from "./buttonSystemModel";
+
+export type AppIconButtonProps = {
+  icon: ReactNode;
+  tone?: IconButtonTone;
+  sizeVariant?: "default" | "large";
+  selected?: boolean;
+  disabled?: boolean;
+  onPress: () => void;
+  accessibilityLabel: string;
+  accessibilityHint?: string;
+  preventNativeFocus?: boolean;
+  testID?: string;
+};
+
+export function AppIconButton({
+  icon,
+  tone = "neutral",
+  sizeVariant = "default",
+  selected = false,
+  disabled = false,
+  onPress,
+  accessibilityLabel,
+  accessibilityHint,
+  preventNativeFocus = false,
+  testID,
+}: AppIconButtonProps) {
+  const presentation = getIconButtonPresentation(tone, selected);
+  const interaction = useButtonInteraction(disabled);
+  const size = tone === "send" ? buttonTokens.sendButtonSize
+    : tone === "composer" && sizeVariant === "large" ? noteComposerLayoutTokens.pickerItemSize
+      : tone === "composer" ? noteComposerLayoutTokens.toolSize : buttonTokens.iconButtonSize;
+
+  return (
+    <Button
+      unstyled
+      testID={testID}
+      outlineWidth={0}
+      outlineStyle="none"
+      alignItems="center"
+      justifyContent="center"
+      flexDirection="row"
+      transform={[{ translateY: 0 }]}
+      cursor={disabled ? "default" : "pointer"}
+      position="relative"
+      width={size}
+      height={size}
+      minWidth={size}
+      minHeight={size}
+      borderRadius={tone === "composer" ? size / 2 : getIconButtonRadius(tone)}
+      borderWidth={presentation.borderWidth ?? 0}
+      borderColor={presentation.borderColor ?? "transparent"}
+      backgroundColor={presentation.backgroundColor}
+      {...(tone === "avatar" ? Platform.OS === "web"
+        ? { boxShadow: buttonTokens.avatarEditShadow }
+        : buttonTokens.avatarEditNativeShadow : {})}
+      color={presentation.color}
+      padding={0}
+      hitSlop={buttonTokens.iconButtonHitSlop}
+      {...interaction}
+      {...(Platform.OS !== "web" && preventNativeFocus ? { focusable: false } : {})}
+      animateOnly={["transform", "opacity"]}
+      hoverStyle={{ backgroundColor: presentation.hoverBackgroundColor }}
+      pressStyle={{ transform: [{ translateY: buttonTokens.pressOffset }] }}
+      focusVisibleStyle={{ outlineWidth: 0, outlineStyle: "none" }}
+      opacity={disabled ? buttonTokens.disabledOpacity : 1}
+      role="button"
+      aria-label={accessibilityLabel}
+      aria-disabled={disabled}
+      aria-pressed={selected}
+      accessibilityHint={accessibilityHint}
+      {...resolvePlatformAccessibilityProps(Platform.OS, { selected, disabled })}
+      disabled={disabled}
+      onPress={onPress}
+    >
+      {icon}
+    </Button>
+  );
+}

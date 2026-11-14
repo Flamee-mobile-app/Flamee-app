@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-27",
+  "feature": "auth",
+  "tool": "built-in image_gen",
+  "basePrompt": "Generate ONE standalone premium Vietnamese mobile app screen mockup for Flamee, a real couples connection app. Use reference image for warm tactile material, friendly polished illustration and phone presentation ONLY; do NOT copy Tiny Mission content. Cross-platform premium neutral UI in a consistent slender black iPhone-like frame, straight front-facing, centered on warm stone #EEECEA studio backdrop. PORTRAIT 1024x1536 canvas, whole device visible with balanced margins, frame subtle, content fills most canvas. Status bar 9:41 and home indicator. Warm cream app background, one off-white #FFFCF8 large gently rounded content surface with subtle warm shadow. Palette: coral #FF7158, soft apricot #FCB76D, dark brown #302924, muted #70655D, warm border #E6DDD3, small sage accents. Crisp large readable Vietnamese text with correct diacritics, short copy, humanist rounded semibold headings, body comfortable equivalent 14-16pt, feature heading moderate equivalent 24pt NOT huge. Tight title-to-content gap, generous internal rhythm. No extra page eyebrow or subtitle outside content. Preserve one brand system in every image. Realistic creamy photography for memories, cute painterly flame mascot and approved soft 3D illustrated avatars for fictional Linh and Nam. Native touch-sized coral primary buttons and pale peach secondary buttons. Non-Home screens use plain dark feature-name title with back chevron for nested views; NO global Flamee logo header, NO title divider. Only Home timeline/calendar has glass top header + left, centered dropdown title, bell right. Main tabs use SAME floating coral/apricot PILL bottom nav with four white icons home/heart/flag/profile flanking a raised round center coral FAB containing a WHITE FLAME, NOT A PLUS. Center FAB never selected and implies press effect only. Indicate active regular tab with subtle pale capsule. No white bottom nav from old reference. No navigation bar on auth, pairing, full-screen check-in or settings drilldown screens. Do not invent features or successful server operations for unavailable screens. Screen content only, no captions, annotations, arrows outside device or multiple phone collage. Specific screen requirements: ",
+  "screens": [
+    {
+      "feature": "auth",
+      "id": "01-login",
+      "title": "Đăng nhập",
+      "status": "api",
+      "spec": "Email/password sign-in. Small painterly pair of flame mascots near upper third with Flamee wordmark. Within the main cream surface heading 'Chào cậu trở lại', two labelled fields 'Email' with an example 'linh@example.com' and 'Mật khẩu' with dots and eye icon, checkbox 'Ghi nhớ đăng nhập', full-width coral 'Đăng nhập', footer 'Chưa có tài khoản? Đăng ký'. No forgot/reset password link, no Google/Apple/OTP buttons, no tab nav. Design compact and cozy, not a website login hero."
+    },
+    {
+      "feature": "auth",
+      "id": "02-register",
+      "title": "Đăng ký",
+      "status": "api",
+      "spec": "Registration screen, back chevron and modest black title 'Tạo tài khoản'. Small friendly flame accent. One cream surface with four comfortably spaced labelled fields 'Tên hiển thị' value Linh, 'Email' value linh@example.com, 'Mật khẩu' dots, 'Nhập lại mật khẩu' dots. Small helper 'Ít nhất 8 ký tự'. Coral primary 'Đăng ký', secondary text 'Đã có tài khoản? Đăng nhập'. No age question, no terms consent page, no phone/OTP/social buttons. No nav."
+    }
+  ]
+}

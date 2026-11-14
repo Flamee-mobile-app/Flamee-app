@@ -1,0 +1,16 @@
+{
+  "generator": "built-in image_gen",
+  "date": "2026-10-26",
+  "assets": [
+    {
+      "path": "flamee-mobile/src/features/tiny-mission/assets/video-call.png",
+      "reference": "design/tiny-mission/v1/02-shared-detail.png",
+      "prompt": "Use case: illustration-story. Generate a standalone transparent PNG production illustration for the Flamee mobile app, using attached mockup ONLY as style/composition reference. Recreate ONLY the illustration of two tilted smartphones showing a cute young Vietnamese woman with brown hair on the left and young man with dark hair on the right on a loving video call, smiling with hands under chin, peach clothes, three little video controls at bottom of each phone, peach/coral hearts between and around phones. Soft hand-painted premium kawaii illustration, warm peach, blush coral cream palette. Wide landscape composition 3:2 with whole phones visible and modest transparent margin. No app interface, no phone mockup frame surrounding the scene, no UI text, no titles, no lettering, no background beyond tiny soft peach heart accents. Match reference's gentle painterly detail closely."
+    },
+    {
+      "path": "flamee-mobile/src/features/tiny-mission/assets/flame-couple.png",
+      "reference": "design/tiny-mission/v1/04-achievements.png",
+      "prompt": "Use case: stylized-concept. Asset: standalone transparent PNG mascot illustration for Flamee app. Use attached mockup as reference for ONLY the illustration in upper right of achievements card. Recreate two tiny cuddling flame characters: golden peach flame left and coral pink flame right, closed smiling eyes, small rosy cheeks, no limbs, sitting next to each other, one small coral heart above between them. Soft warm hand-painted premium kawaii illustration, peach/coral/cream, subtle texture. Square composition, whole mascots visible with small margins, transparent actual alpha background, no text, no UI, no frame. Closely match the reference illustration's curves and colors."
+    }
+  ]
+}

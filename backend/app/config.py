@@ -21,9 +21,13 @@ class Settings(BaseSettings):
     supabase_service_key: str = ""  # service_role key (server-side only)
 
     # AI
-    ai_provider: Literal["openai", "anthropic"] = "openai"
+    ai_provider: Literal["openai", "gemini"] = "openai"
     openai_api_key: str = ""
+    openai_base_url: str = "https://api.openai.com"
     anthropic_api_key: str = ""
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-1.5-flash"
+    gemini_base_url: str = "https://generativelanguage.googleapis.com"
     ai_chat_model: str = "gpt-4o-mini"
     ai_embed_model: str = "text-embedding-3-small"
     ai_timeout_seconds: int = 30
@@ -34,8 +38,11 @@ class Settings(BaseSettings):
     # Security
     secret_key: str = "change-in-production-min-32-chars"
     jwt_ttl_hours: int = 24
+    jwt_refresh_ttl_days: int = 30
+    google_oauth_client_id: str = ""
+    payment_webhook_secret: str = ""
     otp_ttl_seconds: int = 600
-    invite_code_ttl_hours: int = 168
+    invite_code_ttl_hours: int = 72
 
     # Upload
     max_upload_size_mb: int = 5
@@ -49,6 +56,22 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return not self.debug
+
+    def assert_production_safe(self) -> None:
+        """Reject unsafe production credentials before serving requests."""
+        if not self.is_production:
+            return
+        if (
+            self.secret_key == type(self).model_fields["secret_key"].default
+            or len(self.secret_key.strip()) < 32
+        ):
+            raise ValueError(
+                "FLAMEE_SECRET_KEY must be non-default and at least 32 characters in production"
+            )
+        if not self.supabase_url.startswith('https://') or not self.supabase_service_key.strip():
+            raise ValueError('Production requires HTTPS FLAMEE_SUPABASE_URL and FLAMEE_SUPABASE_SERVICE_KEY')
+        if '*' in self.cors_origins:
+            raise ValueError('Production requires explicit FLAMEE_CORS_ORIGINS')
 
 
 settings = Settings()

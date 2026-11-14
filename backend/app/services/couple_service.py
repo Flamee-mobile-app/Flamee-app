@@ -6,7 +6,7 @@ from supabase import Client
 
 from app.config import settings
 from app.core.constants import CoupleStatus
-from app.core.exceptions import ConflictError, NotFoundError, ValidationError
+from app.core.exceptions import ConflictError, InviteError, NotFoundError, ValidationError
 from app.models.couple import Couple, InviteCode
 from app.repositories.couple_repo import (
     CoupleRepository,
@@ -14,6 +14,7 @@ from app.repositories.couple_repo import (
 )
 from app.repositories.user_repo import UserRepository
 from app.schemas.couple import MemberInfo
+from app.services.avatar_service import AvatarService
 from app.utils.ids import generate_invite_code, generate_uuid
 from app.utils.time import add_hours, now_utc, to_iso
 
@@ -43,9 +44,13 @@ class CoupleService:
         self.couple_repo = couple_repo
         self.invite_repo = invite_repo
         self.user_repo = user_repo
+        self.avatar_service = AvatarService(db, user_repo)
 
     def create_invite(self, user_id: str) -> InviteCode:
         """Deactivate prior PENDING codes for this user, then create a new one."""
+        user = self.user_repo.get(user_id)
+        if user and user.couple_id:
+            raise InviteError("already_paired", "Bạn đã được ghép đôi")
         prior = self.invite_repo.find(
             {"user_id": user_id, "status": "pending"}
         )
@@ -75,23 +80,55 @@ class CoupleService:
 
     def get_my_invite(self, user_id: str) -> InviteCode | None:
         """Return the user's most recent invite code (any status)."""
-        return self.invite_repo.find_latest_by_user(user_id)
+        invite = self.invite_repo.find_latest_by_user(user_id)
+        if invite and invite.status == "pending" and _is_expired(invite):
+            invite = self.invite_repo.update(invite.id, status="expired")
+        return invite
+
+    def validate_invite(self, user_id: str, code_str: str) -> tuple[InviteCode, MemberInfo]:
+        invite = self._validate_invite(user_id, code_str)
+        inviter = self.user_repo.get(invite.user_id)
+        if inviter is None:
+            raise InviteError("invite_not_found", "Mã mời không tồn tại")
+        inviter = self.avatar_service.present(inviter)
+        return invite, MemberInfo(
+            id=inviter.id,
+            full_name=inviter.full_name,
+            avatar_url=inviter.avatar_url,
+        )
+
+    def revoke_invite(self, user_id: str) -> InviteCode:
+        invite = self.invite_repo.find_active_by_user(user_id)
+        if invite is None:
+            raise InviteError("invite_not_found", "Không có mã mời đang hoạt động")
+        if _is_expired(invite):
+            self.invite_repo.update(invite.id, status="expired")
+            raise InviteError("invite_expired", "Mã mời đã hết hạn")
+        return self.invite_repo.update(invite.id, status="cancelled")
 
     def accept_invite(self, user_id: str, code_str: str) -> Couple:
-        invite = self._validate_invite(user_id, code_str)
         now_iso = to_iso(now_utc())
-        couple_id = self._create_couple(invite.user_id, user_id, now_iso)
-        self.invite_repo.update(
-            invite.id,
-            status="accepted",
-            used_by=user_id,
+        couple_id = generate_uuid()
+        result = self.couple_repo.accept_invite_atomic(
+            invitee_id=user_id,
+            code=code_str.strip().upper(),
+            couple_id=couple_id,
+            now_iso=now_iso,
         )
-        self.user_repo.update(
-            invite.user_id, couple_id=couple_id, updated_at=now_iso
-        )
-        self.user_repo.update(
-            user_id, couple_id=couple_id, updated_at=now_iso
-        )
+        outcome = result.get("outcome")
+        errors = {
+            "invite_not_found": "Mã mời không tồn tại",
+            "invite_cancelled": "Mã mời đã bị thu hồi",
+            "invite_used": "Mã mời đã được sử dụng",
+            "invite_expired": "Mã mời đã hết hạn",
+            "already_paired": "Bạn đã được ghép đôi",
+            "inviter_already_paired": "Người tạo mã đã được ghép đôi",
+        }
+        if outcome == "self_invite":
+            raise ValidationError("Bạn không thể dùng mã mời của mình", code=outcome)
+        if outcome != "accepted":
+            raise InviteError(outcome or "invite_not_found", errors.get(outcome, "Không thể ghép đôi"))
+        couple_id = result.get("couple_id", couple_id)
         couple = self.couple_repo.get(couple_id)
         if couple is None:
             raise ConflictError("Couple creation failed")
@@ -100,21 +137,25 @@ class CoupleService:
     def _validate_invite(
         self, user_id: str, code_str: str
     ) -> InviteCode:
-        invite = self.invite_repo.get_by_code(code_str)
-        if not invite or invite.status != "pending" or _is_expired(invite):
-            raise ConflictError(
-                "Invite code không hợp lệ hoặc đã hết hạn"
-            )
+        invite = self.invite_repo.get_by_code(code_str.strip().upper())
+        if not invite:
+            raise InviteError("invite_not_found", "Mã mời không tồn tại")
+        if invite.status == "cancelled":
+            raise InviteError("invite_cancelled", "Mã mời đã bị thu hồi")
+        if invite.status == "accepted":
+            raise InviteError("invite_used", "Mã mời đã được sử dụng")
+        if invite.status == "expired" or _is_expired(invite):
+            if invite.status != "expired":
+                self.invite_repo.update(invite.id, status="expired")
+            raise InviteError("invite_expired", "Mã mời đã hết hạn")
         if invite.user_id == user_id:
-            raise ValidationError(
-                "Bạn không thể tự accept invite của mình"
-            )
+            raise ValidationError("Bạn không thể dùng mã mời của mình", code="self_invite")
         user = self.user_repo.get(user_id)
         if user and user.couple_id:
-            raise ConflictError("Bạn đã thuộc một couple")
+            raise InviteError("already_paired", "Bạn đã được ghép đôi")
         inviter = self.user_repo.get(invite.user_id)
         if inviter and inviter.couple_id:
-            raise ConflictError("Người tạo invite đã thuộc một couple")
+            raise InviteError("inviter_already_paired", "Người tạo mã đã được ghép đôi")
         return invite
 
     def _create_couple(
@@ -149,6 +190,7 @@ class CoupleService:
         if couple.partner1_id:
             p1 = self.user_repo.get(couple.partner1_id)
             if p1:
+                p1 = self.avatar_service.present(p1)
                 partner1_info = MemberInfo(id=p1.id, full_name=p1.full_name, avatar_url=p1.avatar_url)
             if couple.partner1_id == user_id:
                 my_role = "partner1"
@@ -156,6 +198,7 @@ class CoupleService:
         if couple.partner2_id:
             p2 = self.user_repo.get(couple.partner2_id)
             if p2:
+                p2 = self.avatar_service.present(p2)
                 partner2_info = MemberInfo(id=p2.id, full_name=p2.full_name, avatar_url=p2.avatar_url)
             if couple.partner2_id == user_id:
                 my_role = "partner2"
@@ -176,21 +219,13 @@ class CoupleService:
             couple.id, anniversary=date_str, updated_at=now_iso
         )
 
-    def break_up(self, user_id: str) -> bool:
-        user = self.user_repo.get(user_id)
-        if not user or not user.couple_id:
-            raise NotFoundError("Bạn chưa thuộc couple nào")
-        couple = self.couple_repo.get(user.couple_id)
-        if not couple:
-            raise NotFoundError("Couple không tồn tại")
-            
-        # Reset couple_id của 2 người về None
-        now_iso = to_iso(now_utc())
-        if couple.partner1_id:
-            self.user_repo.update(couple.partner1_id, couple_id=None, updated_at=now_iso)
-        if couple.partner2_id:
-            self.user_repo.update(couple.partner2_id, couple_id=None, updated_at=now_iso)
-            
-        # Xóa Couple (ON DELETE CASCADE sẽ xóa luôn Kỷ niệm, Cảm xúc, Tin nhắn)
-        self.couple_repo.delete(couple.id)
-        return True
+    def break_up(self, user_id: str, couple_id: str) -> dict:
+        from app.core.exceptions import ForbiddenError
+        result = self.couple_repo.dissolve_atomic(user_id, couple_id)
+        if not isinstance(result, dict) or result.get('outcome') == 'forbidden':
+            raise ForbiddenError("Connection unavailable")
+        if result.get('outcome') != 'dissolved':
+            raise ConflictError("Connection changed; reload before ending it")
+        from app.services.websocket_service import ws_manager
+        ws_manager.sync_broadcast_to_couple(couple_id, 'couple.dissolved', {'id': couple_id})
+        return {key: result[key] for key in ('couple_id', 'status', 'dissolved_at', 'purge_after')}

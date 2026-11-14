@@ -1,0 +1,57 @@
+import { AppGradientText } from "./AppGradientText";
+import { AlertCircle } from "@tamagui/lucide-icons-2/icons/AlertCircle";
+import { BellOff } from "@tamagui/lucide-icons-2/icons/BellOff";
+import { CircleCheck } from "@tamagui/lucide-icons-2/icons/CircleCheck";
+import { Clock } from "@tamagui/lucide-icons-2/icons/Clock";
+import { Inbox } from "@tamagui/lucide-icons-2/icons/Inbox";
+import { WifiOff } from "@tamagui/lucide-icons-2/icons/WifiOff";
+import { Text, YStack } from "tamagui";
+import { getMessage, type Locale, type MessageKey } from "../localization/messages";
+import { AppButton } from "./AppButton";
+import { getAsyncStateCopy, type AsyncStateVariant } from "./asyncStateCopy";
+
+export type { AsyncStateVariant } from "./asyncStateCopy";
+
+type AsyncStateViewProps = {
+  variant: AsyncStateVariant;
+  title?: MessageKey;
+  description?: MessageKey;
+  actionLabel?: MessageKey;
+  onAction?: () => void;
+  locale?: Locale;
+};
+
+const icons = {
+  empty: Inbox,
+  error: AlertCircle,
+  offline: WifiOff,
+  permission: BellOff,
+  expired: Clock,
+  success: CircleCheck,
+  pending: Clock,
+};
+
+export function AsyncStateView({ variant, title, description, actionLabel, onAction, locale = "vi" }: AsyncStateViewProps) {
+  const Icon = icons[variant];
+  const copy = getAsyncStateCopy(variant);
+  return (
+    <YStack flex={1} minHeight={280} alignItems="center" justifyContent="center" gap="$md" padding="$xl">
+      <YStack width={64} height={64} borderRadius="$xl" alignItems="center" justifyContent="center" backgroundColor="$supportPeachLight">
+        <Icon size={30} color="$primary" />
+      </YStack>
+      <AppGradientText textAlign="center" fontFamily="$heading" fontSize="$h4" fontWeight="$bold" color="$textPrimary">
+        {getMessage(locale, title ?? copy.title)}
+      </AppGradientText>
+      <Text textAlign="center" fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textSecondary">
+        {getMessage(locale, description ?? copy.description)}
+      </Text>
+      {(actionLabel ?? copy.actionLabel) && onAction ? (
+        <YStack marginTop="$sm">
+          <AppButton onPress={onAction}>
+            {getMessage(locale, actionLabel ?? copy.actionLabel!)}
+          </AppButton>
+        </YStack>
+      ) : null}
+    </YStack>
+  );
+}

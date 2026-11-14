@@ -1,0 +1,64 @@
+{
+  "date": "2026-10-27",
+  "feature": "checkins",
+  "tool": "built-in image_gen",
+  "basePrompt": "Generate ONE standalone premium Vietnamese mobile app screen mockup for Flamee, a real couples connection app. Use reference image for warm tactile material, friendly polished illustration and phone presentation ONLY; do NOT copy Tiny Mission content. Cross-platform premium neutral UI in a consistent slender black iPhone-like frame, straight front-facing, centered on warm stone #EEECEA studio backdrop. PORTRAIT 1024x1536 canvas, whole device visible with balanced margins, frame subtle, content fills most canvas. Status bar 9:41 and home indicator. Warm cream app background, one off-white #FFFCF8 large gently rounded content surface with subtle warm shadow. Palette: coral #FF7158, soft apricot #FCB76D, dark brown #302924, muted #70655D, warm border #E6DDD3, small sage accents. Crisp large readable Vietnamese text with correct diacritics, short copy, humanist rounded semibold headings, body comfortable equivalent 14-16pt, feature heading moderate equivalent 24pt NOT huge. Tight title-to-content gap, generous internal rhythm. No extra page eyebrow or subtitle outside content. Preserve one brand system in every image. Realistic creamy photography for memories, cute painterly flame mascot and approved soft 3D illustrated avatars for fictional Linh and Nam. Native touch-sized coral primary buttons and pale peach secondary buttons. Non-Home screens use plain dark feature-name title with back chevron for nested views; NO global Flamee logo header, NO title divider. Only Home timeline/calendar has glass top header + left, centered dropdown title, bell right. Main tabs use SAME floating coral/apricot PILL bottom nav with four white icons home/heart/flag/profile flanking a raised round center coral FAB containing a WHITE FLAME, NOT A PLUS. Center FAB never selected and implies press effect only. Indicate active regular tab with subtle pale capsule. No white bottom nav from old reference. No navigation bar on auth, pairing, full-screen check-in or settings drilldown screens. Do not invent features or successful server operations for unavailable screens. Screen content only, no captions, annotations, arrows outside device or multiple phone collage. Specific screen requirements: ",
+  "screens": [
+    {
+      "feature": "checkins",
+      "id": "01-overview",
+      "title": "Mood của chúng ta",
+      "status": "preview",
+      "spec": "Main emotions tab. Plain black feature title 'Mood của chúng ta', no glass/global header. Cream surface short editorial quote 'Những điều nhỏ' then coral accent 'giữ hai mình gần nhau'. A compact Monday–Sunday mood preview row with small expressive warm emoji illustrations and dates. Small discreet label 'Bản xem trước' near this sample row. Below two balanced white soft avatar action areas for 'Linh' and 'Nam' with approved portraits and little thought bubbles 'Hôm nay cậu thế nào?' and 'Chưa có cập nhật'. A calm Smart Nudge section says 'Gợi ý quan tâm' / 'Chưa khả dụng'. Same coral pill nav HEART selected, center white flame. No invented partner mood data or streak counts."
+    },
+    {
+      "feature": "checkins",
+      "id": "02-feeling",
+      "title": "Check-in: chọn cảm xúc",
+      "status": "draft",
+      "spec": "Full-screen check-in step 1 of 4. No bottom nav. Compact top row back arrow left, close X right, slim coral progress bar 1/4. Centered warm illustrated tired flame character with soft cheeks, comfortably sized black question 'Hôm nay cậu cảm thấy thế nào?'. Lower horizontal illustrated feeling picker with labels 'Mệt mỏi', 'Vui vẻ', 'Đầy năng lượng', 'Buồn', selected 'Mệt mỏi' highlighted coral; hint swipe to see more, no forced 5-point legacy emojis. Full-width coral bottom CTA 'Tiếp tục' above safe area. Calm off-white surface, no website cards, no generic blue smileys."
+    },
+    {
+      "feature": "checkins",
+      "id": "03-reasons",
+      "title": "Check-in: lý do",
+      "status": "draft",
+      "spec": "Full-screen check-in step 2/4 with back, close, slim coral progress. Black title 'Điều gì khiến cậu mệt mỏi?' with only 'mệt mỏi' coral. Native comfortably-sized multi-select choice chips with small consistent icons: 'Công việc', 'Học tập', 'Mệt mỏi', 'Căng thẳng', 'Lo lắng', 'Bạn bè', 'Gia đình'. Select four chips to demonstrate multi-select beyond three; selected coral fill white text/checkmark, unselected warm white/soft border. Tiny helper 'Có thể chọn nhiều lý do'. Bottom coral 'Tiếp tục'. No nav, no 3-reason restriction."
+    },
+    {
+      "feature": "checkins",
+      "id": "04-intensity",
+      "title": "Check-in: mức độ và giấc ngủ",
+      "status": "draft",
+      "spec": "Full-screen check-in step 3/4 back/close and slim coral progress. Modest black title 'Cảm giác ấy mạnh đến đâu?'. Two standard app slider modules, first labelled 'Mức độ cảm xúc' small requirement 'Bắt buộc', range1–5 smooth coral rail with prominent circular thumb at4, label 'Khá nhiều · 4/5'. Second 'Giấc ngủ đêm qua' labelled 'Không bắt buộc', range2–8+, thumb at6, label '6 giờ'. Spacious simple form on cream, no charts or cards nested. Full coral 'Tiếp tục', no nav."
+    },
+    {
+      "feature": "checkins",
+      "id": "05-note",
+      "title": "Check-in: ghi chú",
+      "status": "draft",
+      "spec": "Final full-screen note composer, NO progress bar and no app nav. Single compact header back arrow left, center small black 'Một chút tâm sự', right coral text action 'Chia sẻ'. Central cream thought bubble with restrained outline and connected tiny rounded tail leading to approved Linh portrait below it. Bubble text 'Hôm nay hơi mệt, chỉ muốn nghe giọng cậu.' and small counter '45/60'. Below portrait one tool row 'GIF', smiley, sticker, then horizontal emoji/sticker suggestion row. Show native keyboard at bottom, warm neutral keys, no distracting giant mascot. Tiny clear in-content 'Bản nháp · Chưa chia sẻ' to signal not yet submitted to API. Sophisticated warm playful composition, text readable."
+    },
+    {
+      "feature": "checkins",
+      "id": "06-history",
+      "title": "Lịch sử cảm xúc",
+      "status": "preview",
+      "spec": "Nested screen, back and plain black title 'Lịch sử cảm xúc', no app nav. One cream surface with standard previous/next month arrows and label 'Tháng 10, 2026'. Standard shared seven-column Monday-first calendar with small expressive mood emoji circles on a few dates (not mission fractions/progress bars); correct Thursday start for Oct1. Selected27 has coral outline. Beneath calendar selected-day heading '27 tháng 10' and modest mood summary 'Mệt mỏi', with discreet 'Dữ liệu minh họa' label. No invented medical insights or real partner history. Clear calm shared-control visual language."
+    },
+    {
+      "feature": "checkins",
+      "id": "07-partner",
+      "title": "Trạng thái người ấy",
+      "status": "unavailable",
+      "spec": "Shared bottom sheet over dimmed emotions overview. Handle, small coral-gradient title 'Nam', close X. Approved illustrated male avatar centered, heading 'Chưa có cập nhật', calm body 'Trạng thái cảm xúc của người ấy chưa khả dụng.', pale peach full-width 'Đóng'. No fake mood, no note, no last-seen or online status. Same coral pill nav heart selected is visible dimmed behind, center white flame."
+    },
+    {
+      "feature": "checkins",
+      "id": "08-exit-confirm",
+      "title": "Xác nhận bỏ bản nháp",
+      "status": "draft",
+      "spec": "Shared AppDialog over dimmed check-in note draft, no bottom app nav. Warm opaque ivory rounded dialog, small coral-gradient title 'Rời khỏi bản nháp?', concise body 'Nội dung chưa chia sẻ sẽ không được giữ lại.' Primary coral 'Tiếp tục viết', secondary peach 'Bỏ bản nháp'. Small thought bubble and approved Linh portrait visible dimmed behind. No fake server saving/success, no generic destructive account deletion warning."
+    }
+  ]
+}
