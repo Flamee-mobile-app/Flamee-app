@@ -27,6 +27,16 @@ test("presses filled buttons into their shadow without changing the surface colo
   }
 });
 
+test("raised surface buttons have an opaque white background and visible depth", async () => {
+  const { getAppButtonPresentation } = await import("./buttonSystemModel.ts");
+  const { base, press } = getAppButtonPresentation("surface");
+  assert.equal(base.backgroundColor, "$white");
+  assert.equal(base.color, "$textPrimary");
+  assert.ok(base.shadowOpacity > 0 && base.shadowRadius > 0 && base.elevation > 0);
+  assert.equal(press.backgroundColor, "$white");
+  assert.ok(press.shadowOpacity < base.shadowOpacity && press.elevation < base.elevation);
+});
+
 test("keeps pointer feedback distinct from persistent selection styling", async () => {
   const model = await import("./buttonSystemModel.ts");
   const ghost = model.getAppButtonPresentation("ghost");

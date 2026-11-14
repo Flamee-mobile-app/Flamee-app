@@ -3,13 +3,14 @@ import { Check } from "@tamagui/lucide-icons-2/icons/Check";
 import type { ReactNode } from "react";
 import { Platform } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
-import { Button, Text, XStack } from "tamagui";
+import { Button, Text, XStack, YStack } from "tamagui";
 import { buttonTokens, menuTokens } from "../constants/tokens";
 import { resolvePlatformAccessibilityProps } from "./buttonSystemModel";
 import { useButtonInteraction } from "./useButtonInteraction";
 
 type AppMenuRowProps = {
   label: string;
+  description?: string;
   icon: ReactNode;
   onPress: () => void;
   disabled?: boolean;
@@ -18,7 +19,7 @@ type AppMenuRowProps = {
 };
 
 /** A full-width navigation row with no separate button surface. */
-export function AppMenuRow({ label, icon, onPress, disabled = false, testID, selected }: AppMenuRowProps) {
+export function AppMenuRow({ label, description, icon, onPress, disabled = false, testID, selected }: AppMenuRowProps) {
   const interaction = useButtonInteraction(disabled);
   const reducedMotion = useReducedMotion();
   const selectable = selected !== undefined;
@@ -52,7 +53,7 @@ export function AppMenuRow({ label, icon, onPress, disabled = false, testID, sel
       cursor={disabled ? "default" : "pointer"}
       role={selectable ? "radio" : "button"}
       aria-checked={selected}
-      aria-label={label}
+      aria-label={description ? `${label}. ${description}` : label}
       aria-disabled={disabled}
       {...resolvePlatformAccessibilityProps(Platform.OS, { disabled, ...(selectable ? { checked: selected } : {}) })}
       disabled={disabled}
@@ -60,9 +61,10 @@ export function AppMenuRow({ label, icon, onPress, disabled = false, testID, sel
     >
       <XStack width="100%" minWidth={0} alignItems="center" gap="$md" pointerEvents="none">
         {icon}
-        <Text flex={1} minWidth={0} fontFamily="$body" fontSize="$bodyL" lineHeight="$bodyL" fontWeight={selected ? "$semibold" : "$medium"} color={selected ? "$accentText" : "$textPrimary"} textAlign="left">
-          {label}
-        </Text>
+        <YStack flex={1} minWidth={0} gap={description ? "$xs" : 0}>
+          <Text fontFamily="$body" fontSize="$bodyL" lineHeight="$bodyL" fontWeight={selected ? "$semibold" : "$medium"} color={selected ? "$accentText" : "$textPrimary"} textAlign="left">{label}</Text>
+          {description ? <Text fontFamily="$body" fontSize="$bodyS" lineHeight="$bodyS" color="$textSecondary">{description}</Text> : null}
+        </YStack>
         {selectable ? <XStack width={menuTokens.chevronSize} alignItems="center" justifyContent="center">{selected ? <Check size={menuTokens.chevronSize} color="$accentText" aria-hidden={true} /> : null}</XStack> : <ChevronRight size={menuTokens.chevronSize} color="$textSecondary" aria-hidden={true} />}
       </XStack>
     </Button>

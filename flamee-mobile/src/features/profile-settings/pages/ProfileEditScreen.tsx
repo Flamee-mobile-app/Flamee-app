@@ -284,14 +284,14 @@ export function ProfileEditScreen() {
                   <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" fontWeight="$semibold" color="$textPrimary">{getMessage("vi", "displayNameLabel")}</Text>
                   <Text fontFamily="$body" fontSize="$bodyS" lineHeight="$bodyS" color="$textSecondary">{displayNameCount}/{fullNameLimit}</Text>
                 </XStack>
-                <AppField showLabel={false} surfaceTone="elevated" label={getMessage("vi", "displayNameLabel")} value={displayName} error={displayNameError} onChangeText={(value) => { editRevision.current += 1; clearSavedState(); setDisplayName(value); }} maxLength={fullNameLimit * 2} editable={!saving && !avatarBusy && !unavailable} />
+                <AppField showLabel={false} surfaceTone="outlined" label={getMessage("vi", "displayNameLabel")} value={displayName} error={displayNameError} onChangeText={(value) => { editRevision.current += 1; clearSavedState(); setDisplayName(value); }} maxLength={fullNameLimit * 2} editable={!saving && !avatarBusy && !unavailable} />
               </YStack>
               <YStack gap="$sm">
                 <XStack justifyContent="space-between" alignItems="center" paddingHorizontal="$xs">
                   <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" fontWeight="$semibold" color="$textPrimary">{getMessage("vi", "profileUsernameLabel")}</Text>
                   <Text fontFamily="$body" fontSize="$bodyS" lineHeight="$bodyS" color="$textSecondary">{usernameCount}/{usernameLimit}</Text>
                 </XStack>
-                <AppField showLabel={false} surfaceTone="elevated" label={getMessage("vi", "profileUsernameLabel")} value={username} error={usernameError} onChangeText={(value) => { editRevision.current += 1; clearSavedState(); setUsername(value); }} maxLength={usernameLimit * 2} autoCapitalize="none" editable={!saving && !avatarBusy && !unavailable} />
+                <AppField showLabel={false} surfaceTone="outlined" label={getMessage("vi", "profileUsernameLabel")} value={username} error={usernameError} onChangeText={(value) => { editRevision.current += 1; clearSavedState(); setUsername(value); }} maxLength={usernameLimit * 2} autoCapitalize="none" editable={!saving && !avatarBusy && !unavailable} />
               </YStack>
             </YStack>
           </YStack>

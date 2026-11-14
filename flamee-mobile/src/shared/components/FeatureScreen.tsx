@@ -10,6 +10,7 @@ type FeatureScreenProps = PropsWithChildren<{
   title: string;
   titleTone?: "default" | "accent";
   showBack?: boolean;
+  backLabel?: string;
   onBack?: () => void;
   scroll?: boolean;
   withBottomNavigation?: boolean;
@@ -18,8 +19,8 @@ type FeatureScreenProps = PropsWithChildren<{
 }>;
 
 /** A feature title sits outside one elevated surface; no page subtitle. */
-export function FeatureScreen({ title, titleTone, showBack, onBack, scroll = true, withBottomNavigation = true, refreshControl, surfaceProps, children }: FeatureScreenProps) {
-  useAppHeader({ title, showBack, onBack });
+export function FeatureScreen({ title, titleTone, showBack, backLabel, onBack, scroll = true, withBottomNavigation = true, refreshControl, surfaceProps, children }: FeatureScreenProps) {
+  useAppHeader({ title, showBack, backLabel, onBack });
   return (
     <AppScreen scroll={scroll} refreshControl={refreshControl} contentProps={{
       width: "100%",

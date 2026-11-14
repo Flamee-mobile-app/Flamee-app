@@ -91,7 +91,7 @@ function AppToastItem({ item, cardWidth }: { item: AppToastMessage; cardWidth: n
     enterStyle={reducedMotion ? { opacity: 0 } : { opacity: 0, y: toastTokens.enterOffset, scale: 0.98 }}
     exitStyle={reducedMotion ? { opacity: 0 } : { opacity: 0, y: toastTokens.exitOffset, scale: 0.98 }}
     onPress={(event) => { event.stopPropagation(); dismiss(); }}
-    accessibilityHint={item.tone === "loading" ? undefined : getMessage("vi", "closeNotification")}
+    accessibilityHint={item.tone === "loading" ? undefined : getMessage(item.locale ?? "vi", "closeNotification")}
   >
     <XStack width="100%" alignItems="center" gap={toastTokens.iconGap} pointerEvents="none">
       <ToastStatusIcon tone={item.tone} />
@@ -109,12 +109,12 @@ export function AppToastProvider({ children }: PropsWithChildren) {
   const item = useSyncExternalStore(notifications.subscribe, notifications.getSnapshot, notifications.getServerSnapshot);
   const viewportWidth = Math.max(0, Math.min(toastTokens.maxWidth, width - spacing.lg * 2));
   const viewport = <ToastViewport
-    portalToRoot={Platform.OS !== "ios"}
+    portalToRoot={Platform.OS === "web"}
     width={viewportWidth}
     left={(width - viewportWidth) / 2}
     top={insets.top + liquidHeaderTokens.topGap + memoryFeedTokens.expandedHeaderHeight + spacing.sm}
     alignItems="center"
-    label={getMessage("vi", "notificationsLabel")}
+    label={getMessage(item?.locale ?? "vi", "notificationsLabel")}
   />;
   return <ToastProvider duration={toastTokens.duration} swipeDirection="up" swipeThreshold={item?.tone === "loading" ? Number.MAX_SAFE_INTEGER : 48} native={false}>
     {children}

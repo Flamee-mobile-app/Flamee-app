@@ -15,5 +15,8 @@ export function resolvePostAuthRoute(coupleId: string | null | undefined): "/(in
 export function resolveEntryRoute(snapshot: EntryRouteSnapshot): EntryRouteHref | null {
   if (!snapshot.bootstrapped) return null;
   if (!snapshot.accountId) return "/(auth)";
-  return resolvePostAuthRoute(snapshot.coupleStatus === "paired" ? "paired" : null);
+  if (snapshot.coupleStatus === "paired") return "/(main)";
+  if (snapshot.inviteIntent) return "/(invite)";
+  if (snapshot.setupStatus === null) return null;
+  return snapshot.setupStatus === "pending" ? "/(invite)" : "/(main)";
 }

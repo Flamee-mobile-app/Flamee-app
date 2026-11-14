@@ -22,6 +22,12 @@ test("loading follows its operation while result notifications use the configure
   assert.equal(state.getSnapshot()?.description, "Connection unavailable");
 });
 
+test("a notification retains its locale for accessible labels", () => {
+  const state = createAppToastState(3000);
+  state.show("success", "Saved", { locale: "en" });
+  assert.equal(state.getSnapshot()?.locale, "en");
+});
+
 test("dismissal retains the record for exit motion and notifies subscribers once", () => {
   const state = createAppToastState(3000);
   let changes = 0;

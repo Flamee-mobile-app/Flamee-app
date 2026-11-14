@@ -16,7 +16,7 @@ import {
 export type AppButtonProps = PropsWithChildren<{
   variant?: AppButtonVariant;
   size?: "regular" | "large" | "compact";
-  depth?: "raised" | "flat";
+  depth?: "raised" | "subtle" | "flat";
   disabledTone?: "default" | "muted";
   loading?: boolean;
   disabled?: boolean;
@@ -79,10 +79,10 @@ export function AppButton({
       fontSize="$button"
       fontWeight="$semibold"
       shadowColor={webGlass ? undefined : presentation.base.shadowColor}
-      shadowOffset={webGlass ? undefined : presentation.base.shadowOffset}
-      shadowOpacity={webGlass ? undefined : depth === "flat" ? 0 : disabledPresentation?.shadowOpacity ?? presentation.base.shadowOpacity}
-      shadowRadius={webGlass ? undefined : depth === "flat" ? 0 : disabledPresentation?.shadowRadius ?? presentation.base.shadowRadius}
-      elevation={Platform.OS === "android" ? depth === "flat" ? 0 : disabledPresentation?.elevation ?? presentation.base.elevation : undefined}
+      shadowOffset={webGlass ? undefined : depth === "subtle" ? buttonTokens.subtleShadow.shadowOffset : presentation.base.shadowOffset}
+      shadowOpacity={webGlass ? undefined : depth === "flat" ? 0 : disabledPresentation?.shadowOpacity ?? (depth === "subtle" ? buttonTokens.subtleShadow.shadowOpacity : presentation.base.shadowOpacity)}
+      shadowRadius={webGlass ? undefined : depth === "flat" ? 0 : disabledPresentation?.shadowRadius ?? (depth === "subtle" ? buttonTokens.subtleShadow.shadowRadius : presentation.base.shadowRadius)}
+      elevation={Platform.OS === "android" ? depth === "flat" ? 0 : disabledPresentation?.elevation ?? (depth === "subtle" ? buttonTokens.subtleShadow.elevation : presentation.base.elevation) : undefined}
       alignSelf={layout.alignSelf}
       flex={layout.flex}
       minWidth={layout.minWidth}
@@ -100,6 +100,7 @@ export function AppButton({
           boxShadow: glassTokens.buttonPressedShadow,
         } : pressStyle),
         ...(Platform.OS === "android" ? { elevation: pressedElevation } : {}),
+        ...(depth === "subtle" ? { ...buttonTokens.subtlePressedShadow, elevation: Platform.OS === "android" ? buttonTokens.subtlePressedShadow.elevation : undefined } : {}),
         ...(depth === "flat" ? { shadowOpacity: 0, shadowRadius: 0, ...(Platform.OS === "android" ? { elevation: 0 } : {}) } : {}),
       }}
       focusStyle={{ borderWidth: 0, outlineWidth: 0, outlineStyle: "none" }}

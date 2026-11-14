@@ -31,12 +31,16 @@ export function MemoryDetailView({ id, scope, summary, availableHeight, paddingB
     const result = await memoryService.detail(recordId, signal);
     return freshUrls.current ? result : reuseMemoryCover(result, summary);
   }, [summary]);
-  const query = useQuery({ ...memoryDetailOptions(scope, id, read), enabled });
+  const query = useQuery({ ...memoryDetailOptions(scope, id, read, () => !freshUrls.current), enabled });
   const preview = useMemo(() => getMemoryPhotoPreview(summary), [summary]);
   const record = query.data ?? preview;
   const [contentHeight, setContentHeight] = useState(0);
   const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
-  const retry = useCallback(() => { freshUrls.current = true; void query.refetch({ cancelRefetch: false }); }, [query.refetch]);
+  const retry = useCallback(() => {
+    freshUrls.current = true;
+    const finish = () => { freshUrls.current = false; };
+    void query.refetch({ cancelRefetch: false }).then(finish, finish);
+  }, [query.refetch]);
   const open = useCallback((photoId: string) => setSelectedPhotoId(photoId), []);
   const closeViewer = useCallback(() => setSelectedPhotoId(null), []);
   const renderPhoto = useCallback(({ item }: { item: Photo }) => <DetailPhoto photo={item} onRetry={retry} onOpen={open} maxHeight={photoHeight} />, [retry, open, photoHeight]);
@@ -55,12 +59,12 @@ export function MemoryDetailView({ id, scope, summary, availableHeight, paddingB
         {record.description ? <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textSecondary">{record.description}</Text> : null}
       </YStack>}
       ListFooterComponent={<YStack gap="$lg">
-        {query.isFetching ? <AppSkeletonGroup accessibilityLabel={getMessage("vi", "homeLoadingTitle")}><AppSkeleton height={16} width="60%" /></AppSkeletonGroup> : null}
+        {query.isFetching && !query.data ? <AppSkeletonGroup accessibilityLabel={getMessage("vi", "homeLoadingTitle")}><AppSkeleton height={16} width="60%" /></AppSkeletonGroup> : null}
         {query.isError ? <YStack gap="$sm"><Text role="alert" fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$accentText">{getMessage("vi", "memoryFeedLoadErrorBody")}</Text><AppButton variant="ghost" onPress={retry}>{getMessage("vi", "retry")}</AppButton></YStack> : null}
         {record.location ? <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textSecondary">{record.location}</Text> : null}
         {query.data && enabled ? <MemoryActions record={query.data} scope={scope} onDeleted={onDeleted} /> : null}
       </YStack>} />
-    {selectedPhoto && enabled ? <AppImageViewer key={`${selectedPhoto.id}-${selectedPhoto.url}`} uri={selectedPhoto.url} previewUri={selectedPhoto.thumbnail_url} title={record.title} onClose={closeViewer} onRetry={retry} /> : null}
+    {selectedPhoto && enabled ? <AppImageViewer key={selectedPhoto.id} uri={selectedPhoto.url} previewUri={selectedPhoto.thumbnail_url} title={record.title} onClose={closeViewer} onRetry={retry} /> : null}
   </>;
 }
 const photoKey = (photo: Photo) => photo.id;

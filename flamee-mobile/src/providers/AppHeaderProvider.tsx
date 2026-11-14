@@ -39,7 +39,7 @@ export function AppHeaderProvider({ children }: PropsWithChildren) {
           {menu.isHome ? <MemoryFeedHeader title={configuration.title} menuItems={menu.items} activeMenuId={menu.activeId} onMenuSelect={menu.select}
             leftAction={menu.leftAction} onNotifications={openNotifications} topInset={insets.top} compact={configuration.compact ?? false}
             onBack={configuration.showBack ? configuration.onBack ?? router.back : undefined} />
-            : <View style={{ paddingTop: insets.top }}><FeatureTitle title={configuration.title} onBack={configuration.showBack ? configuration.onBack ?? router.back : undefined} /></View>}
+            : <View style={{ paddingTop: insets.top }}><FeatureTitle title={configuration.title} backLabel={configuration.backLabel} onBack={configuration.showBack ? configuration.onBack ?? router.back : undefined} /></View>}
         </View>
       </View> : null}
       {notificationsMounted ? <AppSheet open={notificationsOpen} fitContent disableDrag onOpenChange={setNotificationsOpen} onAfterClose={() => setNotificationsMounted(false)}

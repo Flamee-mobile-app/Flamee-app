@@ -28,10 +28,12 @@ export function HomeScreen({ view: routeView, checkInRequest, momentRequest }: H
   const screenFocused = useIsFocused();
   const [today, setToday] = useState(() => localCalendarDay(new Date()));
   const [headerCompact, setHeaderCompact] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const refreshPending = useRef(false);
   const blurTarget = useRef<AppBlurTargetView | null>(null);
   const overlays = useRef<HomeOverlayHandle | null>(null);
   const headerScroll = useRef<HeaderScrollState>({ offset: 0, travel: 0, compact: false });
-  const { query, records, invalidate } = useHomeMemories(scope, bootstrapped, screenFocused);
+  const { query, records, invalidate, refresh } = useHomeMemories(scope, bootstrapped, screenFocused);
 
   useFocusEffect(useCallback(() => {
     setToday(localCalendarDay(new Date()));
@@ -56,8 +58,17 @@ export function HomeScreen({ view: routeView, checkInRequest, momentRequest }: H
   const onConnect = useCallback(() => router.push("/connection"), [router]);
   useAppHeader({ title: getMessage("vi", getMemoryFeatureMenu(view).active.titleKey), activeMenuId: view, onAdd, compact: headerCompact }, !checkInRequest);
   const closeLegacyIntent = useCallback(() => router.setParams({ checkInRequest: undefined, momentRequest: undefined, momentKind: undefined }), [router]);
-  const { refetch, fetchNextPage, isFetching, hasNextPage } = query;
-  const onRefresh = useCallback(() => { void refetch({ cancelRefetch: false }); }, [refetch]);
+  const { fetchNextPage, isFetching, hasNextPage } = query;
+  const onRefresh = useCallback(() => {
+    if (refreshPending.current) return;
+    refreshPending.current = true;
+    setRefreshing(true);
+    const finish = () => {
+      refreshPending.current = false;
+      setRefreshing(false);
+    };
+    void refresh().then(finish, finish);
+  }, [refresh]);
   const onMore = useCallback(() => { if (hasNextPage && !isFetching) void fetchNextPage({ cancelRefetch: false }); }, [hasNextPage, isFetching, fetchNextPage]);
   const onPosted = useCallback(() => { void invalidate(); }, [invalidate]);
   const scopeKey = `${sessionId}:${accountId}:${coupleId}`;
@@ -67,7 +78,7 @@ export function HomeScreen({ view: routeView, checkInRequest, momentRequest }: H
       <AppBlurTarget ref={blurTarget} style={{ flex: 1, width: "100%" }}>
         <HomeMemoryList key={scopeKey} records={records} view={view} today={today} topInset={insets.top}
           loading={!bootstrapped || Boolean(coupleId && query.isPending)} failed={query.isError} paired={Boolean(coupleId)} confirmed={Boolean(query.data) || (bootstrapped && !coupleId)}
-          refreshing={query.isRefetching && !query.isFetchingNextPage} loadingMore={query.isFetchingNextPage} hasMore={Boolean(hasNextPage)}
+          refreshing={refreshing} loadingMore={query.isFetchingNextPage} hasMore={Boolean(hasNextPage)}
           onRefresh={onRefresh} onMore={onMore} onConnect={onConnect} onAdd={onAdd} onDay={onDay} onDetails={onDetails} onScroll={onScroll} />
       </AppBlurTarget>
     </YStack>

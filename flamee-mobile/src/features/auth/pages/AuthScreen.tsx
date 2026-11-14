@@ -4,20 +4,20 @@ import { Eye } from "@tamagui/lucide-icons-2/icons/Eye";
 import { EyeOff } from "@tamagui/lucide-icons-2/icons/EyeOff";
 import { LockKeyhole } from "@tamagui/lucide-icons-2/icons/LockKeyhole";
 import { Mail } from "@tamagui/lucide-icons-2/icons/Mail";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "expo-router";
-import { AccessibilityInfo, Image, Keyboard, KeyboardAvoidingView, Platform, StyleSheet } from "react-native";
+import { AccessibilityInfo, Image, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useReducedMotion } from "react-native-reanimated";
 import { Controller, useForm } from "react-hook-form";
-import { Label, ScrollView, Text, XStack, YStack } from "tamagui";
+import { Label, Text, XStack, YStack } from "tamagui";
 import { AppButton, AppCheckbox, AppField, AppIconButton, AppTextButton, appToast } from "../../../shared/components";
 import { loginTokens, spacing } from "../../../shared/constants/tokens";
 import { getMessage } from "../../../shared/localization/messages";
 import { lockedHeroScrollProps } from "../../../shared/layout/heroScrollBehavior";
+import { scrollFocusedInputToKeyboard } from "../../../shared/layout/scrollFocusedInput";
 import { useScreenReveal } from "../../../shared/motion/ScreenReveal";
 import { useSessionStore } from "../../../shared/state/sessionStore";
-import { resolvePostAuthRoute } from "../../../shared/navigation/entryRoute";
 import { authService } from "../authRuntime";
 import type { AuthSession } from "../authService";
 import { getAuthErrorMessage } from "../authErrorMessage";
@@ -35,6 +35,7 @@ let loginEntranceUsed = false;
 export function AuthScreen() {
   const router = useRouter();
   const loginPending = useRef(false);
+  const scrollRef = useRef<ScrollView>(null);
   const [busy, setBusy] = useState(false);
   const animateEntrance = useRef(!loginEntranceUsed);
   const [register, setRegister] = useState(false);
@@ -63,11 +64,20 @@ export function AuthScreen() {
     if (visible) loginEntranceUsed = true;
   }, [visible]);
 
+  const revealFocusedInput = useCallback(() => {
+    if (Platform.OS === "web") return;
+    requestAnimationFrame(() => scrollFocusedInputToKeyboard(scrollRef.current, spacing.md));
+  }, []);
+  useEffect(() => {
+    const subscription = Keyboard.addListener("keyboardDidShow", revealFocusedInput);
+    return () => subscription.remove();
+  }, [revealFocusedInput]);
+
   const motion = { visible, reducedMotion, animate: animateEntrance.current };
 
   const activateSession = async (session: AuthSession) => {
     useSessionStore.getState().setActiveAccount(session.accountId, session.user.couple_id ?? null, session.user.avatar_url ?? null);
-    router.replace(resolvePostAuthRoute(session.user.couple_id));
+    router.replace("/");
   };
 
   const login = form.handleSubmit(async (values) => {
@@ -88,9 +98,9 @@ export function AuthScreen() {
   });
 
   return (
-    <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === "ios" ? "padding" : Platform.OS === "android" ? "height" : undefined}>
       <YStack flex={1} backgroundColor="$background" overflow="hidden">
-        <ScrollView {...lockedHeroScrollProps} flex={1} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
+        <ScrollView ref={scrollRef} {...lockedHeroScrollProps} style={styles.fill} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
           <YStack flexGrow={1} flexShrink={0} width="100%" maxWidth={loginTokens.screenMaxWidth} alignSelf="center">
         <YStack minHeight={layout.heroHeight} flexGrow={1} flexShrink={0} overflow="hidden">
           <AuthHeroBackground />
@@ -104,7 +114,7 @@ export function AuthScreen() {
 
         <YStack flexShrink={0} marginTop={-loginTokens.formOverlap} borderTopLeftRadius="$xl" borderTopRightRadius="$xl" backgroundColor="$white" paddingHorizontal={spacing.lg + Math.max(insets.left, insets.right)} paddingTop="$md" paddingBottom={layout.surfacePaddingBottom}>
           <YStack width="100%" maxWidth={loginTokens.maxWidth} alignSelf="center">
-            {register ? <RegisterForm {...motion} onAuthenticated={activateSession} onLogin={() => setRegister(false)} /> : <YStack>
+            {register ? <RegisterForm {...motion} onAuthenticated={activateSession} onLogin={() => setRegister(false)} onFieldFocus={revealFocusedInput} /> : <YStack>
             <LoginEntrance order={2} {...motion}>
               <AppGradientText role="heading" aria-level={1} fontFamily="$heading" fontSize="$h4" lineHeight="$h4" fontWeight="$bold" color="$textPrimary" textAlign="center" marginBottom={layout.titleGap}>{getMessage("vi", "loginAction")}</AppGradientText>
             </LoginEntrance>
@@ -116,7 +126,7 @@ export function AuthScreen() {
                     startIcon={<Mail size={20} color="$textSecondary" aria-hidden={true} />}
                     placeholder={getMessage("vi", "loginEmailPlaceholder")} keyboardType="email-address" inputMode="email" autoComplete="email" textContentType="emailAddress" maxLength={254} autoCapitalize="none" autoCorrect={false}
                     editable={!busy} value={field.value} error={fieldState.error?.message}
-                    onChangeText={field.onChange} onBlur={field.onBlur}
+                    onChangeText={field.onChange} onBlur={field.onBlur} onFocus={revealFocusedInput}
                     onSubmitEditing={() => form.setFocus("password")} submitBehavior="submit" returnKeyType="next"  />
                 </YStack>
               )} />
@@ -129,7 +139,7 @@ export function AuthScreen() {
                     startIcon={<LockKeyhole size={20} color="$textSecondary" aria-hidden={true} />}
                     placeholder={getMessage("vi", "loginPasswordPlaceholder")} secureTextEntry={!showPassword} type={showPassword ? "text" : "password"} autoComplete="current-password" textContentType="password" maxLength={128} autoCapitalize="none" autoCorrect={false}
                     editable={!busy} value={field.value} error={fieldState.error?.message}
-                    onChangeText={field.onChange} onBlur={field.onBlur}
+                    onChangeText={field.onChange} onBlur={field.onBlur} onFocus={revealFocusedInput}
                     onSubmitEditing={() => void login()} submitBehavior="submit" returnKeyType="go" endAction={<AppIconButton tone="plain" disabled={busy} selected={showPassword}
                       accessibilityLabel={getMessage("vi", showPassword ? "loginHidePassword" : "loginShowPassword")}
                       icon={showPassword ? <EyeOff size={20} color="$textSecondary" aria-hidden={true} /> : <Eye size={20} color="$textSecondary" aria-hidden={true} />}

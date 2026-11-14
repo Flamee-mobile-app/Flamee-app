@@ -8,5 +8,5 @@ export { isMemoryMutationScopeCurrent } from "./memoryMutationScope";
 export type { MemorySummary, MemoryList, MemoryDetail } from "./memoryApi";
 export { publishMemoryPost } from "./publishMemoryPost";
 export type { MemoryPostStage, MemoryPostCheckpoint } from "./publishMemoryPost";
-export { memoryFeedOptions, memoryDetailOptions, memoryQueryKeys, pruneMemoryQueries } from "./memoryQueries";
+export { memoryFeedOptions, memoryDetailOptions, memoryQueryKeys, pruneMemoryQueries, refreshStaleMemoryQueries } from "./memoryQueries";
 export type { MemoryScope } from "./memoryQueries";

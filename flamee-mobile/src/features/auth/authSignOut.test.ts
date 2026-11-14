@@ -137,6 +137,156 @@ test("a login that finishes after logout has its issued server session revoked",
   assert.equal(auth.getSessionSnapshot(), null);
 });
 
+test("login or registration storage failure revokes the unpublished server session", async () => {
+  for (const action of ["login", "register"] as const) {
+    const revoked: string[] = [];
+    const store = credentials();
+    const auth = createAuthService({
+      credentials: { ...store, write: async () => { throw new Error("secure storage unavailable"); }, clear: async () => { throw new Error("secure storage unavailable"); } },
+      api: createAuthApi({ baseUrl: "https://api.example", fetcher: (async (url, options) => {
+        if (String(url).endsWith("/login") || String(url).endsWith("/register")) return reply({ user, access_token: "unpublished", refresh_token: "refresh" });
+        revoked.push(new Headers(options?.headers).get("Authorization")!);
+        return reply({ logged_out: true });
+      }) as typeof fetch }),
+    });
+    const request = action === "login" ? auth.login(user.email, "password", true) : auth.register(user.email, "password", "An");
+    await assert.rejects(request, error => error instanceof AuthError && error.code === "storage");
+    assert.deepEqual(revoked, ["Bearer unpublished"]);
+    assert.equal(auth.getSessionSnapshot(), null);
+    assert.equal(auth.getAccessToken(), null);
+  }
+});
+
+test("late cleanup of an unpublished login cannot revoke or clear a newer account", async () => {
+  const started = deferred<void>();
+  const release = deferred<Response>();
+  const store = credentials();
+  let logins = 0;
+  let writes = 0;
+  const auth = createAuthService({
+    credentials: { ...store, write: async (value) => { if (++writes === 1) throw new Error("storage unavailable"); await store.write(value); } },
+    api: createAuthApi({ baseUrl: "https://api.example", fetcher: (async (url, options) => {
+      if (String(url).endsWith("/login")) {
+        logins++;
+        return reply({ user: { ...user, id: logins === 1 ? "account-a" : "account-b" }, access_token: logins === 1 ? "access-a" : "access-b" });
+      }
+      assert.equal(new Headers(options?.headers).get("Authorization"), "Bearer access-a");
+      started.resolve();
+      return release.promise;
+    }) as typeof fetch }),
+  });
+  const failedLogin = auth.login(user.email, "password", true);
+  const rejected = assert.rejects(failedLogin, error => error instanceof AuthError && error.code === "storage");
+  await started.promise;
+  await auth.login("b@example.com", "password", true);
+  release.resolve(reply({ logged_out: true }));
+  await rejected;
+  assert.equal(auth.getSessionSnapshot()?.accountId, "account-b");
+  assert.equal(auth.getAccessToken(), "access-b");
+  assert.equal(await store.read(), "access-b");
+});
+
+test("a delayed credential write is removed when the replacing login fails before storage", async () => {
+  const writing = deferred<void>();
+  const release = deferred<void>();
+  const store = credentials();
+  const revoked: string[] = [];
+  const auth = createAuthService({
+    credentials: { ...store, write: async (value) => { writing.resolve(); await release.promise; await store.write(value); } },
+    api: createAuthApi({ baseUrl: "https://api.example", fetcher: (async (url, options) => {
+      if (String(url).endsWith("/login")) {
+        const email = JSON.parse(String(options?.body)).email;
+        return email === "b@example.com" ? reply(null, 401) : reply({ user, access_token: "access-a", refresh_token: "refresh-a" });
+      }
+      revoked.push(new Headers(options?.headers).get("Authorization")!);
+      return reply({ logged_out: true });
+    }) as typeof fetch }),
+  });
+  const loginA = auth.login(user.email, "password", true);
+  const cancelled = assert.rejects(loginA, error => error instanceof AuthError && error.code === "cancelled");
+  await writing.promise;
+  await assert.rejects(auth.login("b@example.com", "wrong", true), error => error instanceof AuthError && error.code === "credentials");
+  release.resolve();
+  await cancelled;
+  assert.equal(await store.read(), null);
+  assert.deepEqual(revoked, ["Bearer access-a"]);
+  assert.equal(auth.getSessionSnapshot(), null);
+  assert.equal(auth.getAccessToken(), null);
+});
+
+test("cleanup of a superseded write preserves a different credential already in storage", async () => {
+  const writing = deferred<void>();
+  const release = deferred<void>();
+  const store = credentials();
+  let clears = 0;
+  const auth = createAuthService({
+    credentials: { ...store, write: async () => { writing.resolve(); await release.promise; await store.write("different-credential"); }, clear: async () => { clears++; await store.clear(); } },
+    api: createAuthApi({ baseUrl: "https://api.example", fetcher: (async (url, options) => {
+      if (String(url).endsWith("/login")) return JSON.parse(String(options?.body)).email === "b@example.com" ? reply(null, 401) : reply({ user, access_token: "access-a" });
+      return reply({ logged_out: true });
+    }) as typeof fetch }),
+  });
+  const loginA = auth.login(user.email, "password", true);
+  const cancelled = assert.rejects(loginA, error => error instanceof AuthError && error.code === "cancelled");
+  await writing.promise;
+  await assert.rejects(auth.login("b@example.com", "wrong", true));
+  release.resolve();
+  await cancelled;
+  assert.equal(await store.read(), "different-credential");
+  assert.equal(clears, 0);
+});
+
+test("a newer successful login keeps its credentials after the old write finishes", async () => {
+  const writing = deferred<void>();
+  const release = deferred<void>();
+  const store = credentials();
+  const revoked: string[] = [];
+  let writes = 0;
+  const auth = createAuthService({
+    credentials: { ...store, write: async value => { if (++writes === 1) { writing.resolve(); await release.promise; } await store.write(value); } },
+    api: createAuthApi({ baseUrl: "https://api.example", fetcher: (async (url, options) => {
+      if (String(url).endsWith("/login")) {
+        const isB = JSON.parse(String(options?.body)).email === "b@example.com";
+        return reply({ user: { ...user, id: isB ? "account-b" : "account-a" }, access_token: isB ? "access-b" : "access-a" });
+      }
+      revoked.push(new Headers(options?.headers).get("Authorization")!);
+      return reply({ logged_out: true });
+    }) as typeof fetch }),
+  });
+  const loginA = auth.login(user.email, "password", true);
+  const cancelled = assert.rejects(loginA, error => error instanceof AuthError && error.code === "cancelled");
+  await writing.promise;
+  const loginB = auth.login("b@example.com", "password", true);
+  release.resolve();
+  await Promise.all([cancelled, loginB]);
+  assert.equal(await store.read(), "access-b");
+  assert.equal(auth.getSessionSnapshot()?.accountId, "account-b");
+  assert.deepEqual(revoked, ["Bearer access-a"]);
+});
+
+test("failed removal of a superseded credential reports storage failure and still attempts revocation", async () => {
+  const writing = deferred<void>();
+  const release = deferred<void>();
+  const store = credentials();
+  const revoked: string[] = [];
+  const auth = createAuthService({
+    credentials: { ...store, write: async value => { writing.resolve(); await release.promise; await store.write(value); }, clear: async () => { throw new Error("storage unavailable"); } },
+    api: createAuthApi({ baseUrl: "https://api.example", fetcher: (async (url, options) => {
+      if (String(url).endsWith("/login")) return JSON.parse(String(options?.body)).email === "b@example.com" ? reply(null, 401) : reply({ user, access_token: "access-a" });
+      revoked.push(new Headers(options?.headers).get("Authorization")!);
+      return reply({ logged_out: true });
+    }) as typeof fetch }),
+  });
+  const loginA = auth.login(user.email, "password", true);
+  const rejected = assert.rejects(loginA, error => error instanceof AuthError && error.code === "storage");
+  await writing.promise;
+  await assert.rejects(auth.login("b@example.com", "wrong", true));
+  release.resolve();
+  await rejected;
+  assert.deepEqual(revoked, ["Bearer access-a"]);
+  assert.equal(auth.getSessionSnapshot(), null);
+});
+
 test("signing out without an active session does not make a network request", async () => {
   const auth = createAuthService({ credentials: credentials(), api: createAuthApi({ baseUrl: "https://api.example", fetcher: (async () => {
     assert.fail("no credential must not trigger a request");

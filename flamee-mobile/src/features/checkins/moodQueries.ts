@@ -12,7 +12,7 @@ export function moodHistoryOptions(scope: MoodHistoryScope, read: (page: { limit
   });
 }
 export function partnerMoodOptions(scope: MoodHistoryScope & { coupleId: string | null }, read: (signal: AbortSignal) => Promise<ServerPartnerMood>) {
-  return queryOptions({ queryKey: ["partner-mood", scope.sessionId, scope.accountId, scope.coupleId], queryFn: ({ signal }) => read(signal), staleTime: 0, retry: false });
+  return queryOptions({ queryKey: ["partner-mood", scope.sessionId, scope.accountId, scope.coupleId], queryFn: ({ signal }) => read(signal), staleTime: 30_000, retry: false });
 }
 export function pruneMoodHistory(client: QueryClient, scope: MoodHistoryScope & { coupleId?: string | null }) {
   const filters = { predicate: (query: { queryKey: readonly unknown[] }) => ["mood-history", "partner-mood"].includes(String(query.queryKey[0])) && (!scope.accountId || query.queryKey[1] !== scope.sessionId || query.queryKey[2] !== scope.accountId || (query.queryKey[0] === "partner-mood" && query.queryKey[3] !== scope.coupleId)) };

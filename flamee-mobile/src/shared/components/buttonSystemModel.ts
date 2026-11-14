@@ -1,6 +1,6 @@
 import { buttonTokens, noteComposerLayoutTokens } from "../constants/tokens.ts";
 
-export type AppButtonVariant = "primary" | "secondary" | "ghost" | "destructive" | "outline";
+export type AppButtonVariant = "primary" | "secondary" | "ghost" | "destructive" | "outline" | "surface";
 export type AppButtonContentAlign = "center" | "start";
 export type FilterSelectionMode = "single" | "multiple";
 
@@ -49,6 +49,11 @@ type ButtonColor =
   | "transparent";
 
 const buttonPresentations: Record<AppButtonVariant, ButtonPresentation> = {
+  surface: {
+    base: { backgroundColor: "$white", color: "$textPrimary", shadowColor: "$textPrimary", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 4, elevation: 2 },
+    hover: {},
+    press: { backgroundColor: "$white", transform: [{ translateY: buttonTokens.pressOffset }], shadowColor: "$textPrimary", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.07, shadowRadius: 1, elevation: 0 },
+  },
   outline: {
     base: { backgroundColor: "transparent", color: "$textPrimary", borderColor: "$border", borderWidth: 1, shadowColor: "$textPrimary", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0, shadowRadius: 0, elevation: 0 },
     hover: { backgroundColor: "$surfaceMuted" },

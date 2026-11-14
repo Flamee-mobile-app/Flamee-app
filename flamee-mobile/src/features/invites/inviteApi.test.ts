@@ -29,6 +29,11 @@ test("an unauthorized response still expires the session when its body is not JS
   await assert.rejects(api.current("old"), (error) => error instanceof InviteApiError && error.code === "unauthorized");
 });
 
+test("a server failure is distinguished from an invite rejection even with a JSON error body", async () => {
+  const api = createInviteApi({ baseUrl: "https://example.test", fetcher: async () => Response.json({ success: false, error: { code: "upstream_unavailable", message: "failed" } }, { status: 503 }) });
+  await assert.rejects(api.accept("token", "ABC123"), (error: unknown) => error instanceof InviteApiError && error.code === "server");
+});
+
 test("the success screen reads both real members from the authenticated couple endpoint", async () => {
   const couple = { id: "couple-a", status: "active", partner1: { id: "user-a", full_name: "An", avatar_url: "https://private.example/a.jpg" }, partner2: { id: "user-b", full_name: "Bình", avatar_url: null } };
   const api = createInviteApi({ baseUrl: "https://example.test/api/v1", fetcher: (async (url, options) => {

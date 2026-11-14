@@ -42,7 +42,7 @@ export const AppGradientText = memo(function AppGradientText({ children, size = 
   const nativeProps: TextProps = { numberOfLines, onTextLayout: Platform.OS === "web" || numberOfLines !== undefined || fontScale !== 1 ? undefined : measure };
   return <YStack minWidth={0} {...layout}>
     <NativeText ref={textRef} {...nativeProps} {...(Platform.OS === "web" && layout.tabIndex !== undefined ? { tabIndex: Number(layout.tabIndex) } : {})} style={[
-      { fontSize: type.fontSize, lineHeight: type.lineHeight, fontWeight, textAlign: alignment, color: lines ? "transparent" : brandGradient[1] },
+      { fontSize: type.fontSize, lineHeight: type.lineHeight, fontWeight, textAlign: alignment, color: brandGradient[1], opacity: lines ? 0 : 1 },
       Platform.OS === "web" ? { backgroundImage: `linear-gradient(90deg, ${brandGradient[0]}, ${brandGradient[1]})`, backgroundClip: "text", WebkitBackgroundClip: "text", color: "transparent" } as object : undefined,
     ]}>{text}</NativeText>
     {Platform.OS !== "web" && lines ? <Svg pointerEvents="none" accessible={false} width="100%" height="100%" style={StyleSheet.absoluteFill}>

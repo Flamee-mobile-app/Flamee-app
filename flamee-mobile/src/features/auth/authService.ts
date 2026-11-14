@@ -47,6 +47,22 @@ export function createAuthService({ api, credentials, onSessionChanged, onSessio
   };
   const encodedCredential = (access: string, refresh: string | null) => refresh
     ? JSON.stringify({ version: 2, access_token: access, refresh_token: refresh }) : access;
+  const clearMatchingCredential = async (credential: string) => {
+    if (await credentials.read() === credential) await credentials.clear();
+  };
+  const writeCredential = (credential: string, request: number) => store(async () => {
+    if (request !== generation) throw new AuthError("cancelled");
+    try { await credentials.write(credential); }
+    catch (error) {
+      await clearMatchingCredential(credential);
+      throw error;
+    }
+    if (request !== generation) {
+      // Keep comparison and cleanup in the same queue as every credential write.
+      await clearMatchingCredential(credential);
+      throw new AuthError("cancelled");
+    }
+  });
   const unauthorized = (error: unknown) => error instanceof Error && "code" in error
     && (error.code === "credentials" || error.code === "unauthorized");
   const endLocalSession = () => {
@@ -63,6 +79,14 @@ export function createAuthService({ api, credentials, onSessionChanged, onSessio
     // Revoke that exact token without reading or mutating the new active account.
     await api.logout(token).catch(() => undefined);
     throw new AuthError("cancelled");
+  };
+  const discardWrittenSession = async (token: string, credential: string): Promise<never> => {
+    try { await store(() => clearMatchingCredential(credential)); }
+    catch {
+      await api.logout(token).catch(() => undefined);
+      throw new AuthError("storage");
+    }
+    return discardIssuedSession(token);
   };
   const revokeCapturedSession = async (token: string | null, refresh: string | null): Promise<AuthSignOutResult> => {
     if (!token) return { kind: "noSession" };
@@ -95,23 +119,27 @@ export function createAuthService({ api, credentials, onSessionChanged, onSessio
       const owner = session?.accountId;
       const revision = profileRevision;
       const membershipRevision = getMembershipRevision();
+      let storedCredential: string | null = null;
       try {
         const result = await api.refresh(refreshToken);
         if (request !== generation) return discardIssuedSession(result.access_token);
-        if (!result.refresh_token || owner && result.user.id !== owner) throw new AuthError("response");
+        if (!result.refresh_token || owner && result.user.id !== owner) {
+          await expire(request);
+          await api.logout(result.access_token).catch(() => undefined);
+          throw new AuthError("response");
+        }
         if (remembered) {
+          storedCredential = encodedCredential(result.access_token, result.refresh_token);
           try {
-            await store(async () => {
-              if (request !== generation) throw new AuthError("cancelled");
-              await credentials.write(encodedCredential(result.access_token, result.refresh_token!));
-            });
+            await writeCredential(storedCredential, request);
           } catch (error) {
-            if (error instanceof AuthError) throw error;
+            if (error instanceof AuthError && error.code === "cancelled") return discardIssuedSession(result.access_token);
             await expire(request);
+            await api.logout(result.access_token).catch(() => undefined);
             throw new AuthError("storage");
           }
         }
-        if (request !== generation) return discardIssuedSession(result.access_token);
+        if (request !== generation) return storedCredential ? discardWrittenSession(result.access_token, storedCredential) : discardIssuedSession(result.access_token);
         accessToken = result.access_token;
         refreshToken = result.refresh_token;
         if (revision === profileRevision) publishSession({ accountId: result.user.id, user: result.user }, membershipRevision);
@@ -152,18 +180,22 @@ export function createAuthService({ api, credentials, onSessionChanged, onSessio
     refreshing = null;
     const result = await operation();
     if (request !== generation) return discardIssuedSession(result.access_token);
+    const credential = remember ? encodedCredential(result.access_token, result.refresh_token ?? null) : null;
     try {
-      await store(async () => {
+      if (credential) await writeCredential(credential, request);
+      else await store(async () => {
         if (request !== generation) throw new AuthError("cancelled");
-        if (remember) await credentials.write(encodedCredential(result.access_token, result.refresh_token ?? null));
-        else await credentials.clear();
+        await credentials.clear();
       });
     } catch (error) {
       if (error instanceof AuthError && error.code === "cancelled") return discardIssuedSession(result.access_token);
+      // Authentication succeeded on the server, but this session was never
+      // published locally. Revoke only its token, even if another login starts.
+      await api.logout(result.access_token).catch(() => undefined);
       if (error instanceof AuthError) throw error;
       throw new AuthError("storage");
     }
-    if (request !== generation) return discardIssuedSession(result.access_token);
+    if (request !== generation) return credential ? discardWrittenSession(result.access_token, credential) : discardIssuedSession(result.access_token);
     accessToken = result.access_token;
     refreshToken = result.refresh_token ?? null;
     remembered = remember;

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { InfiniteQueryObserver, QueryClient } from "@tanstack/react-query";
-import { memoryDetailOptions, memoryFeedOptions, memoryQueryKeys, pruneMemoryQueries, type MemoryScope } from "./memoryQueries.ts";
+import { InfiniteQueryObserver, QueryClient, QueryObserver } from "@tanstack/react-query";
+import { memoryDetailOptions, memoryFeedOptions, memoryQueryKeys, pruneMemoryQueries, refreshStaleMemoryQueries, type MemoryScope } from "./memoryQueries.ts";
 import type { MemoryDetail, MemoryList, MemorySummary } from "./memoryApi.ts";
 
 const scope: MemoryScope = { accountId: "account-a", coupleId: "couple-a", sessionId: 1 };
@@ -17,6 +17,28 @@ test("fresh Home focus reads share one request and reuse the confirmed cache", a
   await cache.fetchInfiniteQuery(options);
   assert.equal(reads, 1);
   cache.clear();
+});
+
+test("returning to Home refreshes only active, stale memory data", async () => {
+  const cache = client();
+  let feedReads = 0;
+  let detailReads = 0;
+  const feed = memoryFeedOptions(scope, async () => { feedReads++; return page(["one"], 0, false); });
+  const detail = memoryDetailOptions(scope, "one", async () => { detailReads++; return { id: "one", title: "one", description: null, location: null, memory_date: "2026-10-19", images: [] }; });
+  await cache.fetchInfiniteQuery(feed);
+  await cache.fetchQuery(detail);
+  const observer = new InfiniteQueryObserver(cache, feed);
+  const unsubscribe = observer.subscribe(() => undefined);
+  const now = Date.now;
+  try {
+    Date.now = () => now() + 29_000;
+    await refreshStaleMemoryQueries(cache, scope);
+    assert.equal(feedReads, 1);
+    Date.now = () => now() + 31_000;
+    await refreshStaleMemoryQueries(cache, scope);
+    assert.equal(feedReads, 2);
+    assert.equal(detailReads, 1);
+  } finally { Date.now = now; unsubscribe(); observer.destroy(); cache.clear(); }
 });
 
 test("a stale cached feed does not refetch on screen remount before explicit refresh", async () => {
@@ -79,6 +101,46 @@ test("successful refresh updates every loaded page without resetting history to 
   observer.destroy(); cache.clear();
 });
 
+test("background refresh retains valid signed cover URLs while accepting changed content and newer URLs near expiry", async () => {
+  const cache = client();
+  const expiry = Math.floor(Date.now() / 1000) + 600;
+  let version = 0;
+  const url = (token: string) => `https://storage.example/storage/v1/object/sign/media/photo?token=${token}`;
+  const options = memoryFeedOptions(scope, async () => ({ items: [{ ...memory("one"), title: `version ${version}`, thumbnail_url: url(`thumb${version}`), image_count: 1, cover_image: { id: "image-a", url: url(`cover${version}`), thumbnail_url: url(`thumb${version}`), width: 10, height: 10, url_expires_at: version === 0 ? expiry : expiry + 600 } }], total: 1 }));
+  await cache.fetchInfiniteQuery(options);
+  const observer = new InfiniteQueryObserver(cache, options);
+  version = 1;
+  await observer.refetch();
+  const retained = observer.getCurrentResult().data!.pages[0].items[0];
+  assert.equal(retained.title, "version 1");
+  assert.equal(retained.cover_image?.url, url("cover0"));
+  assert.equal(retained.thumbnail_url, url("thumb0"));
+  const realNow = Date.now;
+  try {
+    Date.now = () => (expiry - 1) * 1000;
+    version = 2;
+    await observer.refetch();
+    assert.equal(observer.getCurrentResult().data!.pages[0].items[0].cover_image?.url, url("cover2"));
+  } finally { Date.now = realNow; observer.destroy(); cache.clear(); }
+});
+
+test("cover replacement and explicit refresh use newly returned URLs", async () => {
+  const cache = client();
+  let version = 0;
+  let retain = true;
+  const url = (token: string) => `https://storage.example/storage/v1/object/sign/media/photo?token=${token}`;
+  const options = memoryFeedOptions(scope, async () => ({ items: [{ ...memory("one"), image_count: 1, thumbnail_url: url(`thumb${version}`), cover_image: { id: version < 2 ? "old" : "new", url: url(`cover${version}`), thumbnail_url: url(`thumb${version}`), width: 10, height: 10, url_expires_at: Math.floor(Date.now() / 1000) + 600 } }], total: 1 }), () => retain);
+  await cache.fetchInfiniteQuery(options);
+  const observer = new InfiniteQueryObserver(cache, options);
+  version = 1; retain = false;
+  await observer.refetch();
+  assert.equal(observer.getCurrentResult().data!.pages[0].items[0].cover_image?.url, url("cover1"));
+  version = 2; retain = true;
+  await observer.refetch();
+  assert.equal(observer.getCurrentResult().data!.pages[0].items[0].cover_image?.url, url("cover2"));
+  observer.destroy(); cache.clear();
+});
+
 test("scope switch aborts outstanding reads and removes private feed/detail cache", async () => {
   const cache = client();
   let signal: AbortSignal | undefined;
@@ -111,6 +173,24 @@ test("detail errors retain the confirmed album so retry does not blank every pho
   await assert.rejects(cache.fetchQuery({ ...options, staleTime: 0 }));
   assert.deepEqual(cache.getQueryData(options.queryKey), confirmed);
   cache.clear();
+});
+
+test("background detail refresh keeps each valid signed photo while preserving changed content and explicit retries", async () => {
+  const cache = client();
+  let version = 0;
+  let retain = true;
+  const signed = (name: string) => `https://storage.example/storage/v1/object/sign/media/${name}?token=${version}`;
+  const options = memoryDetailOptions(scope, "one", async () => ({ id: "one", title: `title ${version}`, description: null, location: null, memory_date: "2026-10-19", images: ["first", "second"].map((id) => ({ id, url: signed(id), thumbnail_url: signed(`${id}-thumb`), width: 10, height: 10, url_expires_at: Math.floor(Date.now() / 1000) + 600 })) }), () => retain);
+  await cache.fetchQuery(options);
+  const observer = new QueryObserver(cache, options);
+  version = 1;
+  await observer.refetch();
+  assert.equal(observer.getCurrentResult().data?.title, "title 1");
+  assert.deepEqual(observer.getCurrentResult().data?.images.map((photo) => photo.url), [signed("first").replace("=1", "=0"), signed("second").replace("=1", "=0")]);
+  retain = false; version = 2;
+  await observer.refetch();
+  assert.equal(observer.getCurrentResult().data?.images[1].url, signed("second"));
+  observer.destroy(); cache.clear();
 });
 
 test("memory reads expose one failed deadline without the provider's automatic retry", async () => {

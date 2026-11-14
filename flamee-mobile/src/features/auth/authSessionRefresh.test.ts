@@ -11,6 +11,11 @@ function credentials() {
   let value: string | null = null;
   return { read: async () => value, write: async (next: string) => { value = next; }, clear: async () => { value = null; } };
 }
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((done) => { resolve = done; });
+  return { promise, resolve };
+}
 
 test("a rejected legacy session is cleared once instead of being reused for more requests", async () => {
   let reads = 0;
@@ -65,6 +70,67 @@ test("a temporary refresh network failure keeps the confirmed session for retry"
   await auth.login(user.email, "password");
   await assert.rejects(auth.refreshCurrentSession(), (error) => error instanceof AuthError && error.code === "network");
   assert.equal(auth.getSessionSnapshot()?.accountId, user.id);
+});
+
+test("failed secure storage after token rotation revokes the unpublished rotated session", async () => {
+  const store = credentials();
+  let writes = 0;
+  const revoked: string[] = [];
+  const api = createAuthApi({ baseUrl: "https://api.example", fetcher: (async (url, options) => {
+    if (String(url).endsWith("/login")) return reply({ user, access_token: "old", refresh_token: "refresh-old" });
+    if (String(url).endsWith("/refresh")) return reply({ user, access_token: "rotated", refresh_token: "refresh-new" });
+    if (String(url).endsWith("/logout")) { revoked.push(new Headers(options?.headers).get("Authorization")!); return reply({ logged_out: true }); }
+    return reply(null, 401);
+  }) as typeof fetch });
+  const auth = createAuthService({ api, credentials: { ...store, write: async (value) => { if (++writes > 1) throw new Error("storage unavailable"); await store.write(value); } } });
+  await auth.login(user.email, "password", true);
+  await assert.rejects(auth.refreshCurrentSession(), (error) => error instanceof AuthError && error.code === "storage");
+  assert.deepEqual(revoked, ["Bearer rotated"]);
+  assert.equal(auth.getSessionSnapshot(), null);
+  assert.equal(auth.getAccessToken(), null);
+  assert.equal(await store.read(), null);
+});
+
+test("a rotated credential written after a failed replacement login is removed and revoked", async () => {
+  const store = credentials();
+  const writing = deferred<void>();
+  const release = deferred<void>();
+  const revoked: string[] = [];
+  let writes = 0;
+  const api = createAuthApi({ baseUrl: "https://api.example", fetcher: (async (url, options) => {
+    if (String(url).endsWith("/login")) return JSON.parse(String(options?.body)).email === "b@example.com" ? reply(null, 401) : reply({ user, access_token: "old", refresh_token: "refresh-old" });
+    if (String(url).endsWith("/refresh")) return reply({ user, access_token: "rotated", refresh_token: "refresh-new" });
+    if (String(url).endsWith("/logout")) { revoked.push(new Headers(options?.headers).get("Authorization")!); return reply({ logged_out: true }); }
+    return reply(null, 401);
+  }) as typeof fetch });
+  const auth = createAuthService({ api, credentials: { ...store, write: async value => { if (++writes === 2) { writing.resolve(); await release.promise; } await store.write(value); } } });
+  await auth.login(user.email, "password", true);
+  const refreshing = auth.refreshCurrentSession();
+  const cancelled = assert.rejects(refreshing, error => error instanceof AuthError && error.code === "cancelled");
+  await writing.promise;
+  await assert.rejects(auth.login("b@example.com", "wrong", true), error => error instanceof AuthError && error.code === "credentials");
+  release.resolve();
+  await cancelled;
+  assert.equal(await store.read(), null);
+  assert.deepEqual(revoked, ["Bearer rotated"]);
+});
+
+test("a rotated session for another account is rejected, revoked and cannot leave stale credentials", async () => {
+  const store = credentials();
+  const revoked: string[] = [];
+  const api = createAuthApi({ baseUrl: "https://api.example", fetcher: (async (url, options) => {
+    if (String(url).endsWith("/login")) return reply({ user, access_token: "old", refresh_token: "refresh-old" });
+    if (String(url).endsWith("/refresh")) return reply({ user: { ...user, id: "account-b" }, access_token: "wrong-owner", refresh_token: "refresh-b" });
+    if (String(url).endsWith("/logout")) { revoked.push(new Headers(options?.headers).get("Authorization")!); return reply({ logged_out: true }); }
+    return reply(null, 401);
+  }) as typeof fetch });
+  const auth = createAuthService({ api, credentials: store });
+  await auth.login(user.email, "password", true);
+  await assert.rejects(auth.refreshCurrentSession(), (error) => error instanceof AuthError && error.code === "response");
+  assert.deepEqual(revoked, ["Bearer wrong-owner"]);
+  assert.equal(auth.getSessionSnapshot(), null);
+  assert.equal(auth.getAccessToken(), null);
+  assert.equal(await store.read(), null);
 });
 
 test("invite requests recover through the same coordinator and persist rotated credentials across restart", async () => {

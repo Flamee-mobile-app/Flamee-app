@@ -6,6 +6,7 @@ export type AppHeaderAction = { label: string; icon: ReactNode; onPress: () => v
 export type AppHeaderConfiguration = {
   title: string;
   showBack?: boolean;
+  backLabel?: string;
   onBack?: () => void;
   onAdd?: () => void;
   activeMenuId?: string;
@@ -20,8 +21,8 @@ export function useAppHeader(configuration: AppHeaderConfiguration, enabled = tr
   const focused = useIsFocused();
   const route = useSegments().join("/");
   const owner = useId();
-  const { title, showBack, onBack, onAdd, activeMenuId, compact } = configuration;
-  const stable = useMemo(() => ({ title, showBack, onBack, onAdd, activeMenuId, compact }), [title, showBack, onBack, onAdd, activeMenuId, compact]);
+  const { title, showBack, backLabel, onBack, onAdd, activeMenuId, compact } = configuration;
+  const stable = useMemo(() => ({ title, showBack, backLabel, onBack, onAdd, activeMenuId, compact }), [title, showBack, backLabel, onBack, onAdd, activeMenuId, compact]);
   useLayoutEffect(() => {
     if (!focused || !enabled) return;
     return publish({ owner, route, configuration: stable });

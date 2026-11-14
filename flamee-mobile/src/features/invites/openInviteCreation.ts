@@ -8,7 +8,7 @@ export async function openInviteCreation(api: {
   current: () => Promise<ServerInvite | null>;
   create: () => Promise<ServerInvite>;
   connection: () => Promise<AcceptedCouple>;
-}, isCurrent: () => boolean, now = Date.now()): Promise<Result> {
+}, isCurrent: () => boolean): Promise<Result> {
   if (!isCurrent()) return { kind: "cancelled" };
   const latest = await api.current();
   if (!isCurrent()) return { kind: "cancelled" };
@@ -16,7 +16,7 @@ export async function openInviteCreation(api: {
     const couple = await api.connection();
     return isCurrent() ? { kind: "connected", couple } : { kind: "cancelled" };
   }
-  if (latest?.status === "pending" && Date.parse(latest.expires_at) > now) return { kind: "invite", invite: latest };
+  if (latest?.status === "pending" && Date.parse(latest.expires_at) > Date.now()) return { kind: "invite", invite: latest };
   const invite = await api.create();
   return isCurrent() ? { kind: "invite", invite } : { kind: "cancelled" };
 }

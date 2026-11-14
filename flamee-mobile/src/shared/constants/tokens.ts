@@ -317,6 +317,8 @@ export const navigationTokens = {
 
 export const buttonTokens = {
   height: 48,
+  subtleShadow: { shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 3, elevation: 1 },
+  subtlePressedShadow: { shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 1, elevation: 0 },
   largeHeight: 56,
   radius: 16,
   paddingHorizontal: 16,

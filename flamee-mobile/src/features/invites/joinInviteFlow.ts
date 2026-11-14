@@ -11,11 +11,28 @@ export function orderConnectedMembers(couple: AcceptedCouple, accountId: string)
 export async function joinInviteByCode(code: string, accountId: string, current: () => boolean, service: {
   preview: (code: string) => Promise<InvitePreview>;
   accept: (code: string) => Promise<AcceptedCouple>;
+  connection?: () => Promise<AcceptedCouple>;
 }): Promise<{ kind: "connected"; couple: AcceptedCouple } | { kind: "cancelled" }> {
   const preview = await service.preview(code);
   if (!current()) return { kind: "cancelled" };
   if (preview.code !== code) throw new InviteApiError("response");
-  const couple = await service.accept(preview.code);
+  let couple: AcceptedCouple;
+  try {
+    couple = await service.accept(preview.code);
+  } catch (error) {
+    if (!current()) return { kind: "cancelled" };
+    if (!(error instanceof InviteApiError) || !["network", "timeout", "server", "response"].includes(error.code) || !service.connection) throw error;
+    try {
+      const existing = await service.connection();
+      if (!current()) return { kind: "cancelled" };
+      const members = orderConnectedMembers(existing, accountId);
+      if (!members || members[1].id !== preview.inviter.id) throw error;
+      return { kind: "connected", couple: existing };
+    } catch {
+      if (!current()) return { kind: "cancelled" };
+      throw error;
+    }
+  }
   if (!current()) return { kind: "cancelled" };
   const members = orderConnectedMembers(couple, accountId);
   if (!members || members[1].id !== preview.inviter.id) throw new InviteApiError("response");

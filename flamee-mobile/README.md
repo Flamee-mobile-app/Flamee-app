@@ -40,6 +40,10 @@ See [cleanup and backend-first plan](../.doc/BACKEND-FIRST-CLEANUP.md) for remov
 
 ## Design assets
 
+Gradient titles on native use an invisible measured text layer and an SVG overlay;
+the measured layer is hidden with opacity to avoid black glyph artifacts on Android.
+Titles that cannot be measured reliably retain the solid native text fallback.
+
 Typography and palette follow `.doc/QUY_CHUAN_GIAO_DIEN.md`. The app uses an ivory
 `#F8F5F1` canvas, warm-white `#FFFCF8` surfaces, warm charcoal/taupe text and the
 original brand coral `#FF7158` for primary actions. Brand coral/peach remain on the
@@ -49,7 +53,9 @@ Ordinary actions use the shared semantic button system: `AppButton`,
 `AppFilterChip`, `AppIconButton`, or `AppTextButton`. Their 48 px touch targets,
 warm depth, focus/disabled/loading states and 80/140 ms press/release feedback are owned by
 shared tokens; feature callers cannot override color, radius, border, shadow or
-motion. Reaction buttons reuse `AppIconButton`; Bottom Navigation keeps its
+motion. The `AppButton` surface variant provides an opaque white raised action;
+`depth="subtle"` gives actions a shared lighter shadow. Memory detail actions use
+the subtle depth with space around the buttons. Reaction buttons reuse `AppIconButton`; Bottom Navigation keeps its
 specialized selection motion, and FAB uses ordinary press/release feedback.
 Auth and all other forms use `AppField`;
 cards, dialogs and sheets use `SectionCard`, `AppDialog` and `AppSheet`. Image choices
@@ -192,6 +198,8 @@ include the intentional splash animation or device rendering.
 
 The Sign up link opens a registration form with full name, email, password and
 confirmation. It validates entries and submits them to the backend; successful
-registration opens the returned session. Auth uses a bottom-aligned panel with safe-area padding inside it. The hero
+registration opens the returned session. Login and registration use a keyboard-aware
+scroll view so the focused field can be brought above the native keyboard; this
+requires verification on Android and iOS devices. Auth uses a bottom-aligned panel with safe-area padding inside it. The hero
 shows login-bg.png with an explicit left-biased crop to retain the house and moon,
 and the transparent Flamee logo 16 px from the left and 8 px below the top safe area.

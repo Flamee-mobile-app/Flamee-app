@@ -59,10 +59,10 @@ export function MemoryActions({ record, scope, onDeleted }: { record: MemoryDeta
     }
   };
   const actionTitle = action?.kind === "edit" ? "memoryEdit" : action?.kind === "photo" ? "memoryDeletePhoto" : "memoryDelete";
-  return <YStack gap="$sm">
-    <AppButton variant="secondary" onPress={() => begin({ kind: "edit" })}>{getMessage("vi", "memoryEdit")}</AppButton>
-    {record.images.map((photo, index) => <AppButton key={photo.id} variant="ghost" onPress={() => begin({ kind: "photo", id: photo.id })}>{`${getMessage("vi", "memoryDeletePhoto")} ${index + 1}`}</AppButton>)}
-    <AppButton variant="ghost" onPress={() => begin({ kind: "delete" })}>{getMessage("vi", "memoryDelete")}</AppButton>
+  return <YStack gap="$md" paddingHorizontal="$xs" paddingVertical="$xs">
+    <AppButton variant="secondary" depth="subtle" onPress={() => begin({ kind: "edit" })}>{getMessage("vi", "memoryEdit")}</AppButton>
+    {record.images.map((photo, index) => <AppButton key={photo.id} variant="surface" depth="subtle" onPress={() => begin({ kind: "photo", id: photo.id })}>{`${getMessage("vi", "memoryDeletePhoto")} ${index + 1}`}</AppButton>)}
+    <AppButton variant="surface" depth="subtle" onPress={() => begin({ kind: "delete" })}>{getMessage("vi", "memoryDelete")}</AppButton>
     <AppDialog open={action !== null} dismissible={!busy} onOpenChange={(open) => { if (!open && !lock.current) setAction(null); }} title={getMessage("vi", actionTitle)} description={getMessage("vi", action?.kind === "edit" ? "memoryEditBody" : action?.kind === "photo" ? "memoryDeletePhotoBody" : "memoryDeleteBody")} avoidKeyboard>
       {action?.kind === "edit" ? <YStack gap="$md">
         <AppField label={getMessage("vi", "memoryEditTitle")} value={title} onChangeText={setTitle} maxLength={200} editable={!busy} />

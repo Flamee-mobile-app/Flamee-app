@@ -35,3 +35,44 @@ test("unrelated users and duplicate members cannot become success portraits", as
     accept: async () => couple,
   }));
 });
+
+test("a lost acceptance response is reconciled from the server couple for the same inviter", async () => {
+  const { InviteApiError } = await import("./inviteApi.ts");
+  const result = await joinInviteByCode("ABC123", "receiver", () => true, {
+    preview: async () => preview,
+    accept: async () => { throw new InviteApiError("timeout"); },
+    connection: async () => couple,
+  });
+  assert.deepEqual(result, { kind: "connected", couple });
+});
+
+test("failed reconciliation or a different partner does not claim a connection", async () => {
+  const { InviteApiError } = await import("./inviteApi.ts");
+  for (const connection of [async () => { throw new Error("offline"); }, async () => ({ ...couple, partner1: { id: "other", full_name: "Other" } })]) {
+    await assert.rejects(joinInviteByCode("ABC123", "receiver", () => true, {
+      preview: async () => preview, accept: async () => { throw new InviteApiError("timeout"); }, connection,
+    }), (error) => error instanceof InviteApiError && error.code === "timeout");
+  }
+});
+
+test("confirmed domain rejection never probes or claims an existing couple", async () => {
+  const { InviteApiError } = await import("./inviteApi.ts");
+  for (const code of ["invite_expired", "self_invite", "invite_used", "already_paired"] as const) {
+    await assert.rejects(joinInviteByCode("ABC123", "receiver", () => true, {
+      preview: async () => preview,
+      accept: async () => { throw new InviteApiError(code); },
+      connection: async () => assert.fail("domain rejection must not be converted into success"),
+    }), (error) => error instanceof InviteApiError && error.code === code);
+  }
+});
+
+test("leaving during reconciliation discards the returned couple", async () => {
+  const { InviteApiError } = await import("./inviteApi.ts");
+  let active = true;
+  const result = await joinInviteByCode("ABC123", "receiver", () => active, {
+    preview: async () => preview,
+    accept: async () => { throw new InviteApiError("network"); },
+    connection: async () => { active = false; return couple; },
+  });
+  assert.deepEqual(result, { kind: "cancelled" });
+});

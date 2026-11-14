@@ -3,9 +3,24 @@ import test from "node:test";
 import { createMoodApi, MoodApiError, type ServerMood } from "./moodApi.ts";
 import { latestMoodByDay, moodHistoryRecords } from "./moodHistoryModel.ts";
 import { QueryClient } from "@tanstack/react-query";
-import { moodHistoryOptions, pruneMoodHistory } from "./moodQueries.ts";
+import { moodHistoryOptions, partnerMoodOptions, pruneMoodHistory } from "./moodQueries.ts";
 
 const mood: ServerMood = { id: "a", mood: "love", created_at: "2026-10-27T23:30:00Z", intensity: 5, mood_score: 4, note: "mine", reasons: ["work"], is_private: true, share_level: "private" };
+
+test("partner mood reuses fresh data and requests it again once stale", async () => {
+  const cache = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
+  let reads = 0;
+  const options = partnerMoodOptions({ accountId: "a", sessionId: 1, coupleId: "couple" }, async () => { reads++; return null; });
+  await cache.fetchQuery(options);
+  await cache.fetchQuery(options);
+  assert.equal(reads, 1);
+  const now = Date.now;
+  try {
+    Date.now = () => now() + 31_000;
+    await cache.fetchQuery(options);
+    assert.equal(reads, 2);
+  } finally { Date.now = now; cache.clear(); }
+});
 
 test("history uses bearer identity and preserves private owner data and original mood", async () => {
   const api = createMoodApi({ baseUrl: "https://example.test/api/v1/", fetcher: async (url, init) => {

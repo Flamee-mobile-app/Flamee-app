@@ -20,6 +20,13 @@ test("authenticated account without a couple routes to invite setup", () => {
   assert.equal(resolveEntryRoute(snapshot({ coupleStatus: "none" })), "/(invite)");
 });
 
+test("a skipped setup stays in Home while an actual invite still opens its flow", () => {
+  assert.equal(resolveEntryRoute(snapshot({ setupStatus: "deferred" })), "/(main)");
+  assert.equal(resolveEntryRoute(snapshot({ setupStatus: "completed" })), "/(main)");
+  assert.equal(resolveEntryRoute(snapshot({ setupStatus: "deferred", inviteIntent: true })), "/(invite)");
+  assert.equal(resolveEntryRoute(snapshot({ setupStatus: null, coupleStatus: "none" })), null);
+});
+
 test("authenticated account with a server couple routes to home", () => {
   assert.equal(resolveEntryRoute(snapshot({ coupleStatus: "paired" })), "/(main)");
 });

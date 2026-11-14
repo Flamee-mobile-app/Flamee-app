@@ -29,3 +29,16 @@ test("leaving the screen while reading the code prevents a later create request"
   const result = await openInviteCreation({ current: async () => { active = false; return null; }, create: async () => { assert.fail("must not create after leaving"); }, connection: async () => couple }, () => active);
   assert.deepEqual(result, { kind: "cancelled" });
 });
+
+test("a code that expires while the server read is pending is not reused", async () => {
+  let now = 1000;
+  let creates = 0;
+  const expiredDuringRead = { ...pending, expires_at: new Date(2000).toISOString() };
+  const realNow = Date.now;
+  Date.now = () => now;
+  try {
+    const result = await openInviteCreation({ current: async () => { now = 3000; return expiredDuringRead; }, create: async () => { creates++; return pending; }, connection: async () => couple }, () => true);
+    assert.equal(creates, 1);
+    assert.deepEqual(result, { kind: "invite", invite: pending });
+  } finally { Date.now = realNow; }
+});

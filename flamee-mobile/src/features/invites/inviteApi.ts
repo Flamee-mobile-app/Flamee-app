@@ -43,6 +43,7 @@ export function createInviteApi({ baseUrl, fetcher = fetch, timeoutMs = 12000 }:
         signal: controller.signal,
       });
       if (response.status === 401) throw new InviteApiError("unauthorized");
+      if (response.status >= 500) throw new InviteApiError("server");
       let payload: unknown;
       try { payload = await response.json(); } catch { throw new InviteApiError("response"); }
       if (!response.ok) {

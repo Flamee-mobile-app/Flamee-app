@@ -26,9 +26,9 @@ const fields = [
   { name: "confirmPassword", label: "registerConfirmLabel", placeholder: "registerConfirmPlaceholder", icon: LockKeyhole },
 ] as const;
 
-type RegisterFormProps = { visible: boolean; reducedMotion: boolean; onLogin: () => void; onAuthenticated: (session: AuthSession) => Promise<void> };
+type RegisterFormProps = { visible: boolean; reducedMotion: boolean; onLogin: () => void; onAuthenticated: (session: AuthSession) => Promise<void>; onFieldFocus: () => void };
 
-export function RegisterForm({ visible, reducedMotion, onLogin, onAuthenticated }: RegisterFormProps) {
+export function RegisterForm({ visible, reducedMotion, onLogin, onAuthenticated, onFieldFocus }: RegisterFormProps) {
   const [shown, setShown] = useState({ password: false, confirmPassword: false });
   const [busy, setBusy] = useState(false);
   const pending = useRef(false);
@@ -72,7 +72,7 @@ export function RegisterForm({ visible, reducedMotion, onLogin, onAuthenticated 
             keyboardType={item.name === "email" ? "email-address" : "default"} inputMode={item.name === "email" ? "email" : "text"} autoCapitalize={item.name === "fullName" ? "words" : "none"} autoCorrect={false}
             autoComplete={passwordKey ? "new-password" : item.name === "email" ? "email" : "name"} textContentType={passwordKey ? "newPassword" : item.name === "email" ? "emailAddress" : "name"}
             secureTextEntry={hidden} type={hidden ? "password" : "text"} maxLength={item.name === "fullName" ? 100 : item.name === "email" ? 254 : 128}
-            editable={!busy} value={field.value} onChangeText={field.onChange} onBlur={field.onBlur}
+            editable={!busy} value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} onFocus={onFieldFocus}
             returnKeyType={index === fields.length - 1 ? "go" : "next"} submitBehavior="submit" onSubmitEditing={() => { const next = fields[index + 1]; if (next) form.setFocus(next.name); else void submit(); }}
             endAction={passwordKey ? <AppIconButton tone="plain" disabled={busy} selected={!hidden}
               accessibilityLabel={getMessage("vi", hidden ? "loginShowPassword" : "loginHidePassword")}

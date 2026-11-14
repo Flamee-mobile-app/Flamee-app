@@ -7,7 +7,7 @@ import { Redirect, useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { AppState, Keyboard, Share } from "react-native";
 import { Text, YStack } from "tamagui";
-import { AppButton, AppField, AppTextButton, appToast } from "../../../shared/components";
+import { AppButton, AppField, AppMenuRow, AppTextButton, SectionCard, appToast } from "../../../shared/components";
 import { getMessage, type MessageKey } from "../../../shared/localization/messages";
 import { useSessionStore } from "../../../shared/state/sessionStore";
 import { AuthError, authService } from "../../auth";
@@ -23,17 +23,26 @@ import { inviteCodeSchema } from "../schemas";
 import { joinInviteByCode, orderConnectedMembers } from "../joinInviteFlow";
 import { openInviteCreation } from "../openInviteCreation";
 import { readInviteEntrySession } from "../inviteEntrySession";
+import { isInviteScopeCurrent } from "../inviteScope";
+import { onboardingService } from "../../onboarding/services";
 
 type Props = { initialMode?: "choose" | InviteFlow; initialWaiting?: boolean; showBack?: boolean };
-type Action = "create" | "share" | "copy" | "recreate" | "accept" | "check";
+type Action = "create" | "share" | "copy" | "recreate" | "accept" | "check" | "skip";
 const errorCopy: Record<string, MessageKey> = {
   invite_not_found: "inviteNotFoundBody", invite_expired: "inviteExpiredBody", invite_cancelled: "inviteRevokedBody",
   invite_used: "inviteUsedBody", already_paired: "alreadyPairedBody", inviter_already_paired: "alreadyPairedBody", self_invite: "inviteSelfBody",
 };
 
-export function InviteFlowScreen({ initialMode = "choose", initialWaiting = false, showBack = false }: Props) {
+export function InviteFlowScreen(props: Props) {
+  const accountId = useSessionStore((state) => state.activeAccountId);
+  const sessionId = useSessionStore((state) => state.sessionId);
+  return <InviteFlow key={`${sessionId}:${accountId}`} {...props} />;
+}
+
+function InviteFlow({ initialMode = "choose", initialWaiting = false, showBack = false }: Props) {
   const router = useRouter();
   const accountId = useSessionStore((state) => state.activeAccountId);
+  const sessionId = useSessionStore((state) => state.sessionId);
   const coupleId = useSessionStore((state) => state.activeCoupleId);
   const initial: InviteFlowState = initialWaiting ? { flow: "create", step: "waiting" } : initialInviteFlow(initialMode);
   const [flow, dispatch] = useReducer(inviteFlowReducer, initial);
@@ -50,7 +59,7 @@ export function InviteFlowScreen({ initialMode = "choose", initialWaiting = fals
   const mounted = useRef(true);
   const focused = useRef(true);
   const completed = useRef(false);
-  const current = () => mounted.current && useSessionStore.getState().activeAccountId === accountId;
+  const current = () => mounted.current && isInviteScopeCurrent({ accountId, sessionId }, useSessionStore.getState());
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   useFocusEffect(useCallback(() => {
     focused.current = true;
@@ -110,7 +119,7 @@ export function InviteFlowScreen({ initialMode = "choose", initialWaiting = fals
       } finally { if (active) setLoading(false); }
     })();
     return () => { active = false; };
-  }, [accountId, attempt, initialWaiting, initialMode]);
+  }, [accountId, sessionId, attempt, initialWaiting, initialMode]);
 
   const checkConnection = async () => {
     const latest = await inviteService.current();
@@ -143,7 +152,7 @@ export function InviteFlowScreen({ initialMode = "choose", initialWaiting = fals
     const timer = setInterval(() => void poll(), 5_000);
     const subscription = AppState.addEventListener("change", (state) => { if (state === "active") void poll(); });
     return () => { active = false; clearInterval(timer); subscription.remove(); };
-  }, [accountId, flow.flow, flow.step, invite?.status]));
+  }, [accountId, sessionId, flow.flow, flow.step, invite?.status]));
 
   const run = async (kind: Action, operation: () => Promise<void>) => {
     if (pending.current || loading || !current()) return;
@@ -194,13 +203,20 @@ export function InviteFlowScreen({ initialMode = "choose", initialWaiting = fals
     if (pending.current) return;
     Keyboard.dismiss();
     if (flow.step === "choose" || flow.step === "complete") {
-      if (showBack && router.canGoBack()) router.back(); else router.replace("/(main)");
+      if (showBack && router.canGoBack()) router.back();
+      else if (coupleId) router.replace("/(main)");
+      else skip();
     } else dispatch({ type: "back" });
   };
   const skip = () => {
-    if (pending.current) return;
+    if (pending.current || loading || !current()) return;
     Keyboard.dismiss();
-    router.replace("/(main)");
+    pending.current = true; setAction("skip");
+    void onboardingService.skip().then(() => {
+      if (current() && focused.current) router.replace("/(main)");
+    }, () => {
+      if (current() && focused.current) appToast.error(getMessage("vi", "inviteActionErrorTitle"), { description: getMessage("vi", "onboardingSkipError") });
+    }).finally(() => { pending.current = false; if (current()) setAction(null); });
   };
   if (!accountId) return <Redirect href="/(auth)" />;
   const done = flow.step === "complete" || Boolean(coupleId);
@@ -208,15 +224,15 @@ export function InviteFlowScreen({ initialMode = "choose", initialWaiting = fals
   const disabled = loading || busy || readFailed;
   const cardAction = action === "share" || action === "copy" || action === "recreate" ? action : null;
 
-  return <InviteSceneLayout busy={busy} onBack={back} onSkip={skip} centered={!done && flow.step === "choose"} hero={done ? <ConnectedUsers couple={connection?.id === coupleId ? connection : null} accountId={accountId} /> : flow.step === "choose" ? <InviteWelcome /> : undefined}>
+  return <InviteSceneLayout busy={busy || loading} onBack={back} onSkip={skip} centered={!done && flow.step === "choose"} hero={done ? <ConnectedUsers couple={connection?.id === coupleId ? connection : null} accountId={accountId} /> : flow.step === "choose" ? <InviteWelcome /> : undefined}>
     {readFailed ? <AppButton variant="secondary" onPress={() => setAttempt((value) => value + 1)}>{getMessage("vi", "retry")}</AppButton> : null}
     {done ? <YStack gap="$lg">
       <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textSecondary" textAlign="center">{getMessage("vi", "inviteConnectedBody")}</Text>
       <AppButton fill icon={<Check size={18} aria-hidden={true} />} onPress={() => router.replace("/(main)")}>{getMessage("vi", "continueHome")}</AppButton>
       <AppTextButton onPress={() => router.push({ pathname: "/settings", params: { section: "account" } })}>{getMessage("vi", "connectionManage")}</AppTextButton>
     </YStack> : flow.step === "choose" ? <YStack gap="$lg">
-      <AppButton fill size="large" disabled={disabled} icon={<Send size={20} aria-hidden={true} />} onPress={chooseCreate}>{getMessage("vi", "inviteCreateFlow")}</AppButton>
-      <AppButton fill size="large" variant="secondary" disabled={disabled} icon={<KeyRound size={20} aria-hidden={true} />} onPress={chooseJoin}>{getMessage("vi", "inviteJoinFlow")}</AppButton>
+      <SectionCard tone="white"><AppMenuRow label={getMessage("vi", "onboardingCreateTitle")} description={getMessage("vi", "onboardingCreateDescription")} icon={<YStack padding="$md" borderRadius="$md" backgroundColor="$supportPeachLight"><Send size={24} color="$accentText" aria-hidden={true} /></YStack>} disabled={disabled} onPress={chooseCreate} /></SectionCard>
+      <SectionCard tone="white"><AppMenuRow label={getMessage("vi", "onboardingJoinTitle")} description={getMessage("vi", "onboardingJoinDescription")} icon={<YStack padding="$md" borderRadius="$md" backgroundColor="$supportPeachLight"><KeyRound size={24} color="$accentText" aria-hidden={true} /></YStack>} disabled={disabled} onPress={chooseJoin} /></SectionCard>
     </YStack> : flow.step === "code" ? <YStack gap="$lg">
       {invite ? <InviteCodeCard code={invite.code} expiresAt={invite.expires_at} action={cardAction} onShare={share} onCopy={copy} onRecreate={() => void run("recreate", create)} onExpired={() => appToast.warning(getMessage("vi", "inviteExpiredToastTitle"))} />
         : <AppButton fill loading={action === "create"} disabled={disabled} onPress={chooseCreate}>{getMessage("vi", "inviteCreateFlow")}</AppButton>}

@@ -6,7 +6,7 @@ import { Clock } from "@tamagui/lucide-icons-2/icons/Clock";
 import { Inbox } from "@tamagui/lucide-icons-2/icons/Inbox";
 import { WifiOff } from "@tamagui/lucide-icons-2/icons/WifiOff";
 import { Text, YStack } from "tamagui";
-import { getMessage, type MessageKey } from "../localization/messages";
+import { getMessage, type Locale, type MessageKey } from "../localization/messages";
 import { AppButton } from "./AppButton";
 import { getAsyncStateCopy, type AsyncStateVariant } from "./asyncStateCopy";
 
@@ -18,6 +18,7 @@ type AsyncStateViewProps = {
   description?: MessageKey;
   actionLabel?: MessageKey;
   onAction?: () => void;
+  locale?: Locale;
 };
 
 const icons = {
@@ -30,7 +31,7 @@ const icons = {
   pending: Clock,
 };
 
-export function AsyncStateView({ variant, title, description, actionLabel, onAction }: AsyncStateViewProps) {
+export function AsyncStateView({ variant, title, description, actionLabel, onAction, locale = "vi" }: AsyncStateViewProps) {
   const Icon = icons[variant];
   const copy = getAsyncStateCopy(variant);
   return (
@@ -39,15 +40,15 @@ export function AsyncStateView({ variant, title, description, actionLabel, onAct
         <Icon size={30} color="$primary" />
       </YStack>
       <AppGradientText textAlign="center" fontFamily="$heading" fontSize="$h4" fontWeight="$bold" color="$textPrimary">
-        {getMessage("vi", title ?? copy.title)}
+        {getMessage(locale, title ?? copy.title)}
       </AppGradientText>
       <Text textAlign="center" fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textSecondary">
-        {getMessage("vi", description ?? copy.description)}
+        {getMessage(locale, description ?? copy.description)}
       </Text>
       {(actionLabel ?? copy.actionLabel) && onAction ? (
         <YStack marginTop="$sm">
           <AppButton onPress={onAction}>
-            {getMessage("vi", actionLabel ?? copy.actionLabel!)}
+            {getMessage(locale, actionLabel ?? copy.actionLabel!)}
           </AppButton>
         </YStack>
       ) : null}
