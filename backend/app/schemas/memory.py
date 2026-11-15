@@ -130,6 +130,7 @@ class MemoryCoverImage(BaseModel):
 
 
 class MemoryListItem(BaseModel):
+    comment_count: int | None = None
     id: str
     title: str
     category: str
@@ -160,6 +161,7 @@ class MemoryListItem(BaseModel):
             is_pinned=memory.is_pinned,
             thumbnail_url=thumb,
             image_count=len(images) if image_count is None else image_count,
+            comment_count=memory.comment_count,
             cover_image=MemoryCoverImage(
                 id=images[0].id, url=images[0].url,
                 thumbnail_url=images[0].thumbnail_url,

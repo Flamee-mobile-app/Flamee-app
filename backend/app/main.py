@@ -9,6 +9,7 @@ from app.api.auth import router as auth_router
 from app.api.couple import router as couple_router
 from app.api.feed import router as feed_router
 from app.api.memory import router as memory_router
+from app.api.conversation import router as conversation_router
 from app.api.mood import router as mood_router
 from app.api.mission import router as mission_router
 from app.api.reward import router as reward_router
@@ -50,6 +51,7 @@ def create_app() -> FastAPI:
         couple_router,
         feed_router,
         memory_router,
+        conversation_router,
         mood_router,
         mission_router,
         reward_router,

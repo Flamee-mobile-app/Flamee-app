@@ -6,7 +6,7 @@ import httpx
 from app.config import settings
 
 REQUIRED_COLUMNS={
-    'users':{'couple_id','timezone'},'moods':{'draft_version'},'user_preferences':{'revision'},
+    'users':{'couple_id','timezone'},'moods':{'draft_version'},'user_preferences':{'revision','onboarding_skipped_at'},
     'tiny_moment_media':{'ready_at','discarded_at'},'mission_rules':{'version'},
     'mission_wallets':{'balance'},'mission_assignments':{'version'},'mission_ledger':{'delta'},
     'mission_rewards':{'stock'},'mission_redemptions':{'expires_at'},'mission_operators':{'active'},

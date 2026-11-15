@@ -19,6 +19,16 @@ def get_user_service(db: Client = Depends(get_db)) -> UserService:
     return UserService(db)
 
 
+@router.get('/me/onboarding')
+def get_onboarding(current: dict = Depends(get_current_user), user_service: UserService = Depends(get_user_service)):
+    return ok(user_service.onboarding_status(current['id']))
+
+
+@router.post('/me/onboarding/skip')
+def skip_onboarding(current: dict = Depends(get_current_user), user_service: UserService = Depends(get_user_service)):
+    return ok(user_service.skip_onboarding(current['id']))
+
+
 @router.get('/me/preferences')
 def get_preferences(current: dict = Depends(get_current_user), user_service: UserService = Depends(get_user_service)):
     return ok(user_service.get_preferences(current['id']).model_dump())

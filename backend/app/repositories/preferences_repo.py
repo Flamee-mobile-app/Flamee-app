@@ -13,6 +13,10 @@ class PreferencesRepository:
         response = self.db.table('user_preferences').select('*').eq('id', user_id).maybe_single().execute()
         return response.data if response else None
 
+    def get_onboarding(self, user_id):
+        response = self.db.table('user_preferences').select('id,revision,onboarding_completed_at,onboarding_skipped_at').eq('id', user_id).maybe_single().execute()
+        return response.data if response else None
+
     def create(self, user_id, values):
         try:
             response = self.db.table('user_preferences').insert({'id': user_id, **values}).execute()

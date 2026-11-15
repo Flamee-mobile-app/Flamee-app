@@ -18,6 +18,7 @@ class Memory:
     reminder_enabled: bool
     created_at: str
     updated_at: str
+    comment_count: int = 0
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
