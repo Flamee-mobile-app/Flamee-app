@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from "expo-router";
+import { Redirect, useLocalSearchParams } from "expo-router";
 import { HomeScreen } from "../../src/features/home";
 
 export default function HomeRoute() {
@@ -8,5 +8,6 @@ export default function HomeRoute() {
     momentRequest?: string;
     momentKind?: "text" | "voice" | "photo" | "signal";
   }>();
-  return <HomeScreen view={view} checkInRequest={checkInRequest} momentRequest={momentRequest} momentKind={momentKind} />;
+  if ((Array.isArray(view) ? view[0] : view) === "memories") return <Redirect href={{ pathname: "/(main)/memories", params: { momentRequest } }} />;
+  return <HomeScreen view="timeline" checkInRequest={checkInRequest} momentRequest={momentRequest} momentKind={momentKind} />;
 }

@@ -1,5 +1,4 @@
-import { useLocalSearchParams } from "expo-router";
-import { HomeScreen } from "../../src/features/home";
+import { Redirect, useLocalSearchParams } from "expo-router";
 
 export default function TimelineRoute() {
   const { view, momentRequest, momentKind } = useLocalSearchParams<{
@@ -7,5 +6,6 @@ export default function TimelineRoute() {
     momentRequest?: string;
     momentKind?: "text" | "voice" | "photo" | "signal";
   }>();
-  return <HomeScreen view={view} momentRequest={momentRequest} momentKind={momentKind} />;
+  const calendar = (Array.isArray(view) ? view[0] : view) === "memories";
+  return <Redirect href={{ pathname: calendar ? "/(main)/memories" : "/(main)", params: { momentRequest, momentKind } }} />;
 }

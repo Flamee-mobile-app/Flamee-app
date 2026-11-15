@@ -6,7 +6,7 @@ import { getMessage } from "../../../shared/localization/messages";
 import { useSessionStore } from "../../../shared/state/sessionStore";
 import { isMemoryMutationScopeCurrent, memoryQueryKeys, memoryService, type MemoryDetail, type MemoryScope } from "../../moments";
 
-type Action = { kind: "edit" } | { kind: "delete" } | { kind: "photo"; id: string };
+type Action = { kind: "edit" } | { kind: "delete" };
 
 export function MemoryActions({ record, scope, onDeleted }: { record: MemoryDetail; scope: MemoryScope; onDeleted: () => void }) {
   const client = useQueryClient();
@@ -27,17 +27,13 @@ export function MemoryActions({ record, scope, onDeleted }: { record: MemoryDeta
     if (!action || lock.current || !current()) return;
     lock.current = true; setBusy(true); setFailed(false);
     try {
-      // Cancel in-flight reads so an older response cannot restore a deleted photo.
+      // Cancel in-flight reads so an older response cannot restore stale post data.
       await client.cancelQueries({ queryKey: memoryQueryKeys.scope(scope) });
       if (!current()) return;
       if (action.kind === "edit") {
         const updated = await memoryService.update(scope, record.id, { title: title.trim(), description: description.trim() || null });
         if (!current()) return;
         client.setQueryData(memoryQueryKeys.detail(scope, record.id), updated);
-      } else if (action.kind === "photo") {
-        await memoryService.removeImage(scope, record.id, action.id);
-        if (!current()) return;
-        client.setQueryData<MemoryDetail>(memoryQueryKeys.detail(scope, record.id), (previous) => previous ? { ...previous, images: previous.images.filter((photo) => photo.id !== action.id) } : previous);
       } else {
         await memoryService.remove(scope, record.id);
         if (!current()) return;
@@ -58,18 +54,17 @@ export function MemoryActions({ record, scope, onDeleted }: { record: MemoryDeta
       if (mounted.current) setBusy(false);
     }
   };
-  const actionTitle = action?.kind === "edit" ? "memoryEdit" : action?.kind === "photo" ? "memoryDeletePhoto" : "memoryDelete";
+  const actionTitle = action?.kind === "edit" ? "memoryEdit" : "memoryDelete";
   return <YStack gap="$md" paddingHorizontal="$xs" paddingVertical="$xs">
     <AppButton variant="secondary" depth="subtle" onPress={() => begin({ kind: "edit" })}>{getMessage("vi", "memoryEdit")}</AppButton>
-    {record.images.map((photo, index) => <AppButton key={photo.id} variant="surface" depth="subtle" onPress={() => begin({ kind: "photo", id: photo.id })}>{`${getMessage("vi", "memoryDeletePhoto")} ${index + 1}`}</AppButton>)}
-    <AppButton variant="surface" depth="subtle" onPress={() => begin({ kind: "delete" })}>{getMessage("vi", "memoryDelete")}</AppButton>
-    <AppDialog open={action !== null} dismissible={!busy} onOpenChange={(open) => { if (!open && !lock.current) setAction(null); }} title={getMessage("vi", actionTitle)} description={getMessage("vi", action?.kind === "edit" ? "memoryEditBody" : action?.kind === "photo" ? "memoryDeletePhotoBody" : "memoryDeleteBody")} avoidKeyboard>
+    <AppButton variant="destructive" depth="subtle" onPress={() => begin({ kind: "delete" })}>{getMessage("vi", "memoryDelete")}</AppButton>
+    <AppDialog open={action !== null} dismissible={!busy} onOpenChange={(open) => { if (!open && !lock.current) setAction(null); }} title={getMessage("vi", actionTitle)} description={getMessage("vi", action?.kind === "edit" ? "memoryEditBody" : "memoryDeleteBody")} avoidKeyboard>
       {action?.kind === "edit" ? <YStack gap="$md">
         <AppField label={getMessage("vi", "memoryEditTitle")} value={title} onChangeText={setTitle} maxLength={200} editable={!busy} />
         <AppField label={getMessage("vi", "memoryEditDescription")} value={description} onChangeText={setDescription} maxLength={4000} multiline editable={!busy} />
       </YStack> : null}
       {failed ? <Text role="alert" fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$accentText">{getMessage("vi", "memoryActionError")}</Text> : null}
-      <AppButton loading={busy} disabled={action?.kind === "edit" && !title.trim()} onPress={() => { void submit(); }}>{getMessage("vi", action?.kind === "edit" ? "memorySave" : "memoryActionConfirm")}</AppButton>
+      <AppButton variant={action?.kind === "delete" ? "destructive" : "primary"} loading={busy} disabled={action?.kind === "edit" && !title.trim()} onPress={() => { void submit(); }}>{getMessage("vi", action?.kind === "edit" ? "memorySave" : "memoryActionConfirm")}</AppButton>
       <AppButton variant="ghost" disabled={busy} onPress={() => setAction(null)}>{getMessage("vi", "memoryActionCancel")}</AppButton>
     </AppDialog>
   </YStack>;

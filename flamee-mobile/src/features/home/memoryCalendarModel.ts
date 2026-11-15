@@ -1,5 +1,5 @@
 import type { MemorySummary } from "../moments";
-import { liquidHeaderTokens, memoryFeedTokens } from "../../shared/constants/tokens.ts";
+import { buttonTokens, memoryFeedTokens, spacing } from "../../shared/constants/tokens.ts";
 
 export type MemoryCalendarDay = { day: string; number: number; today: boolean; future: boolean; unloaded: boolean; memories: MemorySummary[]; imageCount: number };
 export type MemoryCalendarMonth = { key: string; year: number; month: number; cells: (MemoryCalendarDay | null)[] };
@@ -12,7 +12,7 @@ export function getMemoryCalendarScrollLayout(topInset: number) {
 }
 
 export function getMemoryFeedHeaderClearance(topInset: number) {
-  return topInset + liquidHeaderTokens.topGap + memoryFeedTokens.headerHeight + liquidHeaderTokens.contentGap;
+  return topInset + spacing.sm + buttonTokens.floatingButtonSize + spacing.lg;
 }
 
 function parseDay(value: string): Date | null {

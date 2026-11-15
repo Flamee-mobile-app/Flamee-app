@@ -44,13 +44,12 @@ test("calendar enters at the newest bottom anchor and shows older months above i
   assert.equal(months[0].key, "2026-10");
   assert.deepEqual([...months].reverse().map((month) => month.key), ["2026-08", "2026-09", "2026-10"]);
   assert.equal(layout.paddingTop, 116, "inverted top padding visually clears the bottom nav");
-  assert.equal(layout.paddingBottom, 136, "inverted bottom padding visually clears the floating header and its 20px gap");
+  assert.equal(layout.paddingBottom, 122, "visual top clears safe area, notification bell and its gap");
 });
 
-test("floating header keeps a full 20px gap before content in both calendar and feed layouts", () => {
+test("feed and calendar use the same safe-area gap after removing the floating header", () => {
   const topInset = 50;
-  const headerBottom = topInset + 6 + 60;
-  assert.equal(getMemoryFeedHeaderClearance(topInset) - headerBottom, 20);
+  assert.equal(getMemoryFeedHeaderClearance(topInset), topInset + 72);
   assert.equal(getMemoryCalendarScrollLayout(topInset).paddingBottom, getMemoryFeedHeaderClearance(topInset));
 });
 

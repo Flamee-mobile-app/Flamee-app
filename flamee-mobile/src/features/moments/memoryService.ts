@@ -21,6 +21,5 @@ export const memoryService = {
   create: (input: MemoryCreateInput, key: string) => authService.withAccessToken((token) => api.create(token, input, key)),
   update: (scope: MemoryScope, id: string, input: MemoryUpdateInput) => mutate(scope, (token) => api.update(token, id, input)),
   remove: (scope: MemoryScope, id: string) => mutate(scope, (token) => api.remove(token, id)),
-  removeImage: (scope: MemoryScope, id: string, imageId: string) => mutate(scope, (token) => api.removeImage(token, id, imageId)),
   upload: (id: string, file: MemoryUploadFile, key: string) => authService.withAccessToken((token) => api.upload(token, id, file, key)),
 };

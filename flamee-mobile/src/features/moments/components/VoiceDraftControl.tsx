@@ -22,16 +22,17 @@ export function VoiceDraftControl({ onReady, onReset }: Props) {
   const operationGeneration = useRef(0);
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const player = useAudioPlayer(readyUri);
-  const reportMode = (nextMode: "unavailable" | "denied") => {
+  const reportMode = (nextMode: "unavailable" | "denied", feedback: ReturnType<typeof appToast.operation>) => {
     setMode(nextMode);
     if (nextMode === "denied") {
-      appToast.warning(getMessage("vi", "voicePermissionDeniedTitle"), { description: getMessage("vi", "voicePermissionDeniedBody") });
+      feedback.warning(getMessage("vi", "voicePermissionDeniedTitle"), { description: getMessage("vi", "voicePermissionDeniedBody") });
       return;
     }
-    appToast.error(getMessage("vi", "voiceFallbackTitle"), { description: getMessage("vi", "voiceFallbackBody") });
+    feedback.error(getMessage("vi", "voiceFallbackTitle"), { description: getMessage("vi", "voiceFallbackBody") });
   };
 
   const stop = async (duration = seconds) => {
+    const feedback = appToast.operation();
     if (timer.current) clearInterval(timer.current);
     timer.current = null;
     setRecording(false);
@@ -68,15 +69,16 @@ export function VoiceDraftControl({ onReady, onReset }: Props) {
       } else {
         localMediaAdapter.prepareVoiceForReview(nativeUri, 1);
         await localMediaAdapter.cleanup(nativeUri);
-        reportMode("unavailable");
+        reportMode("unavailable", feedback);
       }
       return;
     }
     setReadyUri(null);
-    reportMode("unavailable");
+    reportMode("unavailable", feedback);
   };
 
   const start = async () => {
+    const feedback = appToast.operation();
     const generation = ++operationGeneration.current;
     const operationIsActive = () => mounted.current && operationGeneration.current === generation;
     setSeconds(0);
@@ -85,11 +87,11 @@ export function VoiceDraftControl({ onReady, onReset }: Props) {
     const permission = await localMediaAdapter.requestVoicePermission();
     if (!operationIsActive()) return;
     if (permission.kind === "denied") {
-      reportMode("denied");
+      reportMode("denied", feedback);
       return;
     }
     if (permission.kind === "unavailable") {
-      reportMode("unavailable");
+      reportMode("unavailable", feedback);
       return;
     }
     try {
@@ -113,7 +115,7 @@ export function VoiceDraftControl({ onReady, onReset }: Props) {
         return;
       }
       nativeRecording.current = false;
-      reportMode("unavailable");
+      reportMode("unavailable", feedback);
       return;
     }
     if (!operationIsActive()) return;

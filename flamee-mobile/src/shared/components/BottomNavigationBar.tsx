@@ -15,6 +15,7 @@ import Animated, {
 import Svg, { Circle, ClipPath, Defs, G, LinearGradient, Path, Rect, Stop } from "react-native-svg";
 import { Button } from "tamagui";
 import { resolvePlatformAccessibilityProps } from "./buttonSystemModel";
+import { resolveSurfaceShadow } from "./surfaceShadow";
 import { buttonTokens, colors, navigationTokens } from "../constants/tokens";
 import {
   buildBottomBarPath,
@@ -40,6 +41,7 @@ type BottomNavigationBarProps = ExpoTabBarProps & {
   fabAccessibilityLabel: string;
   fabAccessibilityHint: string;
   fabIcon: ImageSourcePropType;
+  onFabPress: () => void;
   tabRouteNames?: readonly string[];
 };
 
@@ -102,6 +104,7 @@ export function BottomNavigationBar({
   fabAccessibilityLabel,
   fabAccessibilityHint,
   fabIcon,
+  onFabPress,
   tabRouteNames,
 }: BottomNavigationBarProps) {
   const dimensions = useWindowDimensions();
@@ -155,10 +158,13 @@ export function BottomNavigationBar({
     transform: [{
       translateY: reducedMotion ? 0 : buttonTokens.pressOffset * fabPressProgress.value,
     }],
-    shadowOffset: { width: 0, height: 3 - 2 * fabPressProgress.value },
-    shadowRadius: 6 - 4 * fabPressProgress.value,
-    shadowOpacity: 0.14 - 0.06 * fabPressProgress.value,
-    ...(Platform.OS === "android" ? { elevation: 7 - 5 * fabPressProgress.value } : {}),
+    ...(Platform.OS === "android" ? {
+      boxShadow: `0px ${3 - 2 * fabPressProgress.value}px ${12 - 8 * fabPressProgress.value}px rgba(0,0,0,${0.14 - 0.06 * fabPressProgress.value})`,
+    } : {
+      shadowOffset: { width: 0, height: 3 - 2 * fabPressProgress.value },
+      shadowRadius: 6 - 4 * fabPressProgress.value,
+      shadowOpacity: 0.14 - 0.06 * fabPressProgress.value,
+    }),
   }));
   const releaseFab = () => {
     fabPressProgress.value = reducedMotion ? 0 : withTiming(0, {
@@ -272,6 +278,7 @@ export function BottomNavigationBar({
             outlineWidth={0}
             outlineStyle="none"
             cursor="pointer"
+            onPress={onFabPress}
             onPressIn={() => {
               fabPressProgress.value = reducedMotion ? 1 : withTiming(1, {
                 duration: buttonTokens.pressDuration,
@@ -338,11 +345,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.78)",
     justifyContent: "center",
     position: "absolute",
-    shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.14,
-    shadowRadius: 6,
-    elevation: 7,
+    ...resolveSurfaceShadow(Platform.OS, { shadowColor: "#000000", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.14, shadowRadius: 6 }),
     zIndex: 6,
   },
 });

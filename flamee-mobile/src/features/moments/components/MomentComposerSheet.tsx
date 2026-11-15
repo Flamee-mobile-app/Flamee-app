@@ -58,6 +58,7 @@ export function MomentComposerSheet({ embedded = false, initialText = "", initia
   }, []);
 
   const selectPhoto = async (source: "camera" | "library") => {
+    const feedback = appToast.operation();
     const generation = ++mediaGeneration.current;
     const result = await localMediaAdapter.selectPhoto(source);
     if (!mounted.current || generation !== mediaGeneration.current) {
@@ -69,9 +70,9 @@ export function MomentComposerSheet({ embedded = false, initialText = "", initia
       await discardOwnedMedia();
       setMediaUri("");
       setMediaState("idle");
-      appToast.error(getMessage("vi", "photoFallbackTitle"), { description: getMessage("vi", "photoFallbackBody") });
+      feedback.error(getMessage("vi", "photoFallbackTitle"), { description: getMessage("vi", "photoFallbackBody") });
     } else if (result.kind === "denied") {
-      appToast.warning(getMessage("vi", "photoPermissionDeniedTitle"), { description: getMessage("vi", "photoPermissionDeniedBody") });
+      feedback.warning(getMessage("vi", "photoPermissionDeniedTitle"), { description: getMessage("vi", "photoPermissionDeniedBody") });
     }
   };
   const onVoiceReady = useCallback((uri: string, seconds: number) => {

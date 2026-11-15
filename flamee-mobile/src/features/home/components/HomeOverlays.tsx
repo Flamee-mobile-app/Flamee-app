@@ -10,6 +10,7 @@ import { formatMemoryDate } from "../memoryFeedModel";
 import { MemoryComposerDialog } from "./MemoryComposerDialog";
 import { MemoryDetailView } from "./MemoryDetailView";
 import { MemoryFeedPost } from "./MemoryFeedPost";
+import { CommentsSheet } from "../../conversations";
 
 export type HomeOverlayHandle = { show: (selection: HomeOverlaySelection) => void };
 type Props = { scope: MemoryScope; records: MemorySummary[]; focused: boolean; blurTarget: RefObject<AppBlurTargetView | null>; momentRequest?: string; clearLegacyIntent: () => void; onPosted: () => void; onRefresh: () => void; partial: boolean };
@@ -36,6 +37,7 @@ export const HomeOverlays = memo(forwardRef<HomeOverlayHandle, Props>(function H
   const dayRecords = useMemo(() => day ? records.filter((record) => record.memory_date === day) : [], [day, records]);
   if (!focused || !selection) return null;
   if (selection.kind === "create") return <MemoryComposerDialog key={state.revision} open={state.open} blurTarget={blurTarget} onClose={close} onAfterClose={afterClose} onPosted={posted} />;
+  if (selection.kind === "comments") return <CommentsSheet key={state.revision} memoryId={selection.id} title={records.find((record) => record.id === selection.id)?.title} open={state.open} onClose={close} onAfterClose={afterClose} />;
   const notification = selection.kind === "notifications";
   return <AppSheet key={state.revision} open={state.open} fitContent disableDrag onOpenChange={(open) => { if (!open) close(); }} onAfterClose={afterClose}
     title={getMessage("vi", notification ? "memoryFeedNotifications" : "memoryFeedDetails")}

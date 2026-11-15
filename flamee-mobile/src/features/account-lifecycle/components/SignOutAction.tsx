@@ -23,6 +23,7 @@ export function SignOutAction() {
     pending.current = true;
     setBusy(true);
     const accountId = useSessionStore.getState().activeAccountId;
+    const feedback = appToast.operation();
     try {
       const result = await performLocalSignOut({
         signOut: authService.signOut,
@@ -34,7 +35,9 @@ export function SignOutAction() {
       });
       if (result.kind === "localOnly" && useSessionStore.getState().activeAccountId === null) appToast.info(getMessage("vi", "signOutLocalOnly"));
     } catch {
-      appToast.error(getMessage("vi", "accountLoadError"));
+      const currentAccount = useSessionStore.getState().activeAccountId;
+      if (currentAccount === null) appToast.warning(getMessage("vi", "signOutLocalOnly"));
+      else if (currentAccount === accountId) feedback.error(getMessage("vi", "accountLoadError"));
     } finally {
       pending.current = false;
       setBusy(false);

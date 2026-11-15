@@ -256,6 +256,7 @@ function DialogPreview() {
         </AppButton>
       </YStack>
       <AppDialog open={open} onOpenChange={setOpen} title={getMessage(locale, "recreateInviteConfirmTitle")} description={getMessage(locale, "recreateInviteConfirmBody")}>
+        <AppButton testID="design-dialog-toast" variant="secondary" onPress={() => appToast.info(getMessage(locale, "successTitle"))}>{getMessage(locale, "designSystemToastInDialog")}</AppButton>
         <XStack gap="$sm">
           <AppButton grow variant="ghost" onPress={() => setOpen(false)}>{getMessage(locale, "keepCurrentInvite")}</AppButton>
           <AppButton grow variant="destructive" onPress={() => setOpen(false)}>{getMessage(locale, "confirmRecreateInvite")}</AppButton>
@@ -274,6 +275,7 @@ function SheetPreview() {
         {getMessage(locale, "createMomentTitle")}
       </AppButton>
       <AppSheet open={open} onOpenChange={setOpen} title={getMessage(locale, "createMomentTitle")} description={getMessage(locale, "createMomentBody")}>
+        <AppButton testID="design-sheet-toast" variant="secondary" onPress={() => appToast.info(getMessage(locale, "successTitle"))}>{getMessage(locale, "designSystemToastInSheet")}</AppButton>
         <XStack gap="$sm" flexWrap="wrap">
           <AppFilterChip label={getMessage(locale, "momentText")} selected selectionMode="single" onPress={() => undefined} />
           <AppFilterChip label={getMessage(locale, "momentPhoto")} selected={false} selectionMode="single" onPress={() => undefined} />
@@ -288,7 +290,7 @@ function SheetPreview() {
 function ToastPreview() {
   return (
     <YStack gap="$sm">
-      <AppButton fill variant="secondary" onPress={() => appToast.success(getMessage(locale, "successTitle"))}>
+      <AppButton testID="design-toast-success" fill variant="secondary" onPress={() => appToast.success(getMessage(locale, "successTitle"))}>
         Success toast
       </AppButton>
       <AppButton fill variant="secondary" onPress={() => appToast.error(getMessage(locale, "errorTitle"), { description: getMessage(locale, "errorDescription") })}>
@@ -300,7 +302,7 @@ function ToastPreview() {
       <AppButton fill variant="secondary" onPress={() => appToast.info(getMessage(locale, "serviceUnavailableTitle"), { description: getMessage(locale, "serviceUnavailableBody") })}>
         Info toast
       </AppButton>
-      <AppButton fill variant="secondary" onPress={() => appToast.loading(getMessage(locale, "loadingTitle"), { description: getMessage(locale, "loadingDescription") })}>
+      <AppButton testID="design-toast-loading" fill variant="secondary" onPress={() => appToast.loading(getMessage(locale, "loadingTitle"), { description: getMessage(locale, "loadingDescription") })}>
         Loading toast
       </AppButton>
     </YStack>

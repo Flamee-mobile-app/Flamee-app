@@ -9,6 +9,7 @@ import { useButtonInteraction } from "./useButtonInteraction";
 import { AppCardBackdrop } from "./AppCardBackdrop";
 import { AppGradientText } from "./AppGradientText";
 import { getSectionCardPresentation, type SectionCardEmphasis } from "./sectionCardPresentation";
+import { resolveSurfaceShadow } from "./surfaceShadow";
 
 type SectionCardProps = PropsWithChildren<{
   title?: string;
@@ -62,13 +63,7 @@ export function SectionCard({ title, description, tone = "default", density = "d
       transform={[{ translateY: activePress && !reducedMotion ? cardTokens.pressOffset : 0 }]}
       transition={interactive ? transition : undefined}
       animateOnly={["transform"]}
-      {...(Platform.OS !== "web" ? {
-        shadowColor: presentation.shadowColor,
-        shadowOffset: presentation.shadowOffset,
-        shadowOpacity: presentation.shadowOpacity,
-        shadowRadius: presentation.shadowRadius,
-        ...(Platform.OS === "android" ? { elevation: presentation.elevation } : {}),
-      } : {})}
+      {...(Platform.OS !== "web" ? resolveSurfaceShadow(Platform.OS, presentation) : {})}
       {...(interactive ? {
         render: "button",
         ...(Platform.OS === "web" ? {

@@ -16,7 +16,7 @@ test("editing sends PUT with explicit null to clear description and validates se
   assert.deepEqual(await api.update("token", "memory/1", { title: "Updated", description: null }), detail);
 });
 
-test("deleting a post or photo requires HTTP 204 and never parses an empty body", async () => {
+test("deleting a post requires HTTP 204 and never parses an empty body", async () => {
   const paths: string[] = [];
   const api = createMemoryApi({ baseUrl: "https://api.example.test", fetcher: async (url, options) => {
     paths.push(String(url));
@@ -25,15 +25,13 @@ test("deleting a post or photo requires HTTP 204 and never parses an empty body"
     return new Response(null, { status: 204 });
   } });
   assert.equal(await api.remove("token", "memory/1"), undefined);
-  assert.equal(await api.removeImage("token", "memory/1", "photo/1"), undefined);
-  assert.deepEqual(paths, ["https://api.example.test/memories/memory%2F1", "https://api.example.test/memories/memory%2F1/images/photo%2F1"]);
+  assert.deepEqual(paths, ["https://api.example.test/memories/memory%2F1"]);
 });
 
 test("failed or unconfirmed deletions do not report success", async () => {
   for (const status of [200, 401, 403, 404, 500]) {
     const api = createMemoryApi({ baseUrl: "https://api.example.test", fetcher: async () => Response.json({}, { status }) });
     await assert.rejects(api.remove("token", "memory"), MemoryApiError);
-    await assert.rejects(api.removeImage("token", "memory", "photo"), MemoryApiError);
   }
 });
 

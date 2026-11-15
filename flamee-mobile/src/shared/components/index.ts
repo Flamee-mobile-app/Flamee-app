@@ -40,3 +40,5 @@ export * from "./SectionCard";
 export * from "./AppCalendarGrid";
 export * from "./StatusBanner";
 export { resolvePlatformAccessibilityProps } from "./buttonSystemModel";
+export { resolveSurfaceShadow } from "./surfaceShadow";
+export { AppGradientPlusIcon } from "./AppGradientPlusIcon";

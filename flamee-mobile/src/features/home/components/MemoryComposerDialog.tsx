@@ -75,17 +75,18 @@ export function MemoryComposerDialog({ open, blurTarget, onClose, onAfterClose, 
   const post = async () => {
     if (posting.current || picking.current || !accountId || !coupleId || !current() || (!text.trim() && !photo)) return;
     posting.current = true;
+    const feedback = appToast.operation();
     setFrozen(true);
     try {
       requestKey.current ??= randomUUID();
       submittedPayload.current ??= { title: text.trim() || getMessage("vi", "memoryComposerDefaultTitle"), category: "moment", memory_date: localCalendarDay(new Date()) };
       const result = await publishMemoryPost({ accountId, requestKey: requestKey.current, checkpoint: checkpoint.current, payload: submittedPayload.current, photo: photo ? { uri: photo.uri, name: "memory.jpg", type: "image/jpeg" } : null }, memoryService, current, (next) => { stageRef.current = next; if (current()) setStage(next); });
       if (result.kind === "saved" && current()) {
-        appToast.success(getMessage("vi", "memoryComposerPosted"));
+        feedback.success(getMessage("vi", "memoryComposerPosted"));
         onPosted();
       }
     } catch {
-      if (current()) appToast.error(getMessage("vi", stageRef.current === "uploading" ? "memoryComposerUploadFailed" : "memoryComposerPostFailed"));
+      if (current()) feedback.error(getMessage("vi", stageRef.current === "uploading" ? "memoryComposerUploadFailed" : "memoryComposerPostFailed"));
     } finally {
       posting.current = false;
       if (current()) setStage(null);

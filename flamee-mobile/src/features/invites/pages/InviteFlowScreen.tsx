@@ -66,19 +66,19 @@ function InviteFlow({ initialMode = "choose", initialWaiting = false, showBack =
     return () => { focused.current = false; };
   }, []));
 
-  const reportError = (error: unknown) => {
+  const reportError = (error: unknown, feedback: Pick<typeof appToast, "error"> = appToast) => {
     if (!current() || error instanceof AuthError && ["credentials", "cancelled"].includes(error.code)) return;
     const message = error instanceof InviteApiError ? errorCopy[error.code] : undefined;
-    appToast.error(getMessage("vi", "inviteActionErrorTitle"), { description: getMessage("vi", message ?? "localInviteUnavailableBody") });
+    feedback.error(getMessage("vi", "inviteActionErrorTitle"), { description: getMessage("vi", message ?? "localInviteUnavailableBody") });
   };
-  const connected = (couple: AcceptedCouple, announce = true) => {
+  const connected = (couple: AcceptedCouple, announce = true, feedback: Pick<typeof appToast, "success"> = appToast) => {
     if (!current()) return;
     if (!accountId || !orderConnectedMembers(couple, accountId)) throw new InviteApiError("response");
     setConnection(couple);
     useSessionStore.getState().setActiveCouple(couple.id);
     dispatch({ type: "connected", coupleId: couple.id });
     inviteIntent.clear();
-    if (announce && !completed.current) appToast.success(getMessage("vi", "inviteConnectedToast"));
+    if (announce && !completed.current) feedback.success(getMessage("vi", "inviteConnectedToast"));
     completed.current = true;
     if (announce) void authService.refreshCurrentSession().catch(() => undefined);
   };
@@ -154,10 +154,11 @@ function InviteFlow({ initialMode = "choose", initialWaiting = false, showBack =
     return () => { active = false; clearInterval(timer); subscription.remove(); };
   }, [accountId, sessionId, flow.flow, flow.step, invite?.status]));
 
-  const run = async (kind: Action, operation: () => Promise<void>) => {
+  const run = async (kind: Action, operation: (feedback: ReturnType<typeof appToast.operation>) => Promise<void>) => {
     if (pending.current || loading || !current()) return;
     pending.current = true; setAction(kind);
-    try { await operation(); } catch (error) { reportError(error); }
+    const feedback = appToast.operation();
+    try { await operation(feedback); } catch (error) { reportError(error, feedback); }
     finally { pending.current = false; if (current()) setAction(null); }
   };
   const create = async () => {
@@ -180,24 +181,24 @@ function InviteFlow({ initialMode = "choose", initialWaiting = false, showBack =
     const parsed = inviteCodeSchema.safeParse({ code });
     if (!parsed.success) { setFieldError(parsed.error.issues[0]?.message); return; }
     Keyboard.dismiss();
-    void run("accept", async () => {
+    void run("accept", async (feedback) => {
       if (!accountId) return;
-      const toastId = appToast.loading(getMessage("vi", "inviteProcessingTitle"));
+      feedback.loading(getMessage("vi", "inviteProcessingTitle"));
       try {
         const result = await joinInviteByCode(parsed.data.code, accountId, () => current() && focused.current, inviteService);
-        if (result.kind === "connected") connected(result.couple);
-      } finally { appToast.dismiss(toastId); }
+        if (result.kind === "connected") connected(result.couple, true, feedback);
+      } finally { feedback.dismiss(); }
     });
   };
-  const share = () => void run("share", async () => {
+  const share = () => void run("share", async (feedback) => {
     if (!invite) return;
     const result = await Share.share({ message: `${getMessage("vi", "inviteShareMessage")} ${invite.code}\n${invitationURL(invite.code)}` });
-    appToast.info(getMessage("vi", result.action === Share.dismissedAction ? "inviteShareDismissedTitle" : "inviteShareSuccessTitle"));
+    feedback.info(getMessage("vi", result.action === Share.dismissedAction ? "inviteShareDismissedTitle" : "inviteShareSuccessTitle"));
   });
-  const copy = () => void run("copy", async () => {
+  const copy = () => void run("copy", async (feedback) => {
     if (!invite) return;
     await Clipboard.setStringAsync(invite.code);
-    appToast.success(getMessage("vi", "inviteCopiedTitle"));
+    feedback.success(getMessage("vi", "inviteCopiedTitle"));
   });
   const back = () => {
     if (pending.current) return;
@@ -212,10 +213,11 @@ function InviteFlow({ initialMode = "choose", initialWaiting = false, showBack =
     if (pending.current || loading || !current()) return;
     Keyboard.dismiss();
     pending.current = true; setAction("skip");
+    const feedback = appToast.operation();
     void onboardingService.skip().then(() => {
       if (current() && focused.current) router.replace("/(main)");
     }, () => {
-      if (current() && focused.current) appToast.error(getMessage("vi", "inviteActionErrorTitle"), { description: getMessage("vi", "onboardingSkipError") });
+      if (current() && focused.current) feedback.error(getMessage("vi", "inviteActionErrorTitle"), { description: getMessage("vi", "onboardingSkipError") });
     }).finally(() => { pending.current = false; if (current()) setAction(null); });
   };
   if (!accountId) return <Redirect href="/(auth)" />;

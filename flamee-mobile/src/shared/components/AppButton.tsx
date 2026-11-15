@@ -3,6 +3,7 @@ import { Platform } from "react-native";
 import { Button, Spinner, Text, XStack } from "tamagui";
 import { buttonTokens, glassTokens } from "../constants/tokens";
 import { useButtonInteraction } from "./useButtonInteraction";
+import { resolveSurfaceShadow } from "./surfaceShadow";
 import {
   getAppButtonPresentation,
   getAppButtonDisabledPresentation,
@@ -55,7 +56,19 @@ export function AppButton({
   const contentColor = disabledPresentation?.color ?? presentation.base.color;
   const layout = resolveAppButtonLayout({ fill, grow, contentAlign });
   const interaction = useButtonInteraction(state.disabled);
-  const { elevation: pressedElevation, ...pressStyle } = presentation.press;
+  const { elevation: _pressedElevation, shadowColor, shadowOffset, shadowOpacity, shadowRadius, ...pressStyle } = presentation.press;
+  const shadow = resolveSurfaceShadow(Platform.OS, {
+    shadowColor: presentation.base.shadowColor,
+    shadowOffset: depth === "subtle" ? buttonTokens.subtleShadow.shadowOffset : presentation.base.shadowOffset,
+    shadowOpacity: depth === "flat" ? 0 : disabledPresentation?.shadowOpacity ?? (depth === "subtle" ? buttonTokens.subtleShadow.shadowOpacity : presentation.base.shadowOpacity),
+    shadowRadius: depth === "flat" ? 0 : disabledPresentation?.shadowRadius ?? (depth === "subtle" ? buttonTokens.subtleShadow.shadowRadius : presentation.base.shadowRadius),
+  });
+  const pressedShadow = resolveSurfaceShadow(Platform.OS, {
+    shadowColor,
+    shadowOffset: depth === "subtle" ? buttonTokens.subtlePressedShadow.shadowOffset : shadowOffset,
+    shadowOpacity: depth === "flat" ? 0 : depth === "subtle" ? buttonTokens.subtlePressedShadow.shadowOpacity : shadowOpacity,
+    shadowRadius: depth === "flat" ? 0 : depth === "subtle" ? buttonTokens.subtlePressedShadow.shadowRadius : shadowRadius,
+  });
   const webGlass = variant === "ghost" && Platform.OS === "web";
 
   return (
@@ -78,11 +91,7 @@ export function AppButton({
       fontFamily="$body"
       fontSize="$button"
       fontWeight="$semibold"
-      shadowColor={webGlass ? undefined : presentation.base.shadowColor}
-      shadowOffset={webGlass ? undefined : depth === "subtle" ? buttonTokens.subtleShadow.shadowOffset : presentation.base.shadowOffset}
-      shadowOpacity={webGlass ? undefined : depth === "flat" ? 0 : disabledPresentation?.shadowOpacity ?? (depth === "subtle" ? buttonTokens.subtleShadow.shadowOpacity : presentation.base.shadowOpacity)}
-      shadowRadius={webGlass ? undefined : depth === "flat" ? 0 : disabledPresentation?.shadowRadius ?? (depth === "subtle" ? buttonTokens.subtleShadow.shadowRadius : presentation.base.shadowRadius)}
-      elevation={Platform.OS === "android" ? depth === "flat" ? 0 : disabledPresentation?.elevation ?? (depth === "subtle" ? buttonTokens.subtleShadow.elevation : presentation.base.elevation) : undefined}
+      {...(!webGlass ? shadow : {})}
       alignSelf={layout.alignSelf}
       flex={layout.flex}
       minWidth={layout.minWidth}
@@ -98,10 +107,7 @@ export function AppButton({
           backgroundColor: pressStyle.backgroundColor,
           transform: pressStyle.transform,
           boxShadow: glassTokens.buttonPressedShadow,
-        } : pressStyle),
-        ...(Platform.OS === "android" ? { elevation: pressedElevation } : {}),
-        ...(depth === "subtle" ? { ...buttonTokens.subtlePressedShadow, elevation: Platform.OS === "android" ? buttonTokens.subtlePressedShadow.elevation : undefined } : {}),
-        ...(depth === "flat" ? { shadowOpacity: 0, shadowRadius: 0, ...(Platform.OS === "android" ? { elevation: 0 } : {}) } : {}),
+        } : { ...pressStyle, ...pressedShadow }),
       }}
       focusStyle={{ borderWidth: 0, outlineWidth: 0, outlineStyle: "none" }}
       focusVisibleStyle={{ outlineWidth: 0, outlineStyle: "none" }}

@@ -16,6 +16,7 @@ const memorySchema = z.object({
   is_pinned: z.boolean(),
   thumbnail_url: remoteImage.nullable(),
   image_count: z.number().int().nonnegative(),
+  comment_count: z.number().int().nonnegative().nullable().optional(),
   cover_image: photoSchema.nullable().optional(),
   description: z.string().nullable().optional(),
   created_by: z.string().nullable().optional(),
@@ -92,7 +93,6 @@ export function createMemoryApi({ baseUrl, fetcher = fetch, timeoutMs = 12000, f
     create: (token: string, input: MemoryCreateInput, key: string): Promise<MemoryCreated> => request(token, "/memories", createdSchema, { json: input, key }),
     update: (token: string, id: string, input: MemoryUpdateInput): Promise<MemoryDetail> => request(token, `/memories/${encodeURIComponent(id)}`, detailSchema, { method: "PUT", json: input }),
     remove: (token: string, id: string): Promise<void> => request(token, `/memories/${encodeURIComponent(id)}`, z.void(), { method: "DELETE" }),
-    removeImage: (token: string, id: string, imageId: string): Promise<void> => request(token, `/memories/${encodeURIComponent(id)}/images/${encodeURIComponent(imageId)}`, z.void(), { method: "DELETE" }),
     async upload(token: string, id: string, file: MemoryUploadFile, key: string): Promise<MemoryUpload> {
       const form = new FormData();
       if ("uri" in file) {

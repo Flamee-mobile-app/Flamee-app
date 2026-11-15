@@ -23,8 +23,7 @@ export function useHeaderNavigation(route: string, configuration: AppHeaderConfi
   const select = useCallback((id: string) => {
     const target = headerDestinations.find((item) => item.id === id);
     if (!target) return;
-    if ((target.id === "timeline" || target.id === "memories") && isHomeHeaderRoute(route)) router.setParams({ view: target.id });
-    else router.navigate(getHeaderDestinationRoute(target.id));
+    router.navigate(getHeaderDestinationRoute(target.id));
   }, [router, route]);
   const leftAction: AppHeaderAction = activeId === "timeline" || activeId === "memories" ? {
     label: getMessage("vi", "memoryFeedAdd"), icon: <Plus size={24} color="$textPrimary" />, testID: "home-add-memory",

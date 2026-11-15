@@ -4,20 +4,38 @@ import { Info } from "@tamagui/lucide-icons-2/icons/Info";
 import { LoaderCircle } from "@tamagui/lucide-icons-2/icons/LoaderCircle";
 import { TriangleAlert } from "@tamagui/lucide-icons-2/icons/TriangleAlert";
 import { Toast, ToastProvider, ToastViewport } from "@tamagui/toast";
-import { useEffect, useRef, useSyncExternalStore, type PropsWithChildren } from "react";
-import { Animated, Easing, Platform, useWindowDimensions } from "react-native";
+import { useEffect, useLayoutEffect, useRef, useSyncExternalStore, type PropsWithChildren } from "react";
+import { usePathname } from "expo-router";
+import { Animated, AppState, Easing, Platform, useWindowDimensions } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FullWindowOverlay } from "react-native-screens";
 import { XStack, YStack } from "tamagui";
-import { liquidHeaderTokens, memoryFeedTokens, spacing, toastTokens } from "../constants/tokens";
+import { spacing, toastTokens } from "../constants/tokens";
+import { useSessionStore } from "../state/sessionStore";
 import { getMessage } from "../localization/messages";
-import { getAppToastPresentation, type AppToastTone } from "./appToastModel";
+import { getAppToastPresentation, getToastViewportFrame, type AppToastTone } from "./appToastModel";
 import { createAppToastState, type AppToastMessage, type AppToastOptions } from "./appToastState";
+import { resolveSurfaceShadow } from "./surfaceShadow";
 
-const notifications = createAppToastState(toastTokens.duration);
+const notifications = createAppToastState(toastTokens.duration, { exitDuration: toastTokens.exitDuration });
+
+function createToastOperation() {
+  const operationId = notifications.begin();
+  let loadingId: number | undefined;
+  const show = (tone: Exclude<AppToastTone, "default">, title: string, options?: AppToastOptions) => notifications.show(tone, title, { ...options, operationId });
+  return {
+    success: (title: string, options?: AppToastOptions) => show("success", title, options),
+    error: (title: string, options?: AppToastOptions) => show("error", title, options),
+    warning: (title: string, options?: AppToastOptions) => show("warning", title, options),
+    info: (title: string, options?: AppToastOptions) => show("info", title, options),
+    loading: (title: string, options?: AppToastOptions) => { loadingId = show("loading", title, options); return loadingId; },
+    dismiss: () => { if (loadingId !== undefined) notifications.dismiss(loadingId); },
+  };
+}
 
 export const appToast = {
+  operation: createToastOperation,
   success: (title: string, options?: AppToastOptions) => notifications.show("success", title, options),
   error: (title: string, options?: AppToastOptions) => notifications.show("error", title, options),
   warning: (title: string, options?: AppToastOptions) => notifications.show("warning", title, options),
@@ -53,9 +71,8 @@ function ToastStatusIcon({ tone }: { tone: AppToastTone }) {
 function AppToastItem({ item, cardWidth }: { item: AppToastMessage; cardWidth: number }) {
   const presentation = getAppToastPresentation(item.tone);
   const reducedMotion = useReducedMotion();
-  const { elevation, ...nativeShadow } = toastTokens.shadow;
+  const nativeShadow = resolveSurfaceShadow(Platform.OS, toastTokens.shadow);
   const dismiss = () => {
-    if (item.tone === "loading") return;
     if (Platform.OS === "web") {
       const active = document.activeElement;
       if (active instanceof HTMLElement && document.getElementById("flamee-toast")?.contains(active)) active.blur();
@@ -67,10 +84,10 @@ function AppToastItem({ item, cardWidth }: { item: AppToastMessage; cardWidth: n
     id="flamee-toast"
     unstyled
     open={item.open}
-    duration={item.duration}
-    onOpenChange={(open) => { if (!open && item.tone !== "loading") notifications.dismiss(item.id); }}
-    onEscapeKeyDown={(event) => { if (item.tone === "loading") event.preventDefault(); }}
-    onSwipeStart={(event) => { if (item.tone === "loading") event.preventDefault(); }}
+    duration={Infinity}
+    onOpenChange={(open) => { if (!open) notifications.dismiss(item.id); }}
+    onPause={() => notifications.setPaused(true)}
+    onResume={() => notifications.setPaused(false)}
     type={presentation.liveMode === "assertive" ? "foreground" : "background"}
     width={cardWidth}
     maxWidth={toastTokens.maxWidth}
@@ -82,7 +99,7 @@ function AppToastItem({ item, cardWidth }: { item: AppToastMessage; cardWidth: n
     outlineStyle="none"
     paddingHorizontal={toastTokens.paddingHorizontal}
     paddingVertical={toastTokens.paddingVertical}
-    {...(Platform.OS === "web" ? { boxShadow: toastTokens.webShadow } : { ...nativeShadow, elevation: Platform.OS === "android" ? elevation : undefined })}
+    {...(Platform.OS === "web" ? { boxShadow: toastTokens.webShadow } : nativeShadow)}
     opacity={1}
     y={0}
     scale={1}
@@ -91,7 +108,7 @@ function AppToastItem({ item, cardWidth }: { item: AppToastMessage; cardWidth: n
     enterStyle={reducedMotion ? { opacity: 0 } : { opacity: 0, y: toastTokens.enterOffset, scale: 0.98 }}
     exitStyle={reducedMotion ? { opacity: 0 } : { opacity: 0, y: toastTokens.exitOffset, scale: 0.98 }}
     onPress={(event) => { event.stopPropagation(); dismiss(); }}
-    accessibilityHint={item.tone === "loading" ? undefined : getMessage(item.locale ?? "vi", "closeNotification")}
+    accessibilityHint={getMessage(item.locale ?? "vi", "closeNotification")}
   >
     <XStack width="100%" alignItems="center" gap={toastTokens.iconGap} pointerEvents="none">
       <ToastStatusIcon tone={item.tone} />
@@ -106,21 +123,34 @@ function AppToastItem({ item, cardWidth }: { item: AppToastMessage; cardWidth: n
 export function AppToastProvider({ children }: PropsWithChildren) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  const pathname = usePathname();
+  const previousPath = useRef(pathname);
+  useLayoutEffect(() => {
+    if (previousPath.current !== pathname) notifications.changeRoute();
+    previousPath.current = pathname;
+  }, [pathname]);
+  useLayoutEffect(() => useSessionStore.subscribe((next, previous) => {
+    if (next.sessionId !== previous.sessionId || next.activeAccountId !== previous.activeAccountId) notifications.reset();
+  }), []);
+  useEffect(() => {
+    notifications.setActive(AppState.currentState === "active");
+    const subscription = AppState.addEventListener("change", (state) => notifications.setActive(state === "active"));
+    return () => { subscription.remove(); notifications.setActive(false); notifications.reset(); };
+  }, []);
   const item = useSyncExternalStore(notifications.subscribe, notifications.getSnapshot, notifications.getServerSnapshot);
-  const viewportWidth = Math.max(0, Math.min(toastTokens.maxWidth, width - spacing.lg * 2));
+  const frame = getToastViewportFrame(width, insets, toastTokens.maxWidth, spacing.lg, spacing.sm);
   const viewport = <ToastViewport
-    portalToRoot={Platform.OS === "web"}
-    width={viewportWidth}
-    left={(width - viewportWidth) / 2}
-    top={insets.top + liquidHeaderTokens.topGap + memoryFeedTokens.expandedHeaderHeight + spacing.sm}
+    portalToRoot={Platform.OS !== "ios"}
+    zIndex={toastTokens.zIndex}
+    {...frame}
     alignItems="center"
     label={getMessage(item?.locale ?? "vi", "notificationsLabel")}
   />;
-  return <ToastProvider duration={toastTokens.duration} swipeDirection="up" swipeThreshold={item?.tone === "loading" ? Number.MAX_SAFE_INTEGER : 48} native={false}>
+  return <ToastProvider duration={Infinity} swipeDirection="up" swipeThreshold={48} native={false}>
     {children}
-    {item ? <AppToastItem key={item.id} item={item} cardWidth={viewportWidth} /> : null}
-    {Platform.OS === "ios" ? <FullWindowOverlay>
+    {item ? <AppToastItem key={item.id} item={item} cardWidth={frame.width} /> : null}
+    {item ? Platform.OS === "ios" ? <FullWindowOverlay>
       <YStack position="absolute" top={0} right={0} bottom={0} left={0} pointerEvents="box-none">{viewport}</YStack>
-    </FullWindowOverlay> : viewport}
+    </FullWindowOverlay> : viewport : null}
   </ToastProvider>;
 }

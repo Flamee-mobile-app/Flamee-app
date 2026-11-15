@@ -173,17 +173,16 @@ export function AppField({
         borderWidth={outlined ? (active ? 2 : 1) : surfaceTone === "bright" ? 1 : 0}
         borderColor={outlined ? (active ? "$primary" : "$border") : surfaceTone === "bright" ? "$accentText" : "transparent"}
         backgroundColor={disabled ? "$fieldDisabled" : error ? "$accentSoft" : thought ? "transparent" : outlined || surfaceTone === "bright" || elevated ? "$fieldSurfaceBright" : "$fieldSurface"}
-        boxShadow={Platform.OS === "web" && surfaceTone === "bright" ? fieldTokens.brightSurfaceShadow : undefined}
+        boxShadow={Platform.OS === "android" ? disabled || thought ? "none" : surfaceTone === "bright" ? fieldTokens.brightSurfaceShadow : active || elevated ? fieldTokens.focusShadow : "none" : Platform.OS === "web" && surfaceTone === "bright" ? fieldTokens.brightSurfaceShadow : undefined}
         transform={[{ translateY: active && !thought && !reducedMotion ? -fieldTokens.focusLift : 0 }]}
         transition={transition}
         animateOnly={["transform"]}
         zIndex={active ? 1 : 0}
-        {...(Platform.OS !== "web" ? {
+        {...(Platform.OS === "ios" ? {
           shadowColor: fieldTokens.nativeFocusShadow.shadowColor,
           shadowOffset: surfaceTone === "bright" ? fieldTokens.brightNativeShadow.shadowOffset : fieldTokens.nativeFocusShadow.shadowOffset,
           shadowRadius: surfaceTone === "bright" ? fieldTokens.brightNativeShadow.shadowRadius : fieldTokens.nativeFocusShadow.shadowRadius,
           shadowOpacity: disabled ? 0 : surfaceTone === "bright" ? fieldTokens.brightNativeShadow.shadowOpacity : (active || elevated ? fieldTokens.nativeFocusShadow.shadowOpacity : 0),
-          ...(Platform.OS === "android" ? { elevation: disabled ? 0 : surfaceTone === "bright" ? fieldTokens.brightNativeShadow.elevation : (active || elevated ? fieldTokens.nativeFocusShadow.elevation : 0) } : {}),
         } : {})}
       >
         {!thought ? <>

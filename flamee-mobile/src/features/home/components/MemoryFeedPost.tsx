@@ -5,7 +5,8 @@ import { Pin } from "@tamagui/lucide-icons-2/icons/Pin";
 import { RotateCcw } from "@tamagui/lucide-icons-2/icons/RotateCcw";
 import { useEffect, useState } from "react";
 import { Text, XStack, YStack } from "tamagui";
-import { AppIconButton, AppMediaButton, AppProfileAvatar, AppRemoteImage, AppTextButton, SectionCard, appToast } from "../../../shared/components";
+import { AppIconButton, AppMediaButton, AppProfileAvatar, AppRemoteImage, AppTextButton, SectionCard } from "../../../shared/components";
+import { useRouter } from "expo-router";
 import { memoryFeedTokens } from "../../../shared/constants/tokens";
 import { formatMessage, getMessage } from "../../../shared/localization/messages";
 import type { MemorySummary } from "../../moments";
@@ -41,7 +42,8 @@ function MemoryAuthorAvatar({ memory }: { memory: MemorySummary }) {
     accessibilityLabel={author?.full_name || getMessage("vi", "memoryFeedShared")} />;
 }
 
-export function MemoryFeedPost({ memory, onDetails, onPhotoRetry }: { memory: MemorySummary; onDetails: () => void; onPhotoRetry?: () => void }) {
+export function MemoryFeedPost({ memory, onDetails, onPhotoRetry, onComments }: { memory: MemorySummary; onDetails: () => void; onPhotoRetry?: () => void; onComments?: () => void }) {
+  const router = useRouter();
   const date = formatMemoryDate(memory.memory_date, "vi");
   return <YStack paddingBottom={memoryFeedTokens.postGap}><SectionCard tone="white"><YStack gap="$md">
     <XStack alignItems="center" gap="$sm">
@@ -59,7 +61,7 @@ export function MemoryFeedPost({ memory, onDetails, onPhotoRetry }: { memory: Me
     {memory.location ? <XStack alignItems="center" gap="$xs"><MapPin size={14} color="$textSecondary" aria-hidden={true} /><Text flex={1} fontFamily="$body" fontSize="$bodyS" lineHeight="$bodyS" color="$textSecondary">{memory.location}</Text></XStack> : null}
     <YStack height={1} backgroundColor="$border" opacity={0.55} />
     <XStack justifyContent="space-between" alignItems="center" flexWrap="wrap" gap="$xs">
-      <AppTextButton icon={<MessageCircle size={19} color="$textSecondary" />} onPress={() => appToast.info(getMessage("vi", "memoryCommentsUnavailable"))}>{getMessage("vi", "memoryComments")}</AppTextButton>
+      <AppTextButton icon={<MessageCircle size={19} color="$textSecondary" />} onPress={onComments ?? (() => router.push({ pathname: "/memory/[memoryId]/comments", params: { memoryId: memory.id } }))}>{typeof memory.comment_count === "number" ? formatMessage("vi", "conversationCount", { count: memory.comment_count }) : getMessage("vi", "memoryComments")}</AppTextButton>
       {memory.image_count > 0 ? <Text fontFamily="$body" fontSize="$bodyS" lineHeight="$bodyS" color="$textSecondary">{formatMessage("vi", "memoryFeedPhotoCount", { count: memory.image_count })}</Text> : null}
     </XStack>
   </YStack></SectionCard></YStack>;

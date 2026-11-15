@@ -1,7 +1,7 @@
 import { AppGradientText } from "../../../shared/components";
 import { ImagePlus } from "@tamagui/lucide-icons-2/icons/ImagePlus";
 import { memo, useCallback, useEffect, useMemo, useRef } from "react";
-import { FlatList, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
+import { FlatList } from "react-native";
 import { Text, YStack } from "tamagui";
 import { AppButton, AsyncStateView, shouldShowInitialSkeleton } from "../../../shared/components";
 import { memoryFeedTokens } from "../../../shared/constants/tokens";
@@ -13,9 +13,10 @@ import { HomeLoadingView } from "./HomeLoadingView";
 import { MemoryCalendarConnector, MemoryCalendarMonthCard, MemoryCalendarStats } from "./MemoryCalendar";
 import { MemoryFeedPost } from "./MemoryFeedPost";
 
-const FeedRow = memo(function FeedRow({ memory, onDetails, onRetry }: { memory: MemorySummary; onDetails: (id: string) => void; onRetry: () => void }) {
+const FeedRow = memo(function FeedRow({ memory, onDetails, onRetry, onComments }: { memory: MemorySummary; onDetails: (id: string) => void; onRetry: () => void; onComments: (id: string) => void }) {
   const details = useCallback(() => onDetails(memory.id), [memory.id, onDetails]);
-  return <MemoryFeedPost memory={memory} onDetails={details} onPhotoRetry={onRetry} />;
+  const comments = useCallback(() => onComments(memory.id), [memory.id, onComments]);
+  return <MemoryFeedPost memory={memory} onDetails={details} onPhotoRetry={onRetry} onComments={comments} />;
 });
 
 type Props = {
@@ -24,18 +25,18 @@ type Props = {
   refreshing: boolean; loadingMore: boolean; hasMore: boolean;
   onRefresh: () => void; onMore: () => void; onConnect: () => void;
   onDetails: (id: string) => void; onDay: (day: string) => void; onAdd: () => void;
-  onScroll: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
+  onComments: (id: string) => void;
 };
 
 /** Popup state and body measurements never enter this list's render boundary. */
-export const HomeMemoryList = memo(function HomeMemoryList({ records, view, today, topInset, loading, failed, paired, confirmed, refreshing, loadingMore, hasMore, onRefresh, onMore, onConnect, onDetails, onDay, onAdd, onScroll }: Props) {
+export const HomeMemoryList = memo(function HomeMemoryList({ records, view, today, topInset, loading, failed, paired, confirmed, refreshing, loadingMore, hasMore, onRefresh, onMore, onConnect, onDetails, onDay, onAdd, onComments }: Props) {
   const calendar = useRef<FlatList<MemoryCalendarMonth>>(null);
   const grid = view === "memories";
   const months = useMemo(() => grid && paired ? buildMemoryCalendar(records, today, hasMore) : [], [grid, paired, records, today, hasMore]);
   const feed = useMemo(() => !grid ? selectMemoryFeed(records, "timeline") : [], [grid, records]);
   const scroll = getMemoryCalendarScrollLayout(topInset);
   useEffect(() => { if (grid) calendar.current?.scrollToOffset({ offset: 0, animated: false }); }, [grid]);
-  const renderPost = useCallback(({ item }: { item: MemorySummary }) => <FeedRow memory={item} onDetails={onDetails} onRetry={onRefresh} />, [onDetails, onRefresh]);
+  const renderPost = useCallback(({ item }: { item: MemorySummary }) => <FeedRow memory={item} onDetails={onDetails} onRetry={onRefresh} onComments={onComments} />, [onDetails, onRefresh, onComments]);
   const renderMonth = useCallback(({ item }: { item: MemoryCalendarMonth }) => <MemoryCalendarMonthCard month={item} onDay={onDay} onAdd={onAdd} />, [onDay, onAdd]);
   const footer = hasMore ? <AppButton fill variant="ghost" loading={loadingMore} disabled={refreshing} onPress={onMore}>{getMessage("vi", "memoryLoadOlder")}</AppButton> : null;
   const refreshError = failed && confirmed ? <YStack paddingBottom="$lg" gap="$sm"><Text role="alert" fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$accentText">{getMessage("vi", "memoryFeedLoadErrorBody")}</Text><AppButton variant="ghost" onPress={onRefresh}>{getMessage("vi", "retry")}</AppButton></YStack> : null;
@@ -54,11 +55,11 @@ export const HomeMemoryList = memo(function HomeMemoryList({ records, view, toda
     ListFooterComponent={footer}
     contentContainerStyle={{ paddingHorizontal: memoryFeedTokens.gutter, paddingTop: scroll.paddingTop, paddingBottom: scroll.paddingBottom }}
     initialNumToRender={2} maxToRenderPerBatch={2} windowSize={5} refreshing={refreshing} onRefresh={onRefresh}
-    onEndReached={onMore} onEndReachedThreshold={0.3} onScroll={onScroll} scrollEventThrottle={32} showsVerticalScrollIndicator={false} style={{ flex: 1 }} />;
+    onEndReached={onMore} onEndReachedThreshold={0.3} showsVerticalScrollIndicator={false} style={{ flex: 1 }} />;
   return <FlatList key="feed" data={feed} keyExtractor={memoryKey} renderItem={renderPost} ListEmptyComponent={empty} ListHeaderComponent={refreshError} ListFooterComponent={footer}
     contentContainerStyle={{ flexGrow: 1, paddingHorizontal: memoryFeedTokens.gutter, paddingTop: getMemoryFeedHeaderClearance(topInset), paddingBottom: memoryFeedTokens.navigationClearance }}
     initialNumToRender={4} maxToRenderPerBatch={4} windowSize={5} refreshing={refreshing} onRefresh={onRefresh}
-    onEndReached={onMore} onEndReachedThreshold={0.3} onScroll={onScroll} scrollEventThrottle={32} showsVerticalScrollIndicator={false} style={{ flex: 1 }} />;
+    onEndReached={onMore} onEndReachedThreshold={0.3} showsVerticalScrollIndicator={false} style={{ flex: 1 }} />;
 });
 
 const monthKey = (month: MemoryCalendarMonth) => month.key;
