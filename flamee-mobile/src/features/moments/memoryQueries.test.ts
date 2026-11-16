@@ -9,6 +9,33 @@ const memory = (id: string): MemorySummary => ({ id, title: id, category: "momen
 const page = (ids: string[], offset: number, hasMore: boolean): MemoryList => ({ items: ids.map(memory), total: 3, offset, limit: 2, has_more: hasMore });
 const client = () => new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
 
+test("Home retains a still-valid avatar URL across background refresh and accepts replacement, removal and expiry", async () => {
+  const cache = client();
+  const expiry = Math.floor(Date.now() / 1000) + 600;
+  const signed = (path: string, exp: number) => `https://example.test/storage/v1/object/sign/media/${path}?token=x.${Buffer.from(JSON.stringify({ exp })).toString("base64url")}.x`;
+  let uri: string | null = signed("avatar.jpg", expiry);
+  const oldUri = uri;
+  const options = memoryFeedOptions(scope, async () => ({ items: [{ ...memory("one"), author: { id: "a", full_name: "A", avatar_url: uri } }], total: 1 }));
+  await cache.fetchInfiniteQuery(options);
+  const observer = new InfiniteQueryObserver(cache, options);
+  uri = signed("avatar.jpg", expiry + 600);
+  await observer.refetch();
+  assert.equal(observer.getCurrentResult().data!.pages[0].items[0].author?.avatar_url, oldUri);
+  const now = Date.now;
+  try {
+    Date.now = () => (expiry - 1) * 1000;
+    await observer.refetch();
+    assert.equal(observer.getCurrentResult().data!.pages[0].items[0].author?.avatar_url, uri);
+  } finally { Date.now = now; }
+  uri = signed("replacement.jpg", expiry + 600);
+  await observer.refetch();
+  assert.equal(observer.getCurrentResult().data!.pages[0].items[0].author?.avatar_url, uri);
+  uri = null;
+  await observer.refetch();
+  assert.equal(observer.getCurrentResult().data!.pages[0].items[0].author?.avatar_url, null);
+  observer.destroy(); cache.clear();
+});
+
 test("fresh Home focus reads share one request and reuse the confirmed cache", async () => {
   const cache = client();
   let reads = 0;

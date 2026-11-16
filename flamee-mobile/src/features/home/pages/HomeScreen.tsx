@@ -46,7 +46,7 @@ export function HomeScreen({ view: routeView, checkInRequest, momentRequest }: H
   }, []);
   const onAdd = useCallback(() => overlays.current?.show({ kind: "create" }), []);
   const onDetails = useCallback((id: string) => overlays.current?.show({ kind: "details", id }), []);
-  const onComments = useCallback((id: string) => overlays.current?.show({ kind: "comments", id }), []);
+  const onComments = useCallback((id: string) => router.push({ pathname: "/memory/[memoryId]/comments", params: { memoryId: id } }), [router]);
   const onDay = useCallback((day: string) => overlays.current?.show({ kind: "day", day }), []);
   const onConnect = useCallback(() => router.push("/connection"), [router]);
   const closeLegacyIntent = useCallback(() => router.setParams({ checkInRequest: undefined, momentRequest: undefined, momentKind: undefined }), [router]);
@@ -68,7 +68,7 @@ export function HomeScreen({ view: routeView, checkInRequest, momentRequest }: H
   return <AppScreen scroll={false} padded={false} reserveHeaderSpace={false} safeAreaEdges={["left", "right", "bottom"]} contentProps={{ flex: 1, gap: 0 }}>
     <YStack flex={1} width="100%" maxWidth={memoryFeedTokens.maxWidth} alignSelf="center">
       <AppBlurTarget ref={blurTarget} style={{ flex: 1, width: "100%" }}>
-        <HomeMemoryList key={scopeKey} records={records} view={view} today={today} topInset={insets.top}
+        <HomeMemoryList key={scopeKey} records={records} view={view} today={today} topInset={insets.top} focused={screenFocused}
           loading={!bootstrapped || Boolean(coupleId && query.isPending)} failed={query.isError} paired={Boolean(coupleId)} confirmed={Boolean(query.data) || (bootstrapped && !coupleId)}
           refreshing={refreshing} loadingMore={query.isFetchingNextPage} hasMore={Boolean(hasNextPage)}
           onRefresh={onRefresh} onMore={onMore} onConnect={onConnect} onAdd={onAdd} onDay={onDay} onDetails={onDetails} onComments={onComments} />

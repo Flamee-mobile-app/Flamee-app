@@ -154,6 +154,7 @@ class MoodService:
                 reasons=reasons,
                 note=note,
                 share_level=share_level,
+                draft_version=draft_version,
             )
 
         if share_level != 'private' and couple_id:
@@ -169,6 +170,7 @@ class MoodService:
         reasons: Optional[List[str]],
         note: Optional[str],
         share_level: str,
+        draft_version: int = 1,
     ) -> None:
         """Tìm partner và kích hoạt Smart Nudge."""
         try:
@@ -207,6 +209,22 @@ class MoodService:
                 TinyMomentRepository(self.db),
                 db_client=self.db,
             )
+            if draft_version == 2:
+                from app.services.dual_mood_context import select_dual_mood_context
+                own = self.mood_repo.get_latest_mood(sender_id)
+                partner_mood = self.mood_repo.get_latest_mood(partner_id)
+                context = select_dual_mood_context(own, partner_mood, couple_id, now_utc())
+                if context is None:
+                    return
+                # Both directions are based on server-owned data; notes never enter AI.
+                for source, receiver in ((own, partner_mood), (partner_mood, own)):
+                    nudge_service.trigger_nudge_generation(
+                        couple_id=couple_id, sender_id=source.user_id, partner_id=receiver.user_id,
+                        mood_score=source.mood_score, receiver_score=receiver.mood_score,
+                        source_mood_id=source.id, receiver_mood_id=receiver.id,
+                        reasons=None, note=source.note, share_level=source.share_level,
+                    )
+                return
             nudge_service.trigger_nudge_generation(
                 couple_id=couple_id,
                 sender_id=sender_id,

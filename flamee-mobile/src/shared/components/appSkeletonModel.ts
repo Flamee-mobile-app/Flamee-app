@@ -2,6 +2,6 @@ export function shouldShowInitialSkeleton({ pending, hasConfirmedContent }: { pe
   return pending && !hasConfirmedContent;
 }
 
-export function shouldShowImageSkeleton({ loaded, hasPreview }: { loaded: boolean; hasPreview: boolean }) {
-  return !loaded && !hasPreview;
+export function shouldShowImageSkeleton({ loaded, previewLoaded }: { loaded: boolean; previewLoaded: boolean }) {
+  return !loaded && !previewLoaded;
 }

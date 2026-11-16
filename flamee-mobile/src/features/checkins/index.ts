@@ -11,3 +11,6 @@ export { MoodEmojiIcon } from "./components/MoodEmojiIcon";
 export { moodEmojiCatalog, resolveMoodEmoji } from "./moodEmojiCatalog";
 export { moodPreviewRecords } from "./moodPreviewData";
 export { pruneMoodHistory } from "./moodQueries";
+export { moodService, reminderKey, reminderCurrent } from "./moodService";
+export type { MoodReminder } from "./moodApi";
+export { reminderOptions, useMoodReminderCapability } from "./reminderQueries";

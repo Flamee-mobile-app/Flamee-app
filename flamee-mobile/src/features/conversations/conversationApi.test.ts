@@ -3,6 +3,22 @@ import test from "node:test";
 import { createConversationApi, ConversationError } from "./conversationApi.ts";
 const comment = { id: "c", memory_id: "m/1", parent_id: null, body: "Hi", deleted: false, version: 0, created_at: "2026-11-15T00:00:00Z", updated_at: "2026-11-15T00:00:00Z", author: { id: "author", full_name: "Name", username: null }, parent_author: null, heart_count: 0, hearted: false };
 
+test("post likes use authenticated desired-state requests and reject wrong-post acknowledgements", async () => {
+  const methods: string[] = [];
+  const api = createConversationApi({ baseUrl: "https://api.test", fetcher: async (url, options) => {
+    assert.equal(url, "https://api.test/memories/m%2F1/heart");
+    assert.equal(new Headers(options?.headers).get("Authorization"), "Bearer token");
+    methods.push(options!.method!);
+    return Response.json({ success: true, data: { memory_id: "m/1", heart_count: 1, hearted: options?.method === "PUT" } });
+  } });
+  await api.postHeart("token", "m/1");
+  assert.equal((await api.postHeart("token", "m/1", true)).hearted, true);
+  assert.equal((await api.postHeart("token", "m/1", false)).hearted, false);
+  assert.deepEqual(methods, ["GET", "PUT", "DELETE"]);
+  const wrong = createConversationApi({ baseUrl: "https://api.test", fetcher: async () => Response.json({ success: true, data: { memory_id: "other", heart_count: 2, hearted: true } }) });
+  await assert.rejects(wrong.postHeart("token", "m/1", true), (error: ConversationError) => error.code === "response");
+});
+
 test("send authenticates, encodes IDs and preserves the stable send key and exact reply target", async () => {
   const api = createConversationApi({ baseUrl: "https://api.test/", fetcher: async (url, options) => {
     assert.equal(url, "https://api.test/memories/m%2F1/comments");

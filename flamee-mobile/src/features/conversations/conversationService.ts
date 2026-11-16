@@ -24,6 +24,7 @@ export const conversationKeys = {
   inbox: (scope: ConversationScope) => [...conversationKeys.scope(scope), "inbox"] as const,
 };
 export const conversationService = {
+  postHeart: (scope: ConversationScope, id: string, desired?: boolean, signal?: AbortSignal) => scoped(scope, (token) => api.postHeart(token, id, desired, signal)),
   list: (scope: ConversationScope, id: string, offset: number, signal?: AbortSignal) => scoped(scope, (token) => api.list(token, id, offset, signal)),
   comment: (scope: ConversationScope, id: string, commentId: string, signal?: AbortSignal) => scoped(scope, (token) => api.comment(token, id, commentId, signal)),
   send: (scope: ConversationScope, id: string, body: string, parentId: string | null, key: string) => scoped(scope, (token) => api.send(token, id, body, parentId, key)),

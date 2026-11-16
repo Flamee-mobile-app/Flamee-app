@@ -16,8 +16,46 @@ from app.schemas.mood import (
 )
 from app.services.couple_service import CoupleService
 from app.services.mood_service import MoodService
+from app.repositories.mood_reminder_repo import MoodReminderRepository
+from app.schemas.mood_reminder import MoodReminderRequest
 
 router = APIRouter(prefix="/moods", tags=["mood"])
+
+
+@router.get("/capabilities")
+def mood_capabilities(current: dict = Depends(get_current_user), db: Client = Depends(get_db)):
+    return ok(MoodReminderRepository(db).capabilities())
+
+
+@router.get("/nudge")
+def get_current_dual_nudge(current: dict = Depends(get_current_user), db: Client = Depends(get_db)):
+    if not current.get("couple_id"):
+        return ok(None)
+    from app.repositories.smart_nudge_repo import SmartNudgeRepository, TinyMomentRepository
+    from app.services.smart_nudge_service import SmartNudgeService
+    from app.schemas.smart_nudge import SmartNudgeResponse
+    nudge = SmartNudgeService(SmartNudgeRepository(db), TinyMomentRepository(db), db_client=db).get_active_dual_nudge(current["couple_id"], current["id"])
+    return ok(SmartNudgeResponse(**nudge.to_dict()).model_dump() if nudge else None)
+
+
+@router.post("/reminders/ensure")
+def ensure_reminder(payload: MoodReminderRequest, current: dict = Depends(get_current_user), db: Client = Depends(get_db)):
+    return ok(MoodReminderRepository(db).execute(current["id"], "ensure", payload.timezone))
+
+
+@router.get("/reminders")
+def list_reminders(limit: int = Query(default=20, ge=1, le=100), offset: int = Query(default=0, ge=0), current: dict = Depends(get_current_user), db: Client = Depends(get_db)):
+    return ok(MoodReminderRepository(db).execute(current["id"], "list", limit=limit, offset=offset))
+
+
+@router.put("/reminders/{reminder_id}/read")
+def read_reminder(reminder_id: str, current: dict = Depends(get_current_user), db: Client = Depends(get_db)):
+    return ok(MoodReminderRepository(db).execute(current["id"], "read", target=reminder_id))
+
+
+@router.put("/reminders/read-all")
+def read_all_reminders(current: dict = Depends(get_current_user), db: Client = Depends(get_db)):
+    return ok(MoodReminderRepository(db).execute(current["id"], "read_all"))
 
 
 def _mood_response(mood) -> MoodResponse:

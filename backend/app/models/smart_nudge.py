@@ -27,6 +27,9 @@ class SmartNudge:
     # Plan mục 4: version + snooze_count
     version: int = 1
     snooze_count: int = 0
+    dual_mood_generated: Optional[bool] = False
+    source_mood_id: Optional[str] = None
+    receiver_mood_id: Optional[str] = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

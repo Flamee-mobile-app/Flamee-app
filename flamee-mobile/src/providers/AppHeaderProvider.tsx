@@ -12,7 +12,7 @@ import { getMessage } from "../shared/localization/messages";
 import { initialAppHeaderPresence, reduceAppHeaderPresence } from "./appHeaderPresenceModel";
 import { getAppHeaderContentOffset } from "./appHeaderLayoutModel";
 
-/** One application header, outside the navigator's screen content. */
+/** Root title/back host for stack screens. Main tabs render their header in scroll content. */
 export function AppHeaderProvider({ children }: PropsWithChildren) {
   const [presence, dispatch] = useReducer(reduceAppHeaderPresence, initialAppHeaderPresence);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -24,7 +24,8 @@ export function AppHeaderProvider({ children }: PropsWithChildren) {
     dispatch({ type: "publish", entry: next });
     return () => dispatch({ type: "release", owner: next.owner });
   }, []);
-  const visible = presence.active !== null && presence.active.route === route;
+  const isMain = route.split("/")[0] === "(main)";
+  const visible = !isMain && presence.active !== null && presence.active.route === route;
   const configuration = presence.retained?.configuration ?? null;
   const menu = useHeaderNavigation(route, configuration);
   const contentOffset = visible ? getAppHeaderContentOffset(menu.isHome) : 0;
@@ -34,7 +35,7 @@ export function AppHeaderProvider({ children }: PropsWithChildren) {
   return <AppHeaderContext.Provider value={value}>
     <View style={styles.fill}>
       {children}
-      {configuration ? <View pointerEvents={visible ? "box-none" : "none"} style={[StyleSheet.absoluteFill, !visible && styles.hidden]}>
+      {!isMain && configuration ? <View pointerEvents={visible ? "box-none" : "none"} style={[StyleSheet.absoluteFill, !visible && styles.hidden]}>
         <View pointerEvents={visible ? "box-none" : "none"} style={styles.headerBounds}>
           {menu.isHome ? <MemoryFeedHeader title={configuration.title} menuItems={menu.items} activeMenuId={menu.activeId} onMenuSelect={menu.select}
             leftAction={menu.leftAction} onNotifications={openNotifications} topInset={insets.top} compact={configuration.compact ?? false}

@@ -56,6 +56,10 @@ export function CheckInReflectionForm({ step, draft, onChange, onSliderInteracti
 
   return <YStack width="100%" gap="$xxl">
     <StepTitle>{getMessage("vi", "moodFlowIntensityTitle")}</StepTitle>
+    <AppSlider label={getMessage("vi", "moodFlowScoreSectionTitle")} requirementLabel={getMessage("vi", "moodFlowRequired")}
+      value={draft.moodScore} min={1} max={5} step={1} minLabel={getMessage("vi", "moodScore1")} maxLabel={getMessage("vi", "moodScore5")}
+      getValueLabel={(value) => value === null ? getMessage("vi", "moodFlowSliderNotSelected") : getMessage("vi", (["moodScore1", "moodScore2", "moodScore3", "moodScore4", "moodScore5"] as const)[Math.round(value) - 1])}
+      onValueChange={(moodScore) => update({ moodScore })} onInteractionChange={onSliderInteractionChange} />
     <AppSlider
       label={getMessage("vi", "moodFlowIntensitySectionTitle")}
       requirementLabel={getMessage("vi", "moodFlowRequired")}

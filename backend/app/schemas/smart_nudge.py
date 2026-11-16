@@ -52,6 +52,9 @@ class SmartNudgeResponse(BaseModel):
     # State machine
     version: int = 1
     snooze_count: int = 0
+    dual_mood_generated: bool | None = False
+    source_mood_id: str | None = None
+    receiver_mood_id: str | None = None
 
 
 class SmartNudgeActionRequest(BaseModel):

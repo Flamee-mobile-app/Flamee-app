@@ -15,6 +15,7 @@ test("conversation migration executes on isolated PostgreSQL and enforces author
       INSERT INTO memories VALUES('memory','pair'),('foreign','other');
       GRANT ALL ON users,couples,memories TO service_role;`);
     await db.exec(await readFile(new URL("../migrations/20261115_memory_conversation.sql", import.meta.url), "utf8"));
+    await db.exec(await readFile(new URL("../migrations/20261116_comment_parent_nickname.sql", import.meta.url), "utf8"));
     await db.exec('SET ROLE service_role');
     const op = async (actor, action, memory = null, target = null, key = null, payload = {}) => (await db.query("SELECT memory_conversation_operation($1,$2,$3,$4,$5,$6::jsonb) AS result", [actor, action, memory, target, key, JSON.stringify(payload)])).rows[0].result;
     const created = await op('alice','create','memory',null,'a',{body:'Hello',parent_id:null});
@@ -28,6 +29,12 @@ test("conversation migration executes on isolated PostgreSQL and enforces author
     assert.equal((await op('bob','edit','memory',id,null,{body:'No',version:0})).outcome,'forbidden');
     const reply = await op('bob','create','memory',null,'b',{body:'Reply',parent_id:id});
     assert.equal(reply.outcome,'ok');
+    await db.exec("UPDATE users SET username='  Sunshine  ' WHERE id='alice'");
+    assert.equal((await op('bob','comment','memory',reply.data.id)).data.parent_author,'Sunshine');
+    await db.exec("UPDATE users SET username='New nickname' WHERE id='alice'");
+    assert.equal((await op('bob','comment','memory',reply.data.id)).data.parent_author,'New nickname','existing replies use the current nickname');
+    await db.exec("UPDATE users SET username='  ' WHERE id='alice'");
+    assert.equal((await op('bob','comment','memory',reply.data.id)).data.parent_author,'Alice');
     assert.equal((await op('alice','create','memory',null,'nested',{body:'Nested',parent_id:reply.data.id})).outcome,'not_found');
     assert.equal((await op('alice','create','foreign',null,'wrong',{body:'No'})).outcome,'not_found');
     assert.equal((await op('bob','heart','memory',id)).data.heart_count,1);

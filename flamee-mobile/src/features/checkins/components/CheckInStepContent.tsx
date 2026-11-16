@@ -30,8 +30,8 @@ export function CheckInStepContent({ draft, onChange }: { draft: CheckInDraft; o
     <YStack width="100%" height={moodFlowTokens.mascotStageHeight} alignItems="center" justifyContent="center">
       <YStack position="absolute" width={moodFlowTokens.mascotShadowWidth} height={moodFlowTokens.mascotShadowHeight} borderRadius={moodFlowTokens.mascotShadowHeight / 2} backgroundColor="$textPrimary" opacity={0.08} bottom={8}
         shadowColor="$textPrimary" shadowOffset={{ width: 0, height: 2 }} shadowOpacity={0.12} shadowRadius={8} />
-      <Image source={sticker.source()} resizeMode="contain" accessibilityLabel={`${getMessage("vi", "moodFlowStickerLabel")}: ${getMessage("vi", sticker.labelKey)}`} style={{ width: moodFlowTokens.mascotSize, height: moodFlowTokens.mascotSize }} />
+      <Image key={sticker.id} source={sticker.source()} resizeMode="contain" fadeDuration={0} accessibilityLabel={`${getMessage("vi", "moodFlowStickerLabel")}: ${getMessage("vi", sticker.labelKey)}`} style={{ width: moodFlowTokens.mascotSize, height: moodFlowTokens.mascotSize }} />
     </YStack>
-    {draft.emotionId === "custom" ? <AppField labelSize="large" label={`${getMessage("vi", "emotionCustomLabel")} · ${getMessage("vi", "moodFlowRequired")}`} placeholder={getMessage("vi", "emotionCustomPlaceholder")} value={draft.customEmotionLabel} onChangeText={(customEmotionLabel) => update({ customEmotionLabel })} maxLength={32} surfaceTone="bright" /> : null}
+    {draft.emotionId === "custom" ? <AppField showLabel={false} label={`${getMessage("vi", "emotionCustomLabel")} · ${getMessage("vi", "moodFlowRequired")}`} placeholder={getMessage("vi", "emotionCustomPlaceholder")} value={draft.customEmotionLabel} onChangeText={(customEmotionLabel) => update({ customEmotionLabel })} maxLength={32} surfaceTone="outlined" /> : null}
   </YStack>;
 }

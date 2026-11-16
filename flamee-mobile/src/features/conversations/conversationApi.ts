@@ -7,6 +7,8 @@ export const noticeSchema = z.object({ id: z.string().min(1), kind: z.enum(["com
 export const inboxSchema = z.object({ items: z.array(noticeSchema), total: z.number().int().nonnegative(), unread_count: z.number().int().nonnegative() });
 export type MemoryComment = z.infer<typeof commentSchema>;
 export type CoupleNotice = z.infer<typeof noticeSchema>;
+const postHeartSchema = z.object({ memory_id: z.string().min(1), heart_count: z.number().int().nonnegative(), hearted: z.boolean() });
+export type PostHeart = z.infer<typeof postHeartSchema>;
 export class ConversationError extends Error {
   readonly code: "network" | "timeout" | "unavailable" | "unauthorized" | "forbidden" | "not_found" | "conflict" | "response";
   constructor(code: ConversationError["code"]) { super(code); this.code = code; }
@@ -42,6 +44,11 @@ export function createConversationApi({ baseUrl, fetcher = fetch, timeoutMs = 12
     return result;
   };
   return {
+    postHeart: async (token: string, id: string, desired?: boolean, signal?: AbortSignal) => {
+      const result = await request(token, `/memories/${encodeURIComponent(id)}/heart`, postHeartSchema, desired === undefined ? "GET" : desired ? "PUT" : "DELETE", undefined, undefined, signal);
+      if (result.memory_id !== id) throw new ConversationError("response");
+      return result;
+    },
     list: (token: string, id: string, offset = 0, signal?: AbortSignal) => request(token, `${path(id)}?limit=20&offset=${offset}`, commentsSchema, "GET", undefined, undefined, signal),
     comment: (token: string, id: string, commentId: string, signal?: AbortSignal) => acknowledgement(request(token, path(id, commentId), commentSchema, "GET", undefined, undefined, signal), id, commentId),
     send: async (token: string, id: string, body: string, parent_id: string | null, key: string) => {

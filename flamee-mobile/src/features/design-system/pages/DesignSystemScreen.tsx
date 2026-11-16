@@ -255,7 +255,7 @@ function DialogPreview() {
           {getMessage(locale, "recreateInviteConfirmTitle")}
         </AppButton>
       </YStack>
-      <AppDialog open={open} onOpenChange={setOpen} title={getMessage(locale, "recreateInviteConfirmTitle")} description={getMessage(locale, "recreateInviteConfirmBody")}>
+      <AppDialog open={open} aboveSheet onOpenChange={setOpen} title={getMessage(locale, "recreateInviteConfirmTitle")} description={getMessage(locale, "recreateInviteConfirmBody")}>
         <AppButton testID="design-dialog-toast" variant="secondary" onPress={() => appToast.info(getMessage(locale, "successTitle"))}>{getMessage(locale, "designSystemToastInDialog")}</AppButton>
         <XStack gap="$sm">
           <AppButton grow variant="ghost" onPress={() => setOpen(false)}>{getMessage(locale, "keepCurrentInvite")}</AppButton>

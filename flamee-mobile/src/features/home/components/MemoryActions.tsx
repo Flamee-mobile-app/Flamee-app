@@ -1,71 +1,58 @@
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Text, YStack } from "tamagui";
-import { AppButton, AppDialog, AppField } from "../../../shared/components";
+import { AppButton, AppDialog, appToast } from "../../../shared/components";
 import { getMessage } from "../../../shared/localization/messages";
 import { useSessionStore } from "../../../shared/state/sessionStore";
 import { isMemoryMutationScopeCurrent, memoryQueryKeys, memoryService, type MemoryDetail, type MemoryScope } from "../../moments";
+import { reconcileMemoryDeletion } from "../memoryEditModel";
 
-type Action = { kind: "edit" } | { kind: "delete" };
-
-export function MemoryActions({ record, scope, onDeleted }: { record: MemoryDetail; scope: MemoryScope; onDeleted: () => void }) {
+export function MemoryActions({ record, scope, onDeleted, onEdit }: { record: MemoryDetail; scope: MemoryScope; onDeleted: () => void; onEdit: (record: MemoryDetail) => void }) {
   const client = useQueryClient();
-  const [action, setAction] = useState<Action | null>(null);
-  const [title, setTitle] = useState(record.title);
-  const [description, setDescription] = useState(record.description ?? "");
+  const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
   const mounted = useRef(true);
   const lock = useRef(false);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
-  const current = () => mounted.current && isMemoryMutationScopeCurrent(scope, useSessionStore.getState());
-  const begin = (next: Action) => {
-    if (lock.current) return;
-    setTitle(record.title); setDescription(record.description ?? ""); setFailed(false); setAction(next);
-  };
+  const current = () => isMemoryMutationScopeCurrent(scope, useSessionStore.getState());
   const submit = async () => {
-    if (!action || lock.current || !current()) return;
+    if (!confirming || lock.current || !current()) return;
+    const feedback = appToast.operation();
+    feedback.loading(getMessage("vi", "memoryDeleting"));
     lock.current = true; setBusy(true); setFailed(false);
     try {
       // Cancel in-flight reads so an older response cannot restore stale post data.
       await client.cancelQueries({ queryKey: memoryQueryKeys.scope(scope) });
       if (!current()) return;
-      if (action.kind === "edit") {
-        const updated = await memoryService.update(scope, record.id, { title: title.trim(), description: description.trim() || null });
-        if (!current()) return;
-        client.setQueryData(memoryQueryKeys.detail(scope, record.id), updated);
-      } else {
-        await memoryService.remove(scope, record.id);
-        if (!current()) return;
-        onDeleted();
-        client.removeQueries({ queryKey: memoryQueryKeys.detail(scope, record.id), exact: true });
-      }
+      await memoryService.remove(scope, record.id);
       if (!current()) return;
-      setAction(null);
+      client.setQueryData(memoryQueryKeys.feed(scope), (old: Parameters<typeof reconcileMemoryDeletion>[0]) => reconcileMemoryDeletion(old, record.id));
+      client.removeQueries({ queryKey: memoryQueryKeys.detail(scope, record.id), exact: true });
+      feedback.success(getMessage("vi", "memoryDeleted"));
+      if (mounted.current) { setConfirming(false); onDeleted(); }
       void client.invalidateQueries({ queryKey: memoryQueryKeys.scope(scope) });
     } catch {
       if (current()) {
-        setFailed(true);
+        feedback.error(getMessage("vi", "memoryActionError"));
+        if (mounted.current) setFailed(true);
         // A timeout may follow a committed write. Re-read before another attempt.
         void client.invalidateQueries({ queryKey: memoryQueryKeys.scope(scope) });
       }
     } finally {
       lock.current = false;
+      feedback.dismiss();
       if (mounted.current) setBusy(false);
     }
   };
-  const actionTitle = action?.kind === "edit" ? "memoryEdit" : "memoryDelete";
   return <YStack gap="$md" paddingHorizontal="$xs" paddingVertical="$xs">
-    <AppButton variant="secondary" depth="subtle" onPress={() => begin({ kind: "edit" })}>{getMessage("vi", "memoryEdit")}</AppButton>
-    <AppButton variant="destructive" depth="subtle" onPress={() => begin({ kind: "delete" })}>{getMessage("vi", "memoryDelete")}</AppButton>
-    <AppDialog open={action !== null} dismissible={!busy} onOpenChange={(open) => { if (!open && !lock.current) setAction(null); }} title={getMessage("vi", actionTitle)} description={getMessage("vi", action?.kind === "edit" ? "memoryEditBody" : "memoryDeleteBody")} avoidKeyboard>
-      {action?.kind === "edit" ? <YStack gap="$md">
-        <AppField label={getMessage("vi", "memoryEditTitle")} value={title} onChangeText={setTitle} maxLength={200} editable={!busy} />
-        <AppField label={getMessage("vi", "memoryEditDescription")} value={description} onChangeText={setDescription} maxLength={4000} multiline editable={!busy} />
-      </YStack> : null}
+    <AppButton testID="memory-edit-inline" variant="secondary" depth="subtle" disabled={busy || confirming} onPress={() => { if (!lock.current) onEdit(record); }}>{getMessage("vi", "memoryEdit")}</AppButton>
+    <AppButton testID="memory-delete-start" variant="destructive" depth="subtle" disabled={busy || confirming} onPress={() => { setFailed(false); setConfirming(true); }}>{getMessage("vi", "memoryDelete")}</AppButton>
+    {confirming ? <AppDialog open aboveSheet avoidKeyboard titleTone="plain" title={getMessage("vi", "memoryDeleteTitle")} description={getMessage("vi", "memoryDeleteBody")} dismissible={!busy}
+      onOpenChange={(open) => { if (!open && !lock.current) { setConfirming(false); setFailed(false); } }}>
       {failed ? <Text role="alert" fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$accentText">{getMessage("vi", "memoryActionError")}</Text> : null}
-      <AppButton variant={action?.kind === "delete" ? "destructive" : "primary"} loading={busy} disabled={action?.kind === "edit" && !title.trim()} onPress={() => { void submit(); }}>{getMessage("vi", action?.kind === "edit" ? "memorySave" : "memoryActionConfirm")}</AppButton>
-      <AppButton variant="ghost" disabled={busy} onPress={() => setAction(null)}>{getMessage("vi", "memoryActionCancel")}</AppButton>
-    </AppDialog>
+      <AppButton testID="memory-delete-confirm" variant="destructive" loading={busy} onPress={() => { void submit(); }}>{getMessage("vi", "memoryDelete")}</AppButton>
+      <AppButton testID="memory-delete-cancel" variant="ghost" disabled={busy} onPress={() => { setConfirming(false); setFailed(false); }}>{getMessage("vi", "memoryActionCancel")}</AppButton>
+    </AppDialog> : null}
   </YStack>;
 }

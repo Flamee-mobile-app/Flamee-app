@@ -1,6 +1,6 @@
 import { AppGradientText } from "../../../shared/components";
 import { ImagePlus } from "@tamagui/lucide-icons-2/icons/ImagePlus";
-import { memo, useCallback, useEffect, useMemo, useRef } from "react";
+import { memo, useCallback, useContext, useEffect, useMemo, useRef } from "react";
 import { FlatList } from "react-native";
 import { Text, YStack } from "tamagui";
 import { AppButton, AsyncStateView, shouldShowInitialSkeleton } from "../../../shared/components";
@@ -12,11 +12,13 @@ import { selectMemoryFeed, type MemoryFeedView } from "../memoryFeedModel";
 import { HomeLoadingView } from "./HomeLoadingView";
 import { MemoryCalendarConnector, MemoryCalendarMonthCard, MemoryCalendarStats } from "./MemoryCalendar";
 import { MemoryFeedPost } from "./MemoryFeedPost";
+import { MainScreenHeaderContext } from "../../../shared/navigation/mainScreenHeaderContext";
+import { useFeedImagePrefetch } from "../useFeedImagePrefetch";
 
-const FeedRow = memo(function FeedRow({ memory, onDetails, onRetry, onComments }: { memory: MemorySummary; onDetails: (id: string) => void; onRetry: () => void; onComments: (id: string) => void }) {
+const FeedRow = memo(function FeedRow({ memory, onDetails, onRetry, onComments, loadFull }: { memory: MemorySummary; onDetails: (id: string) => void; onRetry: () => void; onComments: (id: string) => void; loadFull: boolean }) {
   const details = useCallback(() => onDetails(memory.id), [memory.id, onDetails]);
   const comments = useCallback(() => onComments(memory.id), [memory.id, onComments]);
-  return <MemoryFeedPost memory={memory} onDetails={details} onPhotoRetry={onRetry} onComments={comments} />;
+  return <MemoryFeedPost memory={memory} onDetails={details} onPhotoRetry={onRetry} onComments={comments} loadFull={loadFull} />;
 });
 
 type Props = {
@@ -26,17 +28,20 @@ type Props = {
   onRefresh: () => void; onMore: () => void; onConnect: () => void;
   onDetails: (id: string) => void; onDay: (day: string) => void; onAdd: () => void;
   onComments: (id: string) => void;
+  focused: boolean;
 };
 
 /** Popup state and body measurements never enter this list's render boundary. */
-export const HomeMemoryList = memo(function HomeMemoryList({ records, view, today, topInset, loading, failed, paired, confirmed, refreshing, loadingMore, hasMore, onRefresh, onMore, onConnect, onDetails, onDay, onAdd, onComments }: Props) {
+export const HomeMemoryList = memo(function HomeMemoryList({ records, view, today, topInset, loading, failed, paired, confirmed, refreshing, loadingMore, hasMore, onRefresh, onMore, onConnect, onDetails, onDay, onAdd, onComments, focused }: Props) {
   const calendar = useRef<FlatList<MemoryCalendarMonth>>(null);
+  const mainHeader = useContext(MainScreenHeaderContext);
   const grid = view === "memories";
   const months = useMemo(() => grid && paired ? buildMemoryCalendar(records, today, hasMore) : [], [grid, paired, records, today, hasMore]);
   const feed = useMemo(() => !grid ? selectMemoryFeed(records, "timeline") : [], [grid, records]);
+  const { range, onViewableItemsChanged } = useFeedImagePrefetch(feed, focused && !grid && paired && confirmed);
   const scroll = getMemoryCalendarScrollLayout(topInset);
   useEffect(() => { if (grid) calendar.current?.scrollToOffset({ offset: 0, animated: false }); }, [grid]);
-  const renderPost = useCallback(({ item }: { item: MemorySummary }) => <FeedRow memory={item} onDetails={onDetails} onRetry={onRefresh} onComments={onComments} />, [onDetails, onRefresh, onComments]);
+  const renderPost = useCallback(({ item, index }: { item: MemorySummary; index: number }) => <FeedRow memory={item} onDetails={onDetails} onRetry={onRefresh} onComments={onComments} loadFull={focused && index >= range.first - 1 && index <= range.last + 1} />, [onDetails, onRefresh, onComments, focused, range]);
   const renderMonth = useCallback(({ item }: { item: MemoryCalendarMonth }) => <MemoryCalendarMonthCard month={item} onDay={onDay} onAdd={onAdd} />, [onDay, onAdd]);
   const footer = hasMore ? <AppButton fill variant="ghost" loading={loadingMore} disabled={refreshing} onPress={onMore}>{getMessage("vi", "memoryLoadOlder")}</AppButton> : null;
   const refreshError = failed && confirmed ? <YStack paddingBottom="$lg" gap="$sm"><Text role="alert" fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$accentText">{getMessage("vi", "memoryFeedLoadErrorBody")}</Text><AppButton variant="ghost" onPress={onRefresh}>{getMessage("vi", "retry")}</AppButton></YStack> : null;
@@ -51,12 +56,13 @@ export const HomeMemoryList = memo(function HomeMemoryList({ records, view, toda
     </YStack>;
   if (grid && paired && confirmed) return <FlatList key="calendar" ref={calendar} inverted={scroll.inverted} maintainVisibleContentPosition={{ minIndexForVisible: 0 }} initialScrollIndex={0}
     data={months} keyExtractor={monthKey} renderItem={renderMonth} ItemSeparatorComponent={MemoryCalendarConnector}
-    ListHeaderComponent={<YStack>{refreshError}<MemoryCalendarStats records={records} today={today} partial={hasMore} /></YStack>}
-    ListFooterComponent={footer}
+    ListHeaderComponent={<YStack>{mainHeader}{refreshError}</YStack>}
+    ListFooterComponent={<YStack><MemoryCalendarStats records={records} today={today} partial={hasMore} />{footer}</YStack>}
     contentContainerStyle={{ paddingHorizontal: memoryFeedTokens.gutter, paddingTop: scroll.paddingTop, paddingBottom: scroll.paddingBottom }}
     initialNumToRender={2} maxToRenderPerBatch={2} windowSize={5} refreshing={refreshing} onRefresh={onRefresh}
     onEndReached={onMore} onEndReachedThreshold={0.3} showsVerticalScrollIndicator={false} style={{ flex: 1 }} />;
-  return <FlatList key="feed" data={feed} keyExtractor={memoryKey} renderItem={renderPost} ListEmptyComponent={empty} ListHeaderComponent={refreshError} ListFooterComponent={footer}
+  return <FlatList key="feed" data={feed} keyExtractor={memoryKey} renderItem={renderPost} ListEmptyComponent={empty} ListHeaderComponent={<YStack>{mainHeader}{refreshError}</YStack>} ListFooterComponent={footer}
+    onViewableItemsChanged={onViewableItemsChanged} viewabilityConfig={feedViewability} extraData={range}
     contentContainerStyle={{ flexGrow: 1, paddingHorizontal: memoryFeedTokens.gutter, paddingTop: getMemoryFeedHeaderClearance(topInset), paddingBottom: memoryFeedTokens.navigationClearance }}
     initialNumToRender={4} maxToRenderPerBatch={4} windowSize={5} refreshing={refreshing} onRefresh={onRefresh}
     onEndReached={onMore} onEndReachedThreshold={0.3} showsVerticalScrollIndicator={false} style={{ flex: 1 }} />;
@@ -64,3 +70,4 @@ export const HomeMemoryList = memo(function HomeMemoryList({ records, view, toda
 
 const monthKey = (month: MemoryCalendarMonth) => month.key;
 const memoryKey = (memory: MemorySummary) => memory.id;
+const feedViewability = { itemVisiblePercentThreshold: 1, minimumViewTime: 60 };

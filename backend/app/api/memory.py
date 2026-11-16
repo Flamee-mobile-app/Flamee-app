@@ -16,8 +16,25 @@ from app.schemas.memory import (
     UpdateMemoryRequest,
 )
 from app.services.memory_service import MemoryService
+from app.repositories.memory_heart_repo import MemoryHeartRepository
+from app.services.memory_heart_service import MemoryHeartService
 
 router = APIRouter(prefix="/memories", tags=["memories"])
+
+
+@router.get("/{memory_id}/heart")
+def read_memory_heart(memory_id: str, current: dict = Depends(get_current_user), db: Client = Depends(get_db)):
+    return ok(MemoryHeartService(MemoryHeartRepository(db)).read(current["id"], memory_id))
+
+
+@router.put("/{memory_id}/heart")
+def heart_memory(memory_id: str, current: dict = Depends(get_current_user), db: Client = Depends(get_db)):
+    return ok(MemoryHeartService(MemoryHeartRepository(db)).set(current["id"], memory_id, True))
+
+
+@router.delete("/{memory_id}/heart")
+def unheart_memory(memory_id: str, current: dict = Depends(get_current_user), db: Client = Depends(get_db)):
+    return ok(MemoryHeartService(MemoryHeartRepository(db)).set(current["id"], memory_id, False))
 
 
 def _service(db: Client) -> MemoryService:
@@ -77,8 +94,12 @@ def get_memory(
     db: Client = Depends(get_db),
 ):
     couple_id = _ensure_couple_id(current)
-    memory, images = _service(db).get_memory(couple_id, memory_id)
-    return ok(MemoryResponse.build(memory, images).model_dump())
+    service = _service(db)
+    memory, images = service.get_memory(couple_id, memory_id)
+    result = MemoryResponse.build(memory, images).model_dump()
+    result["author"] = service.memory_author(couple_id, memory.created_by)
+    result["comment_count"] = memory.comment_count
+    return ok(result)
 
 
 @router.put("/{memory_id}")

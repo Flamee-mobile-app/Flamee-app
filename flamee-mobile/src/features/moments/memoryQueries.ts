@@ -1,5 +1,6 @@
 import { infiniteQueryOptions, queryOptions, replaceEqualDeep, type InfiniteData, type QueryClient } from "@tanstack/react-query";
 import type { MemoryDetail, MemoryList, MemorySummary } from "./memoryApi.ts";
+import { retainSignedAvatarUrl } from "../../shared/components/profileAvatarModel.ts";
 
 /** These IDs partition the in-memory cache; the API still authorizes every read. */
 export type MemoryScope = { accountId: string | null; coupleId: string | null; sessionId: number };
@@ -33,6 +34,7 @@ function retainValidPhoto(previous: Photo | null | undefined, current: Photo): P
 }
 
 function retainValidCover(old: MemorySummary | undefined, next: MemorySummary): MemorySummary {
+  if (old?.author?.id === next.author?.id && old?.author && next.author) next = { ...next, author: { ...next.author, avatar_url: retainSignedAvatarUrl(old.author.avatar_url, next.author.avatar_url) } };
   if (!old?.cover_image || !next.cover_image || !sameSignedObject(old.thumbnail_url, next.thumbnail_url)) return next;
   const cover = retainValidPhoto(old.cover_image, next.cover_image);
   if (cover === next.cover_image) return next;

@@ -33,6 +33,15 @@ from app.services.media_storage import MediaStorage, SIGNED_URL_TTL_SECONDS
 class MemoryService:
     """Memory CRUD + image upload via Supabase Storage."""
 
+    def memory_author(self, couple_id: str, author_id: str):
+        authors = UserRepository(self.db).find_memory_authors(couple_id, [author_id])
+        if not authors:
+            return None
+        author = authors[0]
+        path = author.get("avatar_storage_path")
+        return MemoryAuthor(id=author["id"], full_name=author.get("full_name", ""), username=author.get("username"),
+                            avatar_url=self.storage.sign(path) if path else author.get("avatar_url")).model_dump()
+
     def __init__(
         self,
         db: Client,

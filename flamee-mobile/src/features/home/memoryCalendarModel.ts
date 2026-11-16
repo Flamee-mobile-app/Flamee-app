@@ -1,18 +1,17 @@
 import type { MemorySummary } from "../moments";
-import { buttonTokens, memoryFeedTokens, spacing } from "../../shared/constants/tokens.ts";
+import { memoryFeedTokens, spacing } from "../../shared/constants/tokens.ts";
 
 export type MemoryCalendarDay = { day: string; number: number; today: boolean; future: boolean; unloaded: boolean; memories: MemorySummary[]; imageCount: number };
 export type MemoryCalendarMonth = { key: string; year: number; month: number; cells: (MemoryCalendarDay | null)[] };
 const dayMillis = 86_400_000;
 
 export function getMemoryCalendarScrollLayout(topInset: number) {
-  // Inverted index 0 is the visual bottom. Older pages append above the user,
-  // so entering does not require rendering every month to jump to scrollToEnd.
-  return { inverted: true as const, initialOffset: 0, paddingTop: memoryFeedTokens.navigationClearance, paddingBottom: getMemoryFeedHeaderClearance(topInset) };
+  // Current month follows the inline header; older pages append below it.
+  return { inverted: false as const, initialOffset: 0, paddingTop: getMemoryFeedHeaderClearance(topInset), paddingBottom: memoryFeedTokens.navigationClearance };
 }
 
 export function getMemoryFeedHeaderClearance(topInset: number) {
-  return topInset + spacing.sm + buttonTokens.floatingButtonSize + spacing.lg;
+  return topInset + spacing.sm;
 }
 
 function parseDay(value: string): Date | null {

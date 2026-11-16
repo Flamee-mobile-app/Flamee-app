@@ -15,7 +15,7 @@ export function partnerMoodOptions(scope: MoodHistoryScope & { coupleId: string 
   return queryOptions({ queryKey: ["partner-mood", scope.sessionId, scope.accountId, scope.coupleId], queryFn: ({ signal }) => read(signal), staleTime: 30_000, retry: false });
 }
 export function pruneMoodHistory(client: QueryClient, scope: MoodHistoryScope & { coupleId?: string | null }) {
-  const filters = { predicate: (query: { queryKey: readonly unknown[] }) => ["mood-history", "partner-mood"].includes(String(query.queryKey[0])) && (!scope.accountId || query.queryKey[1] !== scope.sessionId || query.queryKey[2] !== scope.accountId || (query.queryKey[0] === "partner-mood" && query.queryKey[3] !== scope.coupleId)) };
+  const filters = { predicate: (query: { queryKey: readonly unknown[] }) => ["mood-history", "partner-mood", "mood-reminders"].includes(String(query.queryKey[0])) && (!scope.accountId || query.queryKey[1] !== scope.sessionId || query.queryKey[2] !== scope.accountId || (query.queryKey[0] === "partner-mood" && query.queryKey[3] !== scope.coupleId)) };
   void client.cancelQueries(filters);
   client.removeQueries(filters);
 }

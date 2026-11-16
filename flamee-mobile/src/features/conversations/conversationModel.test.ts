@@ -1,8 +1,25 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mergeCommentAcknowledgement, orderCommentThreads } from "./conversationModel.ts";
+import { getCommentActions, getCommentAuthorName, getReplyAuthorName, mergeCommentAcknowledgement, orderCommentThreads } from "./conversationModel.ts";
 import type { MemoryComment } from "./conversationApi.ts";
 const comment = (id: string, time: number, parent: string | null = null): MemoryComment => ({ id, memory_id: "m", body: id, deleted: false, version: 0, created_at: `2026-11-15T00:00:0${time}Z`, updated_at: "2026-11-15T00:00:00Z", parent_id: parent, parent_author: parent ? "Parent" : null, author: { id: "a", full_name: "A", username: null }, heart_count: 0, hearted: false });
+
+test("comment and reply labels prefer the confirmed nickname and fall back only when blank", () => {
+  const root = { ...comment("root", 1), author: { id: "a", full_name: "Original name", username: "  Tai voi  " } };
+  const reply = { ...comment("reply", 2, "root"), parent_author: "Original name" };
+  assert.equal(getCommentAuthorName(root.author), "Tai voi");
+  assert.equal(getReplyAuthorName(reply, [root, reply]), "Tai voi");
+  assert.equal(getCommentAuthorName({ ...root.author, username: "  " }), "Original name");
+  assert.equal(getReplyAuthorName({ ...reply, parent_author: "Server nickname" }, [reply]), "Server nickname");
+});
+
+test("context actions preserve author permissions, one-level replies and deleted tombstones", () => {
+  const root = comment("root", 1);
+  assert.deepEqual(getCommentActions(root, "a"), ["heart", "reply", "edit", "delete"]);
+  assert.deepEqual(getCommentActions(root, "partner"), ["heart", "reply"]);
+  assert.deepEqual(getCommentActions(comment("reply", 2, "root"), "a"), ["heart", "edit", "delete"]);
+  assert.deepEqual(getCommentActions({ ...root, deleted: true }, "a"), []);
+});
 
 test("server acknowledgement replaces heart/edit state before the next tap and deduplicates a retried send", () => {
   const base = comment("a", 1);

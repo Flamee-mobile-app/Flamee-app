@@ -4,7 +4,7 @@ import { Info } from "@tamagui/lucide-icons-2/icons/Info";
 import { LoaderCircle } from "@tamagui/lucide-icons-2/icons/LoaderCircle";
 import { TriangleAlert } from "@tamagui/lucide-icons-2/icons/TriangleAlert";
 import { Toast, ToastProvider, ToastViewport } from "@tamagui/toast";
-import { useEffect, useLayoutEffect, useRef, useSyncExternalStore, type PropsWithChildren } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useSyncExternalStore, type PropsWithChildren } from "react";
 import { usePathname } from "expo-router";
 import { Animated, AppState, Easing, Platform, useWindowDimensions } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
@@ -17,8 +17,10 @@ import { getMessage } from "../localization/messages";
 import { getAppToastPresentation, getToastViewportFrame, type AppToastTone } from "./appToastModel";
 import { createAppToastState, type AppToastMessage, type AppToastOptions } from "./appToastState";
 import { resolveSurfaceShadow } from "./surfaceShadow";
+import { createAppToastHostState } from "./appToastHostState";
 
 const notifications = createAppToastState(toastTokens.duration, { exitDuration: toastTokens.exitDuration });
+const modalHosts = createAppToastHostState();
 
 function createToastOperation() {
   const operationId = notifications.begin();
@@ -40,6 +42,7 @@ export const appToast = {
   error: (title: string, options?: AppToastOptions) => notifications.show("error", title, options),
   warning: (title: string, options?: AppToastOptions) => notifications.show("warning", title, options),
   info: (title: string, options?: AppToastOptions) => notifications.show("info", title, options),
+  infoIfIdle: (title: string, options?: AppToastOptions) => notifications.getSnapshot()?.open ? null : notifications.show("info", title, options),
   loading: (title: string, options?: AppToastOptions) => notifications.show("loading", title, options),
   dismiss: (id?: string | number) => notifications.dismiss(id),
 };
@@ -68,7 +71,7 @@ function ToastStatusIcon({ tone }: { tone: AppToastTone }) {
   </YStack>;
 }
 
-function AppToastItem({ item, cardWidth }: { item: AppToastMessage; cardWidth: number }) {
+function AppToastItem({ item, cardWidth, viewportName }: { item: AppToastMessage; cardWidth: number; viewportName?: string }) {
   const presentation = getAppToastPresentation(item.tone);
   const reducedMotion = useReducedMotion();
   const nativeShadow = resolveSurfaceShadow(Platform.OS, toastTokens.shadow);
@@ -82,6 +85,7 @@ function AppToastItem({ item, cardWidth }: { item: AppToastMessage; cardWidth: n
   return <Toast
     key={item.id}
     id="flamee-toast"
+    viewportName={viewportName}
     unstyled
     open={item.open}
     duration={Infinity}
@@ -120,6 +124,25 @@ function AppToastItem({ item, cardWidth }: { item: AppToastMessage; cardWidth: n
   </Toast>;
 }
 
+/** React Native Modal is a separate native window; its toast viewport must live inside it. */
+export function AppToastModalHost({ active = true }: { active?: boolean }) {
+  const host = `flamee-modal-toast-${useId()}`;
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  useLayoutEffect(() => {
+    if (!active || Platform.OS === "web") return;
+    return modalHosts.register(host);
+  }, [active, host]);
+  const owner = useSyncExternalStore(modalHosts.subscribe, modalHosts.getSnapshot, () => null);
+  const item = useSyncExternalStore(notifications.subscribe, notifications.getSnapshot, notifications.getServerSnapshot);
+  if (!active || !item || owner !== host) return null;
+  const frame = getToastViewportFrame(width, insets, toastTokens.maxWidth, spacing.lg, spacing.sm);
+  return <ToastProvider duration={Infinity} swipeDirection="up" swipeThreshold={48} native={false}>
+    <AppToastItem key={item.id} item={item} cardWidth={frame.width} viewportName={host} />
+    <ToastViewport name={host} portalToRoot={false} zIndex={toastTokens.zIndex} {...frame} alignItems="center" label={getMessage(item.locale ?? "vi", "notificationsLabel")} />
+  </ToastProvider>;
+}
+
 export function AppToastProvider({ children }: PropsWithChildren) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -138,6 +161,8 @@ export function AppToastProvider({ children }: PropsWithChildren) {
     return () => { subscription.remove(); notifications.setActive(false); notifications.reset(); };
   }, []);
   const item = useSyncExternalStore(notifications.subscribe, notifications.getSnapshot, notifications.getServerSnapshot);
+  const modalOwner = useSyncExternalStore(modalHosts.subscribe, modalHosts.getSnapshot, () => null);
+  const rootItem = modalOwner ? null : item;
   const frame = getToastViewportFrame(width, insets, toastTokens.maxWidth, spacing.lg, spacing.sm);
   const viewport = <ToastViewport
     portalToRoot={Platform.OS !== "ios"}
@@ -148,8 +173,8 @@ export function AppToastProvider({ children }: PropsWithChildren) {
   />;
   return <ToastProvider duration={Infinity} swipeDirection="up" swipeThreshold={48} native={false}>
     {children}
-    {item ? <AppToastItem key={item.id} item={item} cardWidth={frame.width} /> : null}
-    {item ? Platform.OS === "ios" ? <FullWindowOverlay>
+    {rootItem ? <AppToastItem key={rootItem.id} item={rootItem} cardWidth={frame.width} /> : null}
+    {rootItem ? Platform.OS === "ios" ? <FullWindowOverlay>
       <YStack position="absolute" top={0} right={0} bottom={0} left={0} pointerEvents="box-none">{viewport}</YStack>
     </FullWindowOverlay> : viewport : null}
   </ToastProvider>;

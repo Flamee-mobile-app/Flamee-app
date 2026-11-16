@@ -3,6 +3,21 @@ import type { z } from "zod";
 import type { commentsSchema, MemoryComment } from "./conversationApi.ts";
 export type CommentPage = z.infer<typeof commentsSchema>;
 
+/** Profile's username field stores the user's chosen nickname. */
+export function getCommentAuthorName(author: MemoryComment["author"]) {
+  return author.username?.trim() || author.full_name.trim();
+}
+
+export function getReplyAuthorName(comment: MemoryComment, comments: readonly MemoryComment[]) {
+  const parent = comments.find((item) => item.id === comment.parent_id);
+  return parent ? getCommentAuthorName(parent.author) : comment.parent_author?.trim() || "…";
+}
+
+export function getCommentActions(comment: MemoryComment, accountId: string | null) {
+  if (comment.deleted) return [];
+  return ["heart", ...(!comment.parent_id ? ["reply"] : []), ...(comment.author.id === accountId ? ["edit", "delete"] : [])] as ("heart" | "reply" | "edit" | "delete")[];
+}
+
 export function mergeCommentAcknowledgement(data: InfiniteData<CommentPage, number> | undefined, comment: MemoryComment, insert: boolean) {
   if (!data) return data;
   const exists = data.pages.some((page) => page.items.some((item) => item.id === comment.id));

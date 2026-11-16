@@ -27,6 +27,10 @@ const listSchema = z.object({ items: z.array(memorySchema), total: z.number().in
 const detailSchema = z.object({
   id: z.string().min(1), title: z.string(), description: z.string().nullable(), memory_date: z.string(), location: z.string().nullable(),
   images: z.array(photoSchema),
+  created_by: z.string().optional(),
+  created_at: z.string().optional(),
+  comment_count: z.number().int().nonnegative().nullable().optional(),
+  author: z.object({ id: z.string(), full_name: z.string(), username: z.string().nullable().optional(), avatar_url: remoteImage.nullable().optional() }).nullable().optional(),
 });
 export type MemorySummary = z.infer<typeof memorySchema>;
 export type MemoryList = z.infer<typeof listSchema>;
@@ -93,6 +97,7 @@ export function createMemoryApi({ baseUrl, fetcher = fetch, timeoutMs = 12000, f
     create: (token: string, input: MemoryCreateInput, key: string): Promise<MemoryCreated> => request(token, "/memories", createdSchema, { json: input, key }),
     update: (token: string, id: string, input: MemoryUpdateInput): Promise<MemoryDetail> => request(token, `/memories/${encodeURIComponent(id)}`, detailSchema, { method: "PUT", json: input }),
     remove: (token: string, id: string): Promise<void> => request(token, `/memories/${encodeURIComponent(id)}`, z.void(), { method: "DELETE" }),
+    removeImage: (token: string, id: string, imageId: string): Promise<void> => request(token, `/memories/${encodeURIComponent(id)}/images/${encodeURIComponent(imageId)}`, z.void(), { method: "DELETE" }),
     async upload(token: string, id: string, file: MemoryUploadFile, key: string): Promise<MemoryUpload> {
       const form = new FormData();
       if ("uri" in file) {

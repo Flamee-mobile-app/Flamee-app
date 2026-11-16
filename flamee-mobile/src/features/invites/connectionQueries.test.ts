@@ -1,0 +1,44 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { QueryClient, QueryObserver } from "@tanstack/react-query";
+import { connectionOptions, pruneConnectionQueries } from "./connectionQueries.ts";
+import type { AcceptedCouple } from "./inviteApi.ts";
+
+const scope = { accountId: "a", coupleId: "pair", sessionId: 1 };
+const pair: AcceptedCouple = { id: "pair", status: "active", partner1: { id: "a", full_name: "A" }, partner2: { id: "b", full_name: "B", avatar_url: "https://example.test/b.jpg" } };
+test("an image-error recovery accepts the new token even if the broken URL has not expired", async () => {
+  const cache = new QueryClient({ defaultOptions: { queries: { gcTime: Infinity } } });
+  let version = 0;
+  let retain = true;
+  const url = () => `https://example.test/storage/v1/object/sign/media/avatar.jpg?token=x.${Buffer.from(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 600, version })).toString("base64url")}.x`;
+  const options = connectionOptions(scope, async () => ({ ...pair, partner2: { ...pair.partner2, avatar_url: url() } }), () => retain);
+  await cache.fetchQuery(options);
+  const original = cache.getQueryData(options.queryKey)!.partner2.avatar_url;
+  const observer = new QueryObserver(cache, options);
+  version++;
+  await observer.refetch();
+  assert.equal(observer.getCurrentResult().data!.partner2.avatar_url, original);
+  retain = false;
+  await observer.refetch();
+  assert.notEqual(observer.getCurrentResult().data!.partner2.avatar_url, original);
+  observer.destroy(); cache.clear();
+});
+test("switching back to Mood reuses connection data and stale refresh never clears the partner avatar", async () => {
+  const cache = new QueryClient({ defaultOptions: { queries: { gcTime: Infinity } } });
+  let reads = 0;
+  let fail = false;
+  const options = connectionOptions(scope, async () => { reads++; if (fail) throw new Error("offline"); return pair; });
+  await Promise.all([cache.fetchQuery(options), cache.fetchQuery(options)]);
+  await cache.fetchQuery(options);
+  assert.equal(reads, 1);
+  const observer = new QueryObserver(cache, options);
+  const unsubscribe = observer.subscribe(() => undefined);
+  fail = true;
+  const refresh = observer.refetch();
+  assert.equal(observer.getCurrentResult().data?.partner2.avatar_url, pair.partner2.avatar_url);
+  await refresh;
+  assert.equal(observer.getCurrentResult().data?.partner2.avatar_url, pair.partner2.avatar_url);
+  pruneConnectionQueries(cache, { ...scope, sessionId: 2 });
+  assert.equal(cache.getQueryData(options.queryKey), undefined);
+  unsubscribe(); observer.destroy(); cache.clear();
+});

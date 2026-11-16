@@ -76,6 +76,7 @@ export function MemoryComposerDialog({ open, blurTarget, onClose, onAfterClose, 
     if (posting.current || picking.current || !accountId || !coupleId || !current() || (!text.trim() && !photo)) return;
     posting.current = true;
     const feedback = appToast.operation();
+    feedback.loading(getMessage("vi", "memoryComposerPosting"));
     setFrozen(true);
     try {
       requestKey.current ??= randomUUID();
@@ -88,6 +89,7 @@ export function MemoryComposerDialog({ open, blurTarget, onClose, onAfterClose, 
     } catch {
       if (current()) feedback.error(getMessage("vi", stageRef.current === "uploading" ? "memoryComposerUploadFailed" : "memoryComposerPostFailed"));
     } finally {
+      feedback.dismiss();
       posting.current = false;
       if (current()) setStage(null);
     }
@@ -102,7 +104,7 @@ export function MemoryComposerDialog({ open, blurTarget, onClose, onAfterClose, 
           : frozen ? <Text fontFamily="$body" fontSize="$bodyS" lineHeight="$bodyS" color="$textSecondary">{getMessage("vi", "memoryComposerRetryHint")}</Text> : null}
       <XStack justifyContent="flex-end" gap="$sm">
           <AppButton variant="ghost" disabled={stage !== null} onPress={close}>{getMessage("vi", "cancel")}</AppButton>
-          <AppButton loading={stage !== null} disabled={busy || !coupleId || (!text.trim() && !photo)} onPress={() => void post()}>{getMessage("vi", frozen && stage === null ? "retry" : "memoryComposerPost")}</AppButton>
+          <AppButton testID="memory-create-submit" loading={stage !== null} disabled={busy || !coupleId || (!text.trim() && !photo)} onPress={() => void post()}>{getMessage("vi", frozen && stage === null ? "retry" : "memoryComposerPost")}</AppButton>
       </XStack>
     </YStack>}>
     <AppField id="memory-composer-text" multiline showLabel={false} label={getMessage("vi", "memoryComposerDescription")}

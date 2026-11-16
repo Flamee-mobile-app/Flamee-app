@@ -9,7 +9,9 @@ export const moodFlowTokens = {
   mascotShadowHeight: 8,
   completionMascotSize: 144,
   badgeSize: 56,
-  progressHeight: 8,
+  progressHeight: 68,
+  progressNodeSize: 32,
+  progressRingSize: 40,
   contentFadeDuration: 160,
   maxWidth: 520,
   footerGap: 8,
@@ -359,6 +361,7 @@ export const buttonTokens = {
   },
   interactionDuration: 140,
   pressDuration: 80,
+  revealDuration: 180,
   pressOffset: 3,
   disabledOpacity: 0.48,
 } as const;

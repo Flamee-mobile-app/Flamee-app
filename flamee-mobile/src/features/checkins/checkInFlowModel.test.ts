@@ -23,16 +23,16 @@ test("the reasons step requires at least one reason", () => {
   assert.equal(canContinueCheckIn("reasons", { ...draft, reasonIds: ["work"] }), true);
 });
 
-test("intensity is required while sleep stays optional", () => {
+test("mood score and intensity are independently required while sleep stays optional", () => {
   const draft = createCheckInDraft();
   assert.equal(canContinueCheckIn("intensity", draft), false);
   for (const intensity of [0, 6, 10, 1.5]) assert.equal(canContinueCheckIn("intensity", { ...draft, intensity }), false);
-  assert.equal(canContinueCheckIn("intensity", { ...draft, intensity: 3 }), true);
-  assert.equal(canContinueCheckIn("intensity", { ...draft, intensity: 3, sleepHours: 2 }), true);
-  assert.equal(canContinueCheckIn("intensity", { ...draft, intensity: 3, sleepHours: 8 }), true);
-  assert.equal(canContinueCheckIn("intensity", { ...draft, intensity: 3, sleepHours: 1 }), false);
-  assert.equal(canContinueCheckIn("intensity", { ...draft, intensity: 3, sleepHours: 9 }), false);
-  assert.equal(canContinueCheckIn("intensity", { ...draft, intensity: 3, sleepHours: 2.5 }), false);
+  assert.equal(canContinueCheckIn("intensity", { ...draft, intensity: 3 }), false);
+  assert.equal(canContinueCheckIn("intensity", { ...draft, intensity: 3, moodScore: 1 }), true);
+  assert.equal(canContinueCheckIn("intensity", { ...draft, intensity: 3, moodScore: 5, sleepHours: 2 }), true);
+  assert.equal(canContinueCheckIn("intensity", { ...draft, intensity: 3, moodScore: 3, sleepHours: 8 }), true);
+  assert.equal(canContinueCheckIn("intensity", { ...draft, intensity: 3, moodScore: 3, sleepHours: 1 }), false);
+  assert.equal(canContinueCheckIn("intensity", { ...draft, intensity: 3, moodScore: 6 }), false);
   assert.equal(draft.sleepHours, null);
 });
 
