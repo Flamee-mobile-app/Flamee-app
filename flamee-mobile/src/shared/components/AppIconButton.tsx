@@ -3,6 +3,7 @@ import { Platform } from "react-native";
 import { Button } from "tamagui";
 import { buttonTokens, noteComposerLayoutTokens } from "../constants/tokens";
 import { useButtonInteraction } from "./useButtonInteraction";
+import { resolveSurfaceShadow } from "./surfaceShadow";
 import { getIconButtonPresentation, getIconButtonRadius, resolvePlatformAccessibilityProps, type IconButtonTone } from "./buttonSystemModel";
 
 export type AppIconButtonProps = {
@@ -32,7 +33,7 @@ export function AppIconButton({
 }: AppIconButtonProps) {
   const presentation = getIconButtonPresentation(tone, selected);
   const interaction = useButtonInteraction(disabled);
-  const size = tone === "send" ? buttonTokens.sendButtonSize
+  const size = tone === "floating" ? buttonTokens.floatingButtonSize : tone === "send" ? buttonTokens.sendButtonSize
     : tone === "composer" && sizeVariant === "large" ? noteComposerLayoutTokens.pickerItemSize
       : tone === "composer" ? noteComposerLayoutTokens.toolSize : buttonTokens.iconButtonSize;
 
@@ -56,9 +57,12 @@ export function AppIconButton({
       borderWidth={presentation.borderWidth ?? 0}
       borderColor={presentation.borderColor ?? "transparent"}
       backgroundColor={presentation.backgroundColor}
-      {...(tone === "avatar" ? Platform.OS === "web"
+      {...(tone === "floating" ? Platform.OS === "web"
+        ? { boxShadow: buttonTokens.floatingShadow }
+        : resolveSurfaceShadow(Platform.OS, buttonTokens.floatingNativeShadow)
+        : tone === "avatar" ? Platform.OS === "web"
         ? { boxShadow: buttonTokens.avatarEditShadow }
-        : buttonTokens.avatarEditNativeShadow : {})}
+        : resolveSurfaceShadow(Platform.OS, buttonTokens.avatarEditNativeShadow) : {})}
       color={presentation.color}
       padding={0}
       hitSlop={buttonTokens.iconButtonHitSlop}

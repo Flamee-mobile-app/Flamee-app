@@ -169,7 +169,7 @@ CREATE TABLE mood_alerts (
 );
 
 -- Atomic invite acceptance. Keep this definition aligned with
--- migrations/20261014_invite_flow.sql.
+-- migrations/20261114_invite_expiry_lock.sql.
 CREATE OR REPLACE FUNCTION accept_couple_invite(
     p_invitee_id text, p_code text, p_couple_id text, p_now text
 ) RETURNS jsonb
@@ -179,26 +179,34 @@ DECLARE
     v_invite invite_codes%ROWTYPE;
     v_inviter_couple text;
     v_invitee_couple text;
+    v_commit_time timestamptz;
 BEGIN
     SELECT * INTO v_invite FROM invite_codes
     WHERE code = upper(trim(p_code)) FOR UPDATE;
     IF NOT FOUND THEN RETURN jsonb_build_object('outcome', 'invite_not_found'); END IF;
     IF v_invite.status = 'cancelled' THEN RETURN jsonb_build_object('outcome', 'invite_cancelled'); END IF;
     IF v_invite.status = 'accepted' THEN RETURN jsonb_build_object('outcome', 'invite_used'); END IF;
-    IF v_invite.status = 'expired' OR v_invite.expires_at::timestamptz <= p_now::timestamptz THEN
+    IF v_invite.status = 'expired' OR v_invite.expires_at::timestamptz <= clock_timestamp() THEN
         UPDATE invite_codes SET status = 'expired' WHERE id = v_invite.id;
         RETURN jsonb_build_object('outcome', 'invite_expired');
     END IF;
     IF v_invite.user_id = p_invitee_id THEN RETURN jsonb_build_object('outcome', 'self_invite'); END IF;
     PERFORM id FROM users WHERE id IN (v_invite.user_id, p_invitee_id) ORDER BY id FOR UPDATE;
+    -- The call may have waited on either the invite or a user row. PostgreSQL's
+    -- transaction timestamp (and client p_now) can be stale after that wait.
+    v_commit_time := clock_timestamp();
+    IF v_invite.expires_at::timestamptz <= v_commit_time THEN
+        UPDATE invite_codes SET status = 'expired' WHERE id = v_invite.id;
+        RETURN jsonb_build_object('outcome', 'invite_expired');
+    END IF;
     SELECT couple_id INTO v_inviter_couple FROM users WHERE id = v_invite.user_id;
     SELECT couple_id INTO v_invitee_couple FROM users WHERE id = p_invitee_id;
     IF v_invitee_couple IS NOT NULL THEN RETURN jsonb_build_object('outcome', 'already_paired'); END IF;
     IF v_inviter_couple IS NOT NULL THEN RETURN jsonb_build_object('outcome', 'inviter_already_paired'); END IF;
     INSERT INTO couples (id, partner1_id, partner2_id, anniversary, status, created_at, updated_at)
-    VALUES (p_couple_id, v_invite.user_id, p_invitee_id, NULL, 'active', p_now, p_now);
+    VALUES (p_couple_id, v_invite.user_id, p_invitee_id, NULL, 'active', v_commit_time::text, v_commit_time::text);
     UPDATE invite_codes SET status = 'accepted', used_by = p_invitee_id WHERE id = v_invite.id;
-    UPDATE users SET couple_id = p_couple_id, updated_at = p_now WHERE id IN (v_invite.user_id, p_invitee_id);
+    UPDATE users SET couple_id = p_couple_id, updated_at = v_commit_time::text WHERE id IN (v_invite.user_id, p_invitee_id);
     RETURN jsonb_build_object('outcome', 'accepted', 'couple_id', p_couple_id);
 END;
 $$;
@@ -398,6 +406,7 @@ CREATE TABLE IF NOT EXISTS public.user_preferences (
     partner_nickname TEXT NOT NULL DEFAULT '' CHECK (char_length(partner_nickname) <= 40),
     relationship_type TEXT CHECK (relationship_type IN ('long_distance', 'same_city')),
     onboarding_completed_at TIMESTAMPTZ,
+    onboarding_skipped_at TIMESTAMPTZ,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 ALTER TABLE public.user_preferences ENABLE ROW LEVEL SECURITY;
@@ -1198,3 +1207,335 @@ REVOKE ALL ON FUNCTION public.redemption_view(TEXT),public.review_unpaired_redem
 GRANT EXECUTE ON FUNCTION public.redemption_view(TEXT),public.review_unpaired_redemptions(),public.reward_operation(TEXT,TEXT,TEXT,TEXT,JSONB) TO service_role;
 COMMIT;
 NOTIFY pgrst,'reload schema';
+
+-- Apply with the normal reviewed migration process; no client direct table access.
+BEGIN;
+CREATE TABLE IF NOT EXISTS public.memory_comments (
+ id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
+ memory_id TEXT NOT NULL REFERENCES public.memories(id) ON DELETE CASCADE,
+ author_id TEXT NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+ parent_id TEXT REFERENCES public.memory_comments(id) ON DELETE CASCADE,
+ body TEXT NOT NULL CHECK(char_length(body)<=1000),
+ deleted BOOLEAN NOT NULL DEFAULT false,
+ version INTEGER NOT NULL DEFAULT 0,
+ request_key TEXT NOT NULL,
+ request_hash TEXT NOT NULL,
+ created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+ updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+ UNIQUE(author_id,request_key), CHECK(deleted OR char_length(btrim(body))>0)
+);
+CREATE INDEX IF NOT EXISTS memory_comments_page ON public.memory_comments(memory_id,created_at DESC,id DESC);
+CREATE TABLE IF NOT EXISTS public.memory_comment_hearts (
+ comment_id TEXT NOT NULL REFERENCES public.memory_comments(id) ON DELETE CASCADE,
+ user_id TEXT NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+ PRIMARY KEY(comment_id,user_id)
+);
+CREATE TABLE IF NOT EXISTS public.couple_notifications (
+ id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
+ couple_id TEXT NOT NULL REFERENCES public.couples(id) ON DELETE CASCADE,
+ recipient_id TEXT NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+ actor_id TEXT NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+ kind TEXT NOT NULL CHECK(kind IN('comment','reply','heart')),
+ memory_id TEXT REFERENCES public.memories(id) ON DELETE SET NULL,
+ comment_id TEXT REFERENCES public.memory_comments(id) ON DELETE SET NULL,
+ event_key TEXT NOT NULL UNIQUE,
+ read_at TIMESTAMPTZ,
+ created_at TIMESTAMPTZ NOT NULL DEFAULT now(), CHECK(recipient_id<>actor_id)
+);
+CREATE INDEX IF NOT EXISTS couple_notifications_page ON public.couple_notifications(recipient_id,couple_id,created_at DESC,id DESC);
+ALTER TABLE public.memories ADD COLUMN IF NOT EXISTS comment_count INTEGER NOT NULL DEFAULT 0;
+DO $$ DECLARE t TEXT; BEGIN
+ FOREACH t IN ARRAY ARRAY['memory_comments','memory_comment_hearts','couple_notifications'] LOOP
+  EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY',t);
+  EXECUTE format('REVOKE ALL ON public.%I FROM PUBLIC,anon,authenticated',t);
+  EXECUTE format('GRANT SELECT,INSERT,UPDATE,DELETE ON public.%I TO service_role',t);
+ END LOOP;
+END $$;
+
+CREATE OR REPLACE FUNCTION public.memory_comment_view(p_id TEXT,p_user TEXT) RETURNS JSONB
+LANGUAGE sql STABLE SET search_path=public AS $$
+ SELECT jsonb_build_object('id',c.id,'memory_id',c.memory_id,'parent_id',c.parent_id,
+ 'body',CASE WHEN c.deleted THEN '' ELSE c.body END,'deleted',c.deleted,'version',c.version,
+ 'created_at',c.created_at,'updated_at',c.updated_at,
+ 'author',jsonb_build_object('id',u.id,'full_name',u.full_name,'username',u.username),
+ 'parent_author',CASE WHEN p.id IS NULL THEN NULL ELSE pu.full_name END,
+ 'heart_count',(SELECT count(*) FROM memory_comment_hearts h WHERE h.comment_id=c.id),
+ 'hearted',EXISTS(SELECT 1 FROM memory_comment_hearts h WHERE h.comment_id=c.id AND h.user_id=p_user))
+ FROM memory_comments c JOIN users u ON u.id=c.author_id
+ LEFT JOIN memory_comments p ON p.id=c.parent_id LEFT JOIN users pu ON pu.id=p.author_id WHERE c.id=p_id
+$$;
+
+CREATE OR REPLACE FUNCTION public.memory_conversation_operation(
+ p_user TEXT,p_action TEXT,p_memory TEXT DEFAULT NULL,p_target TEXT DEFAULT NULL,p_key TEXT DEFAULT NULL,p_payload JSONB DEFAULT '{}'::JSONB
+) RETURNS JSONB LANGUAGE plpgsql SET search_path=public AS $$
+DECLARE pair TEXT; partner TEXT; cp public.couples%ROWTYPE; c public.memory_comments%ROWTYPE;
+ existing public.memory_comments%ROWTYPE; par public.memory_comments%ROWTYPE;
+ v_body TEXT; digest TEXT; result JSONB; total INTEGER; lim INTEGER; off INTEGER; changed INTEGER; notification public.couple_notifications%ROWTYPE;
+BEGIN
+ SELECT couple_id INTO pair FROM users WHERE id=p_user;
+ SELECT * INTO cp FROM couples WHERE id=pair FOR UPDATE;
+ IF NOT FOUND OR cp.status<>'active' OR p_user NOT IN(cp.partner1_id,cp.partner2_id) THEN RETURN jsonb_build_object('outcome','forbidden'); END IF;
+ PERFORM id FROM users WHERE id IN(cp.partner1_id,cp.partner2_id) ORDER BY id FOR SHARE;
+ IF (SELECT count(*) FROM users WHERE id IN(cp.partner1_id,cp.partner2_id) AND couple_id=pair)<>2 THEN RETURN jsonb_build_object('outcome','forbidden'); END IF;
+ partner:=CASE WHEN p_user=cp.partner1_id THEN cp.partner2_id ELSE cp.partner1_id END;
+ lim:=greatest(1,least(100,coalesce((p_payload->>'limit')::INTEGER,20)));
+ off:=greatest(0,coalesce((p_payload->>'offset')::INTEGER,0));
+ IF p_action IN('inbox','read','read_all') THEN
+  IF p_action='read' THEN
+   UPDATE couple_notifications SET read_at=coalesce(read_at,now()) WHERE id=p_target AND recipient_id=p_user AND couple_id=pair RETURNING * INTO notification;
+   IF NOT FOUND THEN RETURN jsonb_build_object('outcome','not_found'); END IF;
+  ELSIF p_action='read_all' THEN
+   UPDATE couple_notifications SET read_at=now() WHERE recipient_id=p_user AND couple_id=pair AND read_at IS NULL;
+  END IF;
+  SELECT count(*) INTO total FROM couple_notifications WHERE recipient_id=p_user AND couple_id=pair;
+  SELECT jsonb_build_object('items',coalesce(jsonb_agg(x.doc ORDER BY x.created_at DESC,x.id DESC),'[]'::JSONB),
+   'total',total,'unread_count',(SELECT count(*) FROM couple_notifications WHERE recipient_id=p_user AND couple_id=pair AND read_at IS NULL)) INTO result FROM (
+   SELECT n.id,n.created_at,jsonb_build_object('id',n.id,'kind',n.kind,'memory_id',n.memory_id,'comment_id',n.comment_id,
+    'available',n.memory_id IS NOT NULL AND EXISTS(SELECT 1 FROM memories m WHERE m.id=n.memory_id AND m.couple_id=pair),
+    'actor_name',u.full_name,'created_at',n.created_at,'read_at',n.read_at) AS doc
+   FROM couple_notifications n JOIN users u ON u.id=n.actor_id WHERE n.recipient_id=p_user AND n.couple_id=pair ORDER BY n.created_at DESC,n.id DESC LIMIT lim OFFSET off
+  ) x;
+  RETURN jsonb_build_object('outcome','ok','data',result);
+ END IF;
+ PERFORM id FROM memories WHERE id=p_memory AND couple_id=pair FOR UPDATE;
+ IF NOT FOUND THEN RETURN jsonb_build_object('outcome','not_found'); END IF;
+ IF p_action='list' THEN
+  SELECT count(*) INTO total FROM memory_comments WHERE memory_id=p_memory;
+  SELECT jsonb_build_object('items',coalesce(jsonb_agg(memory_comment_view(x.id,p_user) ORDER BY x.created_at DESC,x.id DESC),'[]'::JSONB),
+    'total',total,'comment_count',(SELECT count(*) FROM memory_comments WHERE memory_id=p_memory AND NOT deleted)) INTO result
+   FROM (SELECT id,created_at FROM memory_comments WHERE memory_id=p_memory ORDER BY created_at DESC,id DESC LIMIT lim OFFSET off) x;
+  RETURN jsonb_build_object('outcome','ok','data',result);
+ ELSIF p_action='create' THEN
+  v_body:=btrim(p_payload->>'body');
+  IF v_body IS NULL OR char_length(v_body) NOT BETWEEN 1 AND 1000 OR coalesce(length(p_key),0) NOT BETWEEN 1 AND 120 THEN RETURN jsonb_build_object('outcome','validation'); END IF;
+  digest:=encode(sha256(convert_to(jsonb_build_array(p_memory,p_payload->>'parent_id',v_body)::TEXT,'UTF8')),'hex');
+  SELECT * INTO existing FROM memory_comments WHERE author_id=p_user AND request_key=p_key;
+  IF FOUND THEN
+   IF existing.request_hash<>digest THEN RETURN jsonb_build_object('outcome','conflict'); END IF;
+   RETURN jsonb_build_object('outcome','ok','data',memory_comment_view(existing.id,p_user));
+  END IF;
+  IF p_payload->>'parent_id' IS NOT NULL THEN
+   SELECT * INTO par FROM memory_comments WHERE id=p_payload->>'parent_id' AND memory_id=p_memory;
+   IF NOT FOUND OR par.deleted OR par.parent_id IS NOT NULL THEN RETURN jsonb_build_object('outcome','not_found'); END IF;
+  END IF;
+  INSERT INTO memory_comments(memory_id,author_id,parent_id,body,request_key,request_hash)
+   VALUES(p_memory,p_user,p_payload->>'parent_id',v_body,p_key,digest) RETURNING * INTO c;
+  INSERT INTO couple_notifications(couple_id,recipient_id,actor_id,kind,memory_id,comment_id,event_key)
+   VALUES(pair,partner,p_user,CASE WHEN c.parent_id IS NULL THEN 'comment' ELSE 'reply' END,p_memory,c.id,'comment:'||c.id);
+ ELSE
+  SELECT * INTO c FROM memory_comments WHERE id=p_target AND memory_id=p_memory FOR UPDATE;
+  IF NOT FOUND THEN RETURN jsonb_build_object('outcome','not_found'); END IF;
+  IF p_action='comment' THEN RETURN jsonb_build_object('outcome','ok','data',memory_comment_view(c.id,p_user)); END IF;
+  IF p_action IN('edit','delete') THEN
+   IF c.author_id<>p_user THEN RETURN jsonb_build_object('outcome','forbidden'); END IF;
+   IF c.deleted THEN
+    IF p_action='delete' THEN RETURN jsonb_build_object('outcome','ok','data',memory_comment_view(c.id,p_user)); END IF;
+    RETURN jsonb_build_object('outcome','not_found');
+   END IF;
+   IF c.version IS DISTINCT FROM (p_payload->>'version')::INTEGER THEN RETURN jsonb_build_object('outcome','conflict'); END IF;
+   v_body:=CASE WHEN p_action='delete' THEN '' ELSE btrim(p_payload->>'body') END;
+   IF p_action='edit' AND (v_body IS NULL OR char_length(v_body) NOT BETWEEN 1 AND 1000) THEN RETURN jsonb_build_object('outcome','validation'); END IF;
+   UPDATE memory_comments SET body=v_body,deleted=(p_action='delete'),version=version+1,updated_at=now() WHERE id=c.id RETURNING * INTO c;
+   IF c.deleted THEN DELETE FROM memory_comment_hearts WHERE comment_id=c.id; DELETE FROM couple_notifications WHERE comment_id=c.id; END IF;
+  ELSIF p_action IN('heart','unheart') THEN
+   IF c.deleted THEN RETURN jsonb_build_object('outcome','not_found'); END IF;
+   IF p_action='heart' THEN
+    INSERT INTO memory_comment_hearts(comment_id,user_id) VALUES(c.id,p_user) ON CONFLICT DO NOTHING;
+    GET DIAGNOSTICS changed=ROW_COUNT;
+    IF changed=1 AND c.author_id<>p_user THEN
+     INSERT INTO couple_notifications(couple_id,recipient_id,actor_id,kind,memory_id,comment_id,event_key)
+      VALUES(pair,partner,p_user,'heart',p_memory,c.id,'heart:'||c.id||':'||p_user) ON CONFLICT(event_key) DO NOTHING;
+    END IF;
+   ELSE
+    DELETE FROM memory_comment_hearts WHERE comment_id=c.id AND user_id=p_user;
+    DELETE FROM couple_notifications WHERE event_key='heart:'||c.id||':'||p_user AND recipient_id=partner;
+   END IF;
+  ELSE RETURN jsonb_build_object('outcome','validation'); END IF;
+ END IF;
+ UPDATE memories SET comment_count=(SELECT count(*) FROM memory_comments WHERE memory_id=p_memory AND NOT deleted) WHERE id=p_memory;
+ RETURN jsonb_build_object('outcome','ok','data',memory_comment_view(c.id,p_user));
+END $$;
+REVOKE ALL ON FUNCTION public.memory_comment_view(TEXT,TEXT) FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.memory_conversation_operation(TEXT,TEXT,TEXT,TEXT,TEXT,JSONB) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.memory_comment_view(TEXT,TEXT) TO service_role;
+GRANT EXECUTE ON FUNCTION public.memory_conversation_operation(TEXT,TEXT,TEXT,TEXT,TEXT,JSONB) TO service_role;
+COMMIT;
+
+BEGIN;
+CREATE TABLE IF NOT EXISTS public.memory_post_hearts (
+ memory_id TEXT NOT NULL REFERENCES public.memories(id) ON DELETE CASCADE,
+ user_id TEXT NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+ PRIMARY KEY(memory_id,user_id)
+);
+ALTER TABLE public.memory_post_hearts ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.memory_post_hearts FROM PUBLIC,anon,authenticated;
+GRANT SELECT,INSERT,UPDATE,DELETE ON public.memory_post_hearts TO service_role;
+CREATE OR REPLACE FUNCTION public.memory_post_heart_operation(p_user TEXT,p_memory TEXT,p_desired BOOLEAN DEFAULT NULL)
+RETURNS JSONB LANGUAGE plpgsql SET search_path=public AS $$
+DECLARE pair TEXT; cp public.couples%ROWTYPE;
+BEGIN
+ SELECT couple_id INTO pair FROM users WHERE id=p_user;
+ SELECT * INTO cp FROM couples WHERE id=pair FOR UPDATE;
+ IF NOT FOUND OR cp.status<>'active' OR p_user NOT IN(cp.partner1_id,cp.partner2_id) THEN RETURN jsonb_build_object('outcome','forbidden'); END IF;
+ PERFORM id FROM users WHERE id IN(cp.partner1_id,cp.partner2_id) ORDER BY id FOR SHARE;
+ IF (SELECT count(*) FROM users WHERE id IN(cp.partner1_id,cp.partner2_id) AND couple_id=pair)<>2 THEN RETURN jsonb_build_object('outcome','forbidden'); END IF;
+ PERFORM id FROM memories WHERE id=p_memory AND couple_id=pair FOR UPDATE;
+ IF NOT FOUND THEN RETURN jsonb_build_object('outcome','not_found'); END IF;
+ IF p_desired IS TRUE THEN
+  INSERT INTO memory_post_hearts(memory_id,user_id) VALUES(p_memory,p_user) ON CONFLICT DO NOTHING;
+ ELSIF p_desired IS FALSE THEN
+  DELETE FROM memory_post_hearts WHERE memory_id=p_memory AND user_id=p_user;
+ END IF;
+ RETURN jsonb_build_object('outcome','ok','data',jsonb_build_object('memory_id',p_memory,
+  'heart_count',(SELECT count(*) FROM memory_post_hearts WHERE memory_id=p_memory),
+  'hearted',EXISTS(SELECT 1 FROM memory_post_hearts WHERE memory_id=p_memory AND user_id=p_user)));
+END $$;
+REVOKE ALL ON FUNCTION public.memory_post_heart_operation(TEXT,TEXT,BOOLEAN) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.memory_post_heart_operation(TEXT,TEXT,BOOLEAN) TO service_role;
+COMMIT;
+
+-- Resolve the parent's current nickname even when its comment is outside the loaded page.
+-- Apply after 20261115_memory_conversation.sql using the reviewed migration process.
+BEGIN;
+CREATE OR REPLACE FUNCTION public.memory_comment_view(p_id TEXT,p_user TEXT) RETURNS JSONB
+LANGUAGE sql STABLE SET search_path=public AS $$
+ SELECT jsonb_build_object('id',c.id,'memory_id',c.memory_id,'parent_id',c.parent_id,
+ 'body',CASE WHEN c.deleted THEN '' ELSE c.body END,'deleted',c.deleted,'version',c.version,
+ 'created_at',c.created_at,'updated_at',c.updated_at,
+ 'author',jsonb_build_object('id',u.id,'full_name',u.full_name,'username',u.username),
+ 'parent_author',CASE WHEN p.id IS NULL THEN NULL ELSE coalesce(nullif(btrim(pu.username),''),pu.full_name) END,
+ 'heart_count',(SELECT count(*) FROM memory_comment_hearts h WHERE h.comment_id=c.id),
+ 'hearted',EXISTS(SELECT 1 FROM memory_comment_hearts h WHERE h.comment_id=c.id AND h.user_id=p_user))
+ FROM memory_comments c JOIN users u ON u.id=c.author_id
+ LEFT JOIN memory_comments p ON p.id=c.parent_id LEFT JOIN users pu ON pu.id=p.author_id WHERE c.id=p_id
+$$;
+REVOKE ALL ON FUNCTION public.memory_comment_view(TEXT,TEXT) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.memory_comment_view(TEXT,TEXT) TO service_role;
+COMMIT;
+
+-- Server-owned, user-scoped reminder; supports users without a couple.
+BEGIN;
+ALTER TABLE public.smart_nudges ADD COLUMN IF NOT EXISTS dual_mood_generated BOOLEAN DEFAULT false;
+ALTER TABLE public.smart_nudges ADD COLUMN IF NOT EXISTS source_mood_id TEXT;
+ALTER TABLE public.smart_nudges ADD COLUMN IF NOT EXISTS receiver_mood_id TEXT;
+CREATE TABLE IF NOT EXISTS public.mood_daily_reminders (
+ id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
+ user_id TEXT NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+ local_date DATE NOT NULL,
+ timezone TEXT NOT NULL,
+ created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+ read_at TIMESTAMPTZ,
+ UNIQUE(user_id, local_date)
+);
+ALTER TABLE public.mood_daily_reminders ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.mood_daily_reminders FROM PUBLIC,anon,authenticated;
+GRANT SELECT,INSERT,UPDATE,DELETE ON public.mood_daily_reminders TO service_role;
+
+CREATE OR REPLACE FUNCTION public.mood_daily_reminder_operation(p_user TEXT,p_action TEXT,p_timezone TEXT DEFAULT 'UTC',p_target TEXT DEFAULT NULL,p_limit INTEGER DEFAULT 20,p_offset INTEGER DEFAULT 0)
+RETURNS JSONB LANGUAGE plpgsql SET search_path=public AS $$
+DECLARE today DATE; reminder public.mood_daily_reminders%ROWTYPE; inserted BOOLEAN := false; data JSONB;
+BEGIN
+ IF NOT EXISTS(SELECT 1 FROM users WHERE id=p_user) THEN RETURN jsonb_build_object('outcome','forbidden'); END IF;
+ IF p_timezone IS NULL OR NOT EXISTS(SELECT 1 FROM pg_timezone_names WHERE name=p_timezone) THEN RETURN jsonb_build_object('outcome','validation'); END IF;
+ today := (now() AT TIME ZONE p_timezone)::DATE;
+ IF p_action='ensure' THEN
+  -- One user/day and transaction lock protect simultaneous app starts and retries.
+  PERFORM pg_advisory_xact_lock(hashtextextended('mood-reminder:' || p_user || ':' || today::TEXT,0));
+  IF EXISTS(SELECT 1 FROM moods WHERE user_id=p_user AND created_at::timestamptz >= (today::timestamp AT TIME ZONE p_timezone)
+    AND created_at::timestamptz < ((today + 1)::timestamp AT TIME ZONE p_timezone)) THEN
+   UPDATE mood_daily_reminders SET read_at=coalesce(read_at,now()) WHERE user_id=p_user AND local_date=today;
+   RETURN jsonb_build_object('outcome','ok','data',jsonb_build_object('show_prompt',false,'reminder',NULL));
+  END IF;
+  INSERT INTO mood_daily_reminders(user_id,local_date,timezone) VALUES(p_user,today,p_timezone)
+   ON CONFLICT(user_id,local_date) DO NOTHING RETURNING * INTO reminder;
+  inserted := FOUND;
+  IF NOT inserted THEN SELECT * INTO reminder FROM mood_daily_reminders WHERE user_id=p_user AND local_date=today; END IF;
+  RETURN jsonb_build_object('outcome','ok','data',jsonb_build_object('show_prompt',inserted,'reminder',to_jsonb(reminder) - 'user_id'));
+ ELSIF p_action='read' THEN
+  UPDATE mood_daily_reminders SET read_at=coalesce(read_at,now()) WHERE id=p_target AND user_id=p_user RETURNING * INTO reminder;
+  IF NOT FOUND THEN RETURN jsonb_build_object('outcome','not_found'); END IF;
+  RETURN jsonb_build_object('outcome','ok','data',to_jsonb(reminder) - 'user_id');
+ ELSIF p_action='read_all' THEN
+  UPDATE mood_daily_reminders SET read_at=now() WHERE user_id=p_user AND read_at IS NULL;
+  RETURN jsonb_build_object('outcome','ok','data',jsonb_build_object('unread_count',0));
+ ELSIF p_action='list' THEN
+  SELECT jsonb_build_object('items',coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.created_at DESC,r.id DESC),'[]'::JSONB),
+    'total',(SELECT count(*) FROM mood_daily_reminders WHERE user_id=p_user),
+    'unread_count',(SELECT count(*) FROM mood_daily_reminders WHERE user_id=p_user AND read_at IS NULL)) INTO data
+   FROM (SELECT id,local_date,timezone,created_at,read_at FROM mood_daily_reminders WHERE user_id=p_user ORDER BY created_at DESC,id DESC LIMIT greatest(1,least(100,p_limit)) OFFSET greatest(0,p_offset)) r;
+  RETURN jsonb_build_object('outcome','ok','data',data);
+ END IF;
+ RETURN jsonb_build_object('outcome','validation');
+END $$;
+REVOKE ALL ON FUNCTION public.mood_daily_reminder_operation(TEXT,TEXT,TEXT,TEXT,INTEGER,INTEGER) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.mood_daily_reminder_operation(TEXT,TEXT,TEXT,TEXT,INTEGER,INTEGER) TO service_role;
+
+-- Readiness is false unless both the daily reminder RPC and the v2 mood schema exist.
+-- Dual-mood templates refresh when either confirmed Mood changes; duplicate contexts retain the atomic guard.
+CREATE OR REPLACE FUNCTION public.create_smart_nudge_guarded(p_payload JSONB)
+RETURNS JSONB LANGUAGE plpgsql SET search_path = public AS $$
+DECLARE
+    n public.smart_nudges%ROWTYPE;
+    c public.couples%ROWTYPE;
+    local_zone TEXT;
+    day_start TIMESTAMPTZ;
+    latest_at TIMESTAMPTZ;
+    day_count INTEGER;
+    member_count INTEGER;
+BEGIN
+    n := jsonb_populate_record(NULL::public.smart_nudges, p_payload);
+    IF n.dual_mood_generated AND (n.source_mood_id IS NULL OR n.receiver_mood_id IS NULL) THEN
+        RETURN jsonb_build_object('outcome', 'suppressed');
+    END IF;
+    SELECT * INTO c FROM public.couples WHERE id = n.couple_id FOR SHARE;
+    IF NOT FOUND OR c.status <> 'active' OR n.receiver_id IS NULL
+      OR n.receiver_id NOT IN (c.partner1_id, c.partner2_id) THEN
+        RETURN jsonb_build_object('outcome', 'suppressed');
+    END IF;
+    PERFORM id FROM public.users WHERE id IN (c.partner1_id, c.partner2_id) ORDER BY id FOR SHARE;
+    SELECT count(*) INTO member_count FROM public.users
+      WHERE id IN (c.partner1_id, c.partner2_id) AND couple_id = c.id;
+    IF member_count <> 2 OR n.partner_id IS NOT NULL AND (n.partner_id = n.receiver_id
+        OR n.partner_id NOT IN (c.partner1_id, c.partner2_id)) THEN
+        RETURN jsonb_build_object('outcome', 'suppressed');
+    END IF;
+    -- Serialize all generation attempts for this receiver/couple, including
+    -- attempts which already performed provider work concurrently.
+    PERFORM pg_advisory_xact_lock(hashtextextended(c.id || ':' || n.receiver_id, 0));
+    SELECT timezone INTO local_zone FROM public.users WHERE id = n.receiver_id;
+    IF local_zone IS NULL OR NOT EXISTS (SELECT 1 FROM pg_timezone_names WHERE name = local_zone) THEN
+        local_zone := 'UTC';
+    END IF;
+    day_start := date_trunc('day', now() AT TIME ZONE local_zone) AT TIME ZONE local_zone;
+    SELECT count(*), max(created_at::timestamptz) INTO day_count, latest_at FROM public.smart_nudges
+      WHERE couple_id = c.id AND receiver_id = n.receiver_id
+        AND (NOT COALESCE(n.dual_mood_generated, false) OR (dual_mood_generated IS TRUE AND source_mood_id = n.source_mood_id AND receiver_mood_id = n.receiver_mood_id)) AND created_at::timestamptz >= day_start;
+    IF day_count >= 3 THEN RETURN jsonb_build_object('outcome', 'suppressed'); END IF;
+    SELECT max(created_at::timestamptz) INTO latest_at FROM public.smart_nudges
+      WHERE couple_id = c.id AND receiver_id = n.receiver_id
+        AND (NOT COALESCE(n.dual_mood_generated, false) OR (dual_mood_generated IS TRUE AND source_mood_id = n.source_mood_id AND receiver_mood_id = n.receiver_mood_id));
+    IF latest_at IS NOT NULL AND latest_at > now() - interval '4 hours' THEN
+        RETURN jsonb_build_object('outcome', 'suppressed');
+    END IF;
+    n.created_at := to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"');
+    n.expires_at := to_char((now() + interval '24 hours') AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"');
+    n.status := 'new'; n.version := 1; n.snooze_count := 0; n.snoozed_until := NULL;
+    INSERT INTO public.smart_nudges SELECT n.* RETURNING * INTO n;
+    RETURN jsonb_build_object('outcome', 'created', 'nudge', to_jsonb(n));
+END;
+$$;
+REVOKE ALL ON FUNCTION public.create_smart_nudge_guarded(JSONB) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.create_smart_nudge_guarded(JSONB) TO service_role;
+
+CREATE OR REPLACE FUNCTION public.mood_e2e_capabilities() RETURNS JSONB LANGUAGE sql STABLE SET search_path=public AS $$
+ SELECT jsonb_build_object('dual_mood_nudge',
+  to_regclass('public.mood_daily_reminders') IS NOT NULL
+  AND to_regprocedure('public.mood_daily_reminder_operation(text,text,text,text,integer,integer)') IS NOT NULL
+  AND to_regprocedure('public.create_smart_nudge_guarded(jsonb)') IS NOT NULL
+  AND (SELECT count(*)=3 FROM information_schema.columns WHERE table_schema='public' AND table_name='smart_nudges' AND column_name IN ('dual_mood_generated','source_mood_id','receiver_mood_id'))
+  AND (SELECT count(*)=8 FROM information_schema.columns WHERE table_schema='public' AND table_name='moods'
+       AND column_name IN ('draft_version','custom_emotion_label','mascot_sticker_id','sleep_hours','attachments','timezone','local_date','mood_score')))
+$$;
+REVOKE ALL ON FUNCTION public.mood_e2e_capabilities() FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.mood_e2e_capabilities() TO service_role;
+COMMIT;

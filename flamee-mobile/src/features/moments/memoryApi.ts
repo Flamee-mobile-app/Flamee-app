@@ -16,6 +16,7 @@ const memorySchema = z.object({
   is_pinned: z.boolean(),
   thumbnail_url: remoteImage.nullable(),
   image_count: z.number().int().nonnegative(),
+  comment_count: z.number().int().nonnegative().nullable().optional(),
   cover_image: photoSchema.nullable().optional(),
   description: z.string().nullable().optional(),
   created_by: z.string().nullable().optional(),
@@ -26,6 +27,10 @@ const listSchema = z.object({ items: z.array(memorySchema), total: z.number().in
 const detailSchema = z.object({
   id: z.string().min(1), title: z.string(), description: z.string().nullable(), memory_date: z.string(), location: z.string().nullable(),
   images: z.array(photoSchema),
+  created_by: z.string().optional(),
+  created_at: z.string().optional(),
+  comment_count: z.number().int().nonnegative().nullable().optional(),
+  author: z.object({ id: z.string(), full_name: z.string(), username: z.string().nullable().optional(), avatar_url: remoteImage.nullable().optional() }).nullable().optional(),
 });
 export type MemorySummary = z.infer<typeof memorySchema>;
 export type MemoryList = z.infer<typeof listSchema>;

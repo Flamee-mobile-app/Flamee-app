@@ -19,16 +19,17 @@ type AppSkeletonProps = {
   height?: DimensionValue;
   borderRadius?: number;
   aspectRatio?: number;
+  active?: boolean;
 };
 
 /** A decorative loading surface. Put related shapes inside one AppSkeletonGroup. */
-export function AppSkeleton({ width = "100%", height, borderRadius = skeletonTokens.radius, aspectRatio }: AppSkeletonProps) {
+export function AppSkeleton({ width = "100%", height, borderRadius = skeletonTokens.radius, aspectRatio, active = true }: AppSkeletonProps) {
   const reducedMotion = useReducedMotion();
   const opacity = useSharedValue<number>(skeletonTokens.maxOpacity);
 
   useEffect(() => {
     cancelAnimation(opacity);
-    if (reducedMotion) {
+    if (reducedMotion || !active) {
       opacity.value = skeletonTokens.restingOpacity;
       return;
     }
@@ -51,7 +52,7 @@ export function AppSkeleton({ width = "100%", height, borderRadius = skeletonTok
       ReduceMotion.System,
     );
     return () => cancelAnimation(opacity);
-  }, [opacity, reducedMotion]);
+  }, [opacity, reducedMotion, active]);
 
   const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
   const dimensions: ViewStyle = { width, height, borderRadius, aspectRatio, backgroundColor: skeletonTokens.background };

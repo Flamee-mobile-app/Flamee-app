@@ -82,7 +82,7 @@ function MoodHistoryCalendar({ records, status, busy, hasMore, onRefresh, onMore
         {selectedMood ? <XStack alignItems="center" gap="$sm">
           <MoodEmojiIcon emotionId={selectedMood.emotionId} size={32} label={selectedEmotion ? getMessage("vi", selectedEmotion.labelKey) : undefined} />
           <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textPrimary">{selectedEmotion ? getMessage("vi", selectedEmotion.labelKey) : selectedMood.emotionId}</Text>
-        </XStack> : <Text fontFamily="$body" fontSize="$bodyS" lineHeight="$bodyS" color="$textSecondary">{getMessage("vi", "moodHistoryDayUnavailable")}</Text>}
+        </XStack> : null}
       </YStack> : null}
       {hasMore ? <>
         <Text fontFamily="$body" fontSize="$bodyS" lineHeight="$bodyS" color="$textSecondary">{getMessage("vi", "moodHistoryPartial")}</Text>

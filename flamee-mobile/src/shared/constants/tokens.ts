@@ -1,5 +1,5 @@
 const appBackground = "#EEECEA";
-const startupDuration = 2720;
+const startupDuration = 3520;
 const startupTaglineEnd = 2320;
 
 export const moodFlowTokens = {
@@ -9,7 +9,9 @@ export const moodFlowTokens = {
   mascotShadowHeight: 8,
   completionMascotSize: 144,
   badgeSize: 56,
-  progressHeight: 8,
+  progressHeight: 68,
+  progressNodeSize: 32,
+  progressRingSize: 40,
   contentFadeDuration: 160,
   maxWidth: 520,
   footerGap: 8,
@@ -141,6 +143,7 @@ export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, page: 20, xl: 24, xxl: 32
 export const radii = { sm: 8, md: 12, lg: 20, xl: 28 } as const;
 
 export const toastTokens = {
+  zIndex: 200_000,
   maxWidth: 360,
   minHeight: 48,
   radius: 18,
@@ -336,6 +339,15 @@ export const buttonTokens = {
   choiceIconSize: 20,
   choiceIconGap: 8,
   iconButtonSize: 44,
+  floatingButtonSize: 48,
+  floatingIconSize: 22,
+  floatingShadow: "0 4px 16px rgba(48,41,36,0.10)",
+  floatingNativeShadow: {
+    shadowColor: colors.textPrimary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.10,
+    shadowRadius: 8,
+  },
   sendButtonSize: 64,
   iconButtonHitSlop: 2,
   iconButtonRadius: 14,
@@ -349,6 +361,7 @@ export const buttonTokens = {
   },
   interactionDuration: 140,
   pressDuration: 80,
+  revealDuration: 180,
   pressOffset: 3,
   disabledOpacity: 0.48,
 } as const;
@@ -503,9 +516,30 @@ export const homeShadows = {
   },
 } as const;
 
-// The custom startup uses a warm dark surface so its ember trails retain depth.
+// Startup: v4 layout with the warmer cream and peach background from mockup v2.
 export const startupTokens = {
-  background: "#F4F1EB",
+  background: "#FDF0E5",
+  backgroundCenter: "#FFFAE7",
+  backgroundPeach: "#FFDDC4",
+  backgroundEdge: "#FDF0E5",
+  loaderStart: "#FF565E",
+  loaderEnd: "#FFB664",
+  loaderTrack: "#FAD3BF",
+  loaderDot: "#FFAC95",
+  loaderActiveDot: "#FF7953",
+  loaderWidthRatio: 0.425,
+  loaderMaxWidth: 220,
+  loaderHeight: 4,
+  loaderDotSize: 8,
+  loaderDotGap: 14,
+  loaderProgressDuration: 220,
+  brandSymbolWidthRatio: 0.27,
+  brandWordmarkWidthRatio: 0.56,
+  brandMaxWordmarkWidth: 260,
+  brandSymbolWordmarkGap: 12,
+  brandSloganGap: 16,
+  brandLoaderGap: 34,
+  brandProgressGap: 20,
   backgroundLight: "#FBF9F5",
   backgroundShade: "#E9E3DA",
   backgroundContour: "#D9D0C6",
@@ -516,7 +550,8 @@ export const startupTokens = {
   wordmarkTop: "#FF8A4C",
   wordmarkBottom: "#FF4E6B",
   duration: startupDuration,
-  playbackDuration: 900,
+  playbackDuration: 1000,
+  brandFadeDuration: 240,
   exitDuration: 200,
   contentRevealDelay: 80,
   exitArtworkLift: 72,

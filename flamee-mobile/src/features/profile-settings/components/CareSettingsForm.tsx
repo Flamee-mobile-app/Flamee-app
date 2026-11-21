@@ -49,13 +49,14 @@ export function CareSettingsForm({ accountId, sessionId, locale, onLocaleChange 
   const save = async () => {
     if (!draft || !baseline || saving.current || reloadReason || !current()) return;
     saving.current = true; setBusy(true);
+    const feedback = appToast.operation();
     const controller = new AbortController();
     saveController.current = controller;
     try {
       const saved = await preferencesService.save(draft, controller.signal);
       if (!current() || controller.signal.aborted) return;
       setBaseline(saved); setDraft(saved);
-      appToast.success(copy.saved, { locale });
+      feedback.success(copy.saved, { locale });
     } catch (error) {
       if (!current() || controller.signal.aborted) return;
       setReloadReason(error instanceof PreferencesError && error.code === "conflict" ? "conflict" : "unknown");

@@ -1,4 +1,4 @@
-export type HomeOverlaySelection = { kind: "create" | "notifications" } | { kind: "details"; id: string } | { kind: "day"; day: string };
+export type HomeOverlaySelection = { kind: "create" | "notifications" } | { kind: "details" | "comments"; id: string } | { kind: "day"; day: string };
 type OverlayState = { selection: HomeOverlaySelection | null; open: boolean; revision: number };
 type OverlayAction = { type: "show"; selection: HomeOverlaySelection } | { type: "close" | "reset" } | { type: "exited"; revision: number };
 export const initialHomeOverlay: OverlayState = { selection: null, open: false, revision: 0 };

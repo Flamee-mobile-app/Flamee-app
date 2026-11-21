@@ -16,7 +16,7 @@ def create_nudge(db, fields):
     zone = ZoneInfo(users[fields['receiver_id']].get('timezone') or 'UTC')
     day_start = now.astimezone(zone).replace(hour=0, minute=0, second=0, microsecond=0)
     rows = db.table('smart_nudges')._data
-    previous = [datetime.fromisoformat(row['created_at'].replace('Z', '+00:00')) for row in rows.values() if row['receiver_id'] == fields['receiver_id'] and row['couple_id'] == fields['couple_id']]
+    previous = [datetime.fromisoformat(row['created_at'].replace('Z', '+00:00')) for row in rows.values() if row['receiver_id'] == fields['receiver_id'] and row['couple_id'] == fields['couple_id'] and (not fields.get('dual_mood_generated') or (row.get('dual_mood_generated') and row.get('source_mood_id') == fields.get('source_mood_id') and row.get('receiver_mood_id') == fields.get('receiver_mood_id')))]
     if sum(created >= day_start for created in previous) >= 3 or any(created > now - timedelta(hours=4) for created in previous):
         return {'outcome': 'suppressed'}
     row = {**fields, 'created_at': now.isoformat(), 'expires_at': (now + timedelta(hours=24)).isoformat(), 'version': 1, 'snooze_count': 0, 'status': 'new', 'snoozed_until': None}

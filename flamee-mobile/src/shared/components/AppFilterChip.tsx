@@ -57,6 +57,7 @@ export function AppFilterChip({
       transform={[{ translateY: 0 }]}
       cursor={disabled ? "default" : "pointer"}
       width={fill ? "100%" : undefined}
+      flexShrink={fill ? 1 : 0}
       height={hitHeight}
       minHeight={hitHeight}
       minWidth={choice ? buttonTokens.choiceHeight : buttonTokens.height}
@@ -110,12 +111,12 @@ export function AppFilterChip({
           animateOnly={["opacity"]}
         />
         {presentationType === "tab" && selected ? <YStack position="absolute" left={0} right={0} bottom={0} height={2} backgroundColor="$primary" /> : null}
-        <XStack alignItems="center" justifyContent="center" gap={choice ? buttonTokens.choiceIconGap : "$xs"}>
+        <XStack flexShrink={fill ? 1 : 0} alignItems="center" justifyContent="center" gap={choice ? buttonTokens.choiceIconGap : "$xs"}>
           {icon}
-          <YStack alignItems="center" justifyContent="center">
+          <YStack flexShrink={fill ? 1 : 0} alignItems="center" justifyContent="center">
             {/* Reserve the semibold width so selecting never shifts adjacent labels. */}
-            <Text fontFamily="$body" fontSize={textSize} lineHeight={textLineHeight} fontWeight="$semibold" opacity={0} aria-hidden>{label}</Text>
-            <Text position="absolute" fontFamily="$body" fontSize={textSize} lineHeight={textLineHeight} fontWeight={selected ? "$semibold" : "$medium"} color={presentation.color}>{label}</Text>
+            <Text fontFamily="$body" fontSize={textSize} lineHeight={textLineHeight} fontWeight="$semibold" numberOfLines={1} opacity={0} aria-hidden>{label}</Text>
+            <Text position="absolute" left={0} right={0} textAlign="center" numberOfLines={1} fontFamily="$body" fontSize={textSize} lineHeight={textLineHeight} fontWeight={selected ? "$semibold" : "$medium"} color={presentation.color}>{label}</Text>
           </YStack>
           {choice && showCheck && selected ? <Check size={buttonTokens.choiceIconSize} strokeWidth={2.5} color="$white" aria-hidden={true} /> : null}
         </XStack>

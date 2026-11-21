@@ -36,22 +36,21 @@ test("current month is first even when API records arrive oldest-first or cross 
   assert.deepEqual(buildMemoryCalendar([photo("old", "2025-11-20")], "2026-01-12").map((month) => month.key), ["2026-01", "2025-12", "2025-11"]);
 });
 
-test("calendar enters at the newest bottom anchor and shows older months above it", () => {
+test("calendar opens at the current month beneath the scrolling header", () => {
   const months = buildMemoryCalendar([photo("aug", "2026-08-04"), photo("sep", "2026-09-17"), photo("oct", "2026-10-18")], "2026-10-18");
   const layout = getMemoryCalendarScrollLayout(50);
-  assert.equal(layout.inverted, true);
+  assert.equal(layout.inverted, false);
   assert.equal(layout.initialOffset, 0);
   assert.equal(months[0].key, "2026-10");
-  assert.deepEqual([...months].reverse().map((month) => month.key), ["2026-08", "2026-09", "2026-10"]);
-  assert.equal(layout.paddingTop, 116, "inverted top padding visually clears the bottom nav");
-  assert.equal(layout.paddingBottom, 136, "inverted bottom padding visually clears the floating header and its 20px gap");
+  assert.deepEqual(months.map((month) => month.key), ["2026-10", "2026-09", "2026-08"]);
+  assert.equal(layout.paddingTop, 58, "top padding clears safe area and gap before the inline header");
+  assert.equal(layout.paddingBottom, 116, "bottom padding clears navigation");
 });
 
-test("floating header keeps a full 20px gap before content in both calendar and feed layouts", () => {
+test("feed and calendar use the same safe-area gap after removing the floating header", () => {
   const topInset = 50;
-  const headerBottom = topInset + 6 + 60;
-  assert.equal(getMemoryFeedHeaderClearance(topInset) - headerBottom, 20);
-  assert.equal(getMemoryCalendarScrollLayout(topInset).paddingBottom, getMemoryFeedHeaderClearance(topInset));
+  assert.equal(getMemoryFeedHeaderClearance(topInset), topInset + 8);
+  assert.equal(getMemoryCalendarScrollLayout(topInset).paddingTop, getMemoryFeedHeaderClearance(topInset));
 });
 
 test("photo streak uses unique photo dates, accepts yesterday, ignores text-only and future days", () => {

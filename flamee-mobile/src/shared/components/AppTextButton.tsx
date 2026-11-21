@@ -5,7 +5,7 @@ import { buttonTokens } from "../constants/tokens";
 import { useButtonInteraction } from "./useButtonInteraction";
 import { resolvePlatformAccessibilityProps } from "./buttonSystemModel";
 
-type AppTextButtonTone = "neutral" | "accent" | "danger";
+type AppTextButtonTone = "neutral" | "accent" | "danger" | "inverse";
 
 export type AppTextButtonProps = PropsWithChildren<{
   tone?: AppTextButtonTone;
@@ -27,6 +27,7 @@ const toneColors = {
   neutral: "$textPrimary",
   accent: "$accentText",
   danger: "$error",
+  inverse: "$white",
 } as const;
 
 export function AppTextButton({

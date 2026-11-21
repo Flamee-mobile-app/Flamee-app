@@ -4,6 +4,7 @@ import { Switch, YStack } from "tamagui";
 import { buttonTokens, controlTokens } from "../constants/tokens";
 import { resolvePlatformAccessibilityProps } from "./buttonSystemModel";
 import { useButtonInteraction } from "./useButtonInteraction";
+import { resolveSurfaceShadow } from "./surfaceShadow";
 
 export type AppSwitchProps = {
   id?: string;
@@ -87,8 +88,7 @@ export function AppSwitch({ id, checked, disabled = false, onCheckedChange, acce
         pointerEvents="none"
         transition={reducedMotion ? undefined : ["200ms", { duration: tokens.duration }]}
         animateOnly={["transform"]}
-        {...tokens.thumbShadow}
-        elevation={Platform.OS === "android" ? 2 : undefined}
+        {...resolveSurfaceShadow(Platform.OS, tokens.thumbShadow)}
       />
     </Switch>
   );

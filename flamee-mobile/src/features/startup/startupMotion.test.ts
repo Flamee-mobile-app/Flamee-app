@@ -4,19 +4,18 @@ import { join } from "node:path";
 import test from "node:test";
 import { colors, startupTokens } from "../../shared/constants/tokens.ts";
 
-test("keeps the complete startup motion within the approved 1.05 to 1.15 second budget", () => {
-  const totalDuration = startupTokens.playbackDuration + startupTokens.exitDuration;
+test("keeps brand introduction and progress completion within 1.3 to 1.5 seconds", () => {
+  const totalDuration = startupTokens.playbackDuration + startupTokens.loaderProgressDuration + startupTokens.exitDuration;
 
-  assert.ok(totalDuration >= 1050);
-  assert.ok(totalDuration <= 1150);
+  assert.ok(totalDuration >= 1300);
+  assert.ok(totalDuration <= 1500);
 });
 
 test("holds the completed brand long enough to register before handoff", () => {
-  const holdDuration = (startupTokens.duration - startupTokens.taglineEnd)
-    * startupTokens.playbackDuration / startupTokens.duration;
+  const holdDuration = startupTokens.playbackDuration - startupTokens.brandFadeDuration;
 
-  assert.ok(holdDuration >= 120);
-  assert.ok(holdDuration <= 170);
+  assert.ok(holdDuration >= 700);
+  assert.ok(holdDuration <= 900);
 });
 
 test("runs every startup phase in strict order without visual overlap", () => {
@@ -39,12 +38,14 @@ test("moves directly from the completed outline heart to the logo reveal", () =>
   );
 });
 
-test("uses a solid light startup surface with restrained depth and readable foregrounds", () => {
+test("uses the mockup v2 warm cream and peach palette with readable foregrounds", () => {
   const background = readFileSync(join(process.cwd(), "src", "features", "startup", "components", "StartupBackground.tsx"), "utf8");
 
-  assert.equal(startupTokens.background, "#F4F1EB");
+  assert.equal(startupTokens.background, "#FDF0E5");
+  assert.equal(startupTokens.backgroundCenter, "#FFFAE7");
+  assert.equal(startupTokens.backgroundPeach, "#FFDDC4");
   assert.equal(startupTokens.tagline, colors.textSecondary);
   assert.equal(startupTokens.amber, colors.accentText);
-  assert.doesNotMatch(background, /LinearGradient|RadialGradient|<Stop/);
-  assert.match(background, /Path/);
+  assert.match(background, /RadialGradient/);
+  assert.doesNotMatch(background, /Path/);
 });

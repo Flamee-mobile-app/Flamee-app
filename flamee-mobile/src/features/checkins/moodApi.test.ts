@@ -7,6 +7,37 @@ import { moodHistoryOptions, partnerMoodOptions, pruneMoodHistory } from "./mood
 
 const mood: ServerMood = { id: "a", mood: "love", created_at: "2026-10-27T23:30:00Z", intensity: 5, mood_score: 4, note: "mine", reasons: ["work"], is_private: true, share_level: "private" };
 
+test("creating mood sends bearer, stable idempotency key and full-sharing payload", async () => {
+  const payload = { draft_version: 2 as const, mood: "happy", intensity: 4, mood_score: 3, note: "Hi", reasons: ["work"], custom_emotion_label: null, mascot_sticker_id: "mascot-neutral", sleep_hours: null, attachments: [], timezone: "Asia/Ho_Chi_Minh", share_level: "all" as const, is_private: false as const };
+  const api = createMoodApi({ baseUrl: "https://example.test", fetcher: async (url, init) => {
+    assert.equal(url, "https://example.test/moods"); assert.equal(init?.method, "POST");
+    assert.equal(new Headers(init?.headers).get("Authorization"), "Bearer token");
+    assert.equal(new Headers(init?.headers).get("Idempotency-Key"), "stable-key");
+    assert.deepEqual(JSON.parse(init?.body as string), payload);
+    return Response.json({ success: true, data: { ...mood, ...payload, local_date: "2026-11-16" } });
+  } });
+  assert.equal((await api.create("token", payload, "stable-key")).id, "a");
+});
+
+test("daily reminder uses account bearer, timezone and encoded reminder ID without inventing unread status", async () => {
+  const calls: string[] = [];
+  const reminder = { id: "rem/1", local_date: "2026-11-16", timezone: "Asia/Ho_Chi_Minh", created_at: "2026-11-16T12:00:00Z", read_at: null };
+  const api = createMoodApi({ baseUrl: "https://example.test", fetcher: async (url, init) => {
+    assert.equal(new Headers(init?.headers).get("Authorization"), "Bearer token");
+    calls.push(`${init?.method} ${url}`);
+    const path = String(url);
+    if (path.endsWith("/ensure")) { assert.deepEqual(JSON.parse(init?.body as string), { timezone: "Asia/Ho_Chi_Minh" }); return Response.json({ success: true, data: { show_prompt: true, reminder } }); }
+    if (path.includes("/rem%2F1/read")) return Response.json({ success: true, data: { ...reminder, read_at: "2026-11-16T12:01:00Z" } });
+    return Response.json({ success: true, data: { items: [reminder], total: 1, unread_count: 1 } });
+  } });
+  assert.equal((await api.ensureReminder("token", "Asia/Ho_Chi_Minh")).show_prompt, true);
+  assert.equal((await api.reminders("token", 20)).unread_count, 1);
+  assert.ok((await api.readReminder("token", "rem/1")).read_at);
+  assert.deepEqual(calls, ["POST https://example.test/moods/reminders/ensure", "GET https://example.test/moods/reminders?limit=20&offset=20", "PUT https://example.test/moods/reminders/rem%2F1/read"]);
+  const bad = createMoodApi({ baseUrl: "https://example.test", fetcher: async () => Response.json({ success: true, data: { show_prompt: true, reminder: null } }) });
+  await assert.rejects(bad.ensureReminder("token", "UTC"), MoodApiError);
+});
+
 test("partner mood reuses fresh data and requests it again once stale", async () => {
   const cache = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
   let reads = 0;
@@ -66,4 +97,20 @@ test("account switch aborts history and removes private cached rows", async () =
   assert.equal(signal.aborted, true);
   assert.equal(client.getQueryData(options.queryKey), undefined);
   client.clear();
+});
+
+test("daily reminders use authenticated server acknowledgements and never fabricate a prompt", async () => {
+  const reminder = { id: "r1", local_date: "2026-11-16", timezone: "Asia/Ho_Chi_Minh", created_at: "2026-11-16T01:00:00Z", read_at: null };
+  const calls: string[] = [];
+  const api = createMoodApi({ baseUrl: "https://example.test", fetcher: async (url, init) => {
+    assert.equal(new Headers(init?.headers).get("Authorization"), "Bearer token");
+    calls.push(`${init?.method} ${new URL(String(url)).pathname}`);
+    if (String(url).endsWith("/ensure")) return Response.json({ success: true, data: { show_prompt: true, reminder } });
+    return Response.json({ success: true, data: { ...reminder, read_at: "2026-11-16T02:00:00Z" } });
+  } });
+  assert.equal((await api.ensureReminder("token", "Asia/Ho_Chi_Minh")).reminder?.id, "r1");
+  assert.ok((await api.readReminder("token", "r1")).read_at);
+  assert.deepEqual(calls, ["POST /moods/reminders/ensure", "PUT /moods/reminders/r1/read"]);
+  const invalid = createMoodApi({ baseUrl: "https://example.test", fetcher: async () => Response.json({ success: true, data: { show_prompt: true, reminder: null } }) });
+  await assert.rejects(invalid.ensureReminder("token", "UTC"), MoodApiError);
 });

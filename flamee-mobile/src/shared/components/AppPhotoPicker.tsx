@@ -34,7 +34,7 @@ export function AppPhotoPicker({ uri, imageWidth, imageHeight, maxPreviewHeight,
       borderRadius={photoPickerTokens.radius} overflow="hidden" backgroundColor="$surfaceMuted">
       <Image source={{ uri }} resizeMode="contain" accessibilityLabel={label} style={{ width: "100%", height: "100%" }} />
       <YStack position="absolute" top="$xs" right="$xs" backgroundColor="$surface" borderRadius="$md">
-        <AppIconButton icon={<X size={20} color="$textPrimary" />} disabled={disabled} accessibilityLabel={removeLabel} onPress={onRemove} />
+        <AppIconButton icon={<X size={20} color="$textPrimary" />} disabled={busy || disabled} accessibilityLabel={removeLabel} onPress={onRemove} />
       </YStack>
     </YStack>
     <YStack alignSelf="center">

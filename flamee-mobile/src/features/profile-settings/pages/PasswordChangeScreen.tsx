@@ -37,6 +37,7 @@ function PasswordChangeForm({ accountId }: { accountId: string | null }) {
     setShowErrors(true);
     if (!parsed.success) return;
     pending.current = true;
+    const feedback = appToast.operation();
     setBusy(true);
     try {
       const result = await authService.changePassword(parsed.data.currentPassword, parsed.data.newPassword);
@@ -50,7 +51,7 @@ function PasswordChangeForm({ accountId }: { accountId: string | null }) {
       else appToast.warning(getMessage("vi", "passwordChangedStorageWarning"));
     } catch (error) {
       if (visible.current && useSessionStore.getState().activeAccountId === accountId) {
-        appToast.error(getMessage("vi", error instanceof AuthError && error.code === "currentPassword" ? "passwordCurrentInvalid" : "passwordChangeFailed"));
+        feedback.error(getMessage("vi", error instanceof AuthError && error.code === "currentPassword" ? "passwordCurrentInvalid" : "passwordChangeFailed"));
       }
     } finally {
       pending.current = false;

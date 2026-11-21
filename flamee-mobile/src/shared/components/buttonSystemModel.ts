@@ -151,9 +151,13 @@ export function getAppButtonPresentation(variant: AppButtonVariant): ButtonPrese
   return buttonPresentations[variant];
 }
 
-export type IconButtonTone = "neutral" | "accent" | "avatar" | "danger" | "plain" | "send" | "composer";
+export type IconButtonTone = "neutral" | "accent" | "avatar" | "danger" | "plain" | "send" | "composer" | "floating";
 
 export function getIconButtonPresentation(tone: IconButtonTone, selected: boolean) {
+  if (tone === "floating") return {
+    backgroundColor: "$white", color: "$primary",
+    hoverBackgroundColor: "$white", pressBackgroundColor: "$white",
+  } as const;
   if (tone === "send") return {
     backgroundColor: "$supportPeach", color: "$white",
     hoverBackgroundColor: "$supportPeach", pressBackgroundColor: "$supportPeach",
@@ -211,6 +215,7 @@ export function getIconButtonPresentation(tone: IconButtonTone, selected: boolea
 }
 
 export function getIconButtonRadius(tone: IconButtonTone) {
+  if (tone === "floating") return buttonTokens.floatingButtonSize / 2;
   if (tone === "send") return buttonTokens.sendButtonSize / 2;
   if (tone === "plain") return 0;
   if (tone === "avatar" || tone === "composer") return buttonTokens.iconButtonSize / 2;

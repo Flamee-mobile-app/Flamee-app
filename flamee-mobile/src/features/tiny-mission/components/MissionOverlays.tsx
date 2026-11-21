@@ -31,8 +31,9 @@ export function MissionOverlays({ overlay, close, change }: { overlay: MissionOv
   const title = overlay.kind === "redeem" && reward ? formatMessage("vi", "missionRedeemTitle", { gift: copy(reward.title).toLocaleLowerCase("vi") })
     : overlay.kind === "code" ? copy("missionCodeTitle") : copy(overlay.kind === "rules" ? "missionRules" : overlay.kind === "points" ? "missionHistory" : "missionRedeemed");
   const copyCode = async () => {
-    try { await (await import("expo-clipboard")).setStringAsync(copy("missionCode")); appToast.info(copy("missionCopied")); }
-    catch { appToast.error(copy("missionCopyFailed")); }
+    const feedback = appToast.operation();
+    try { await (await import("expo-clipboard")).setStringAsync(copy("missionCode")); feedback.info(copy("missionCopied")); }
+    catch { feedback.error(copy("missionCopyFailed")); }
   };
   return <AppDialog open onOpenChange={(open) => { if (!open) close(); }} title={title} description={copy("missionPreview")} surfaceTone="paper">
     {reward && overlay.kind === "redeem" ? <YStack gap="$lg">

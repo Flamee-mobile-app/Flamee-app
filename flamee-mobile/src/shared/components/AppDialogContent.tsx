@@ -1,6 +1,7 @@
 import { Platform } from "react-native";
 import { Dialog, styled } from "tamagui";
 import { glassTokens } from "../constants/tokens";
+import { resolveSurfaceShadow } from "./surfaceShadow";
 
 // Popup surfaces are opaque white on every platform.
 export const AppDialogContent = styled(Dialog.Content, {
@@ -20,9 +21,5 @@ export const AppDialogContent = styled(Dialog.Content, {
   boxShadow: "none",
   padding: "$xl",
   gap: "$lg",
-  shadowColor: Platform.OS === "web" ? undefined : glassTokens.dialogShadow.shadowColor,
-  shadowOffset: Platform.OS === "web" ? undefined : glassTokens.dialogShadow.shadowOffset,
-  shadowOpacity: Platform.OS === "web" ? undefined : glassTokens.dialogShadow.shadowOpacity,
-  shadowRadius: Platform.OS === "web" ? undefined : glassTokens.dialogShadow.shadowRadius,
-  elevation: Platform.OS === "android" ? glassTokens.dialogShadow.elevation : undefined,
+  ...(Platform.OS !== "web" ? resolveSurfaceShadow(Platform.OS, glassTokens.dialogShadow) : {}),
 });

@@ -41,15 +41,15 @@ test("toast card has a concrete width inside Tamagui's shrink-wrapped gesture ho
   assert.ok(checked);
 });
 
-test("toast viewport starts below the shared header", () => {
+test("toast viewport uses the shared safe-area frame without per-route header offsets", () => {
   const source = readFileSync(new URL("./AppToast.tsx", import.meta.url), "utf8");
   const file = ts.createSourceFile("AppToast.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   let checked = false;
   function visit(node: ts.Node) {
     if ((ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) && node.tagName.getText(file) === "ToastViewport") {
-      const top = node.attributes.properties.find((prop) => ts.isJsxAttribute(prop) && prop.name.getText(file) === "top");
-      assert.ok(top && ts.isJsxAttribute(top) && top.initializer && ts.isJsxExpression(top.initializer));
-      assert.equal(top.initializer.expression?.getText(file), "insets.top + liquidHeaderTokens.topGap + memoryFeedTokens.expandedHeaderHeight + spacing.sm");
+      const frame = node.attributes.properties.find((prop) => ts.isJsxSpreadAttribute(prop) && prop.expression.getText(file) === "frame");
+      assert.ok(frame);
+      assert.doesNotMatch(source, /expandedHeaderHeight|useSegments/);
       checked = true;
     }
     ts.forEachChild(node, visit);

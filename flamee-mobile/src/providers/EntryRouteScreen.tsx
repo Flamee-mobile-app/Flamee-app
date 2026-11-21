@@ -18,7 +18,7 @@ export function EntryRouteScreen() {
   const sessionId = useSessionStore((state) => state.sessionId);
   useInviteIntentRevision();
   const invite = Boolean(inviteIntent.getCode());
-  const { canNavigate } = useStartup();
+  const { canNavigate, reportEntryFailure } = useStartup();
   const [attempt, setAttempt] = useState(0);
   const [result, setResult] = useState<{ sessionId: number; setup: EntryRouteSnapshot["setupStatus"]; failed: boolean } | null>(null);
   useEffect(() => {
@@ -32,6 +32,10 @@ export function EntryRouteScreen() {
     });
     return () => controller.abort();
   }, [bootstrapped, accountId, coupleId, sessionId, invite, attempt]);
+  useEffect(() => {
+    reportEntryFailure(result?.sessionId === sessionId && result.failed);
+    return () => reportEntryFailure(false);
+  }, [result, sessionId, reportEntryFailure]);
   if (!bootstrapped) return <SessionRecoveryScreen pending={bootstrapStatus !== "error"} />;
   const route = resolveEntryRoute({ bootstrapped, accountId, setupStatus: result?.sessionId === sessionId ? result.setup : null, inviteIntent: invite, coupleStatus: accountId ? coupleId ? "paired" : "none" : null });
   if (route && canNavigate) return <Redirect href={route} />;

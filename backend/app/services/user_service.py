@@ -2,7 +2,7 @@ from supabase import Client
 from datetime import datetime
 
 from app.core.security import hash_password
-from app.core.exceptions import NotFoundError, ValidationError
+from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.repositories.user_repo import UserRepository
 from app.models.user import User
 from app.services.auth_service import AuthService
@@ -33,6 +33,32 @@ class UserService:
         record = PreferencesRepository(self.db).update(user_id, payload.revision, values)
         return PreferencesResponse.model_validate({key: value for key, value in record.items()
                                                    if key in PreferencesResponse.model_fields})
+
+    def onboarding_status(self, user_id: str) -> dict:
+        self.get_preferences(user_id)
+        record = PreferencesRepository(self.db).get_onboarding(user_id)
+        if record is None:
+            raise NotFoundError("Không tìm thấy thông tin thiết lập.")
+        return {"status": "completed" if record.get("onboarding_completed_at") else "skipped" if record.get("onboarding_skipped_at") else "pending"}
+
+    def skip_onboarding(self, user_id: str) -> dict:
+        repo = PreferencesRepository(self.db)
+        for _ in range(2):
+            self.get_preferences(user_id)
+            record = repo.get_onboarding(user_id)
+            if record is None:
+                raise NotFoundError("Không tìm thấy thông tin thiết lập.")
+            if record.get("onboarding_completed_at"):
+                return {"status": "completed"}
+            if record.get("onboarding_skipped_at"):
+                return {"status": "skipped"}
+            try:
+                now = now_utc().isoformat()
+                repo.update(user_id, record['revision'], {"onboarding_skipped_at": now, "updated_at": now, "revision": record['revision'] + 1})
+                return {"status": "skipped"}
+            except ConflictError:
+                continue
+        raise ConflictError("Preferences changed; retry.", code="preferences_revision_conflict")
         
     def get_user(self, user_id: str) -> User:
         user = self.user_repo.get(user_id)

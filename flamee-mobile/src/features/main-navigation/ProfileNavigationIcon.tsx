@@ -3,6 +3,7 @@ import { AppProfileAvatar } from "../../shared/components";
 import { navigationTokens } from "../../shared/constants/tokens";
 import { getMessage } from "../../shared/localization/messages";
 import { useSessionStore } from "../../shared/state/sessionStore";
+import { authService } from "../auth";
 
 type ProfileNavigationIconProps = {
   focused: boolean;
@@ -15,7 +16,7 @@ export function ProfileNavigationIcon({ focused, size }: ProfileNavigationIconPr
   const avatarSize = navigationTokens.profileAvatarSize * size / navigationTokens.tabIconSize;
   return (
     <View pointerEvents="none" accessible={false} style={{ opacity: focused ? 1 : 0.9 }}>
-      <AppProfileAvatar uri={avatarUrl} fallbackSeed={accountId} size={avatarSize} accessibilityLabel={getMessage("vi", "profileAvatarLabel")} />
+      <AppProfileAvatar uri={avatarUrl} fallbackSeed={accountId} size={avatarSize} accessibilityLabel={getMessage("vi", "profileAvatarLabel")} onRefresh={() => { void authService.refreshCurrentSession().catch(() => undefined); }} />
     </View>
   );
 }

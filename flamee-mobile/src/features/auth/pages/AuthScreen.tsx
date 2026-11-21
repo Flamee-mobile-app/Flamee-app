@@ -14,6 +14,7 @@ import { Label, Text, XStack, YStack } from "tamagui";
 import { AppButton, AppCheckbox, AppField, AppIconButton, AppTextButton, appToast } from "../../../shared/components";
 import { loginTokens, spacing } from "../../../shared/constants/tokens";
 import { getMessage } from "../../../shared/localization/messages";
+import { resolvePostAuthRoute } from "../../../shared/navigation/entryRoute";
 import { lockedHeroScrollProps } from "../../../shared/layout/heroScrollBehavior";
 import { scrollFocusedInputToKeyboard } from "../../../shared/layout/scrollFocusedInput";
 import { useScreenReveal } from "../../../shared/motion/ScreenReveal";
@@ -37,6 +38,7 @@ export function AuthScreen() {
   const loginPending = useRef(false);
   const scrollRef = useRef<ScrollView>(null);
   const [busy, setBusy] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
   const animateEntrance = useRef(!loginEntranceUsed);
   const [register, setRegister] = useState(false);
   const insets = useSafeAreaInsets();
@@ -77,20 +79,24 @@ export function AuthScreen() {
 
   const activateSession = async (session: AuthSession) => {
     useSessionStore.getState().setActiveAccount(session.accountId, session.user.couple_id ?? null, session.user.avatar_url ?? null);
-    router.replace("/");
+    router.replace(resolvePostAuthRoute(session.user.couple_id));
   };
 
   const login = form.handleSubmit(async (values) => {
     if (loginPending.current) return;
     loginPending.current = true;
+    const feedback = appToast.operation();
     setBusy(true);
+    setLoginError(null);
     Keyboard.dismiss();
     try {
       const session = await authService.login(values.email, values.password, rememberMe);
       form.reset();
       await activateSession(session);
     } catch (error) {
-      appToast.error(getMessage("vi", "authErrorTitle"), { description: getAuthErrorMessage(error) });
+      const message = getAuthErrorMessage(error);
+      setLoginError(message);
+      feedback.error(getMessage("vi", "authErrorTitle"), { description: message });
     } finally {
       loginPending.current = false;
       setBusy(false);
@@ -118,6 +124,7 @@ export function AuthScreen() {
             <LoginEntrance order={2} {...motion}>
               <AppGradientText role="heading" aria-level={1} fontFamily="$heading" fontSize="$h4" lineHeight="$h4" fontWeight="$bold" color="$textPrimary" textAlign="center" marginBottom={layout.titleGap}>{getMessage("vi", "loginAction")}</AppGradientText>
             </LoginEntrance>
+            {loginError ? <Text role="alert" fontFamily="$body" fontSize="$bodyS" lineHeight="$bodyS" color="$error" textAlign="center" marginBottom="$sm">{loginError}</Text> : null}
 
             <LoginEntrance order={3} {...motion}>
               <Controller control={form.control} name="email" render={({ field, fieldState }) => (

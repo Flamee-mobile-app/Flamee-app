@@ -1,4 +1,4 @@
-import { AppGradientText } from "../../../shared/components";
+import { AppGradientText, resolveSurfaceShadow } from "../../../shared/components";
 import { Bell } from "@tamagui/lucide-icons-2/icons/Bell";
 import { ChevronDown } from "@tamagui/lucide-icons-2/icons/ChevronDown";
 import { X } from "@tamagui/lucide-icons-2/icons/X";
@@ -128,11 +128,7 @@ const styles = StyleSheet.create({
     left: liquidHeaderTokens.inset,
     right: liquidHeaderTokens.inset,
     zIndex: 20,
-    shadowColor: liquidHeaderTokens.shadow.shadowColor,
-    shadowOffset: liquidHeaderTokens.shadow.shadowOffset,
-    shadowOpacity: liquidHeaderTokens.shadow.shadowOpacity,
-    shadowRadius: liquidHeaderTokens.shadow.shadowRadius,
-    elevation: Platform.OS === "android" ? liquidHeaderTokens.shadow.elevation : undefined,
+    ...resolveSurfaceShadow(Platform.OS, liquidHeaderTokens.shadow),
   },
   surface: { overflow: "hidden" },
 });

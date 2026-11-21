@@ -7,6 +7,7 @@ import { ScrollView, YStack } from "tamagui";
 import { AppBlurTarget, AppGlassBackdrop, AppIconButton, AppScreen, AppTextButton, FeatureScreen, type AppBlurTargetView } from "../../../shared/components";
 import { colors, inviteSceneTokens, spacing } from "../../../shared/constants/tokens";
 import { getMessage } from "../../../shared/localization/messages";
+import { resolveSurfaceShadow } from "../../../shared/components";
 
 export function InviteSceneLayout({ children, hero, onBack, onSkip, busy, centered = false }: PropsWithChildren<{ hero?: ReactNode; onBack: () => void; onSkip: () => void; busy: boolean; centered?: boolean }>) {
   const insets = useSafeAreaInsets();
@@ -14,7 +15,7 @@ export function InviteSceneLayout({ children, hero, onBack, onSkip, busy, center
   const [availableHeight, setAvailableHeight] = useState(height);
   const target = useRef<AppBlurTargetView | null>(null);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
-  const { elevation, ...panelShadow } = inviteSceneTokens.panelShadow;
+  const panelShadow = resolveSurfaceShadow(Platform.OS, inviteSceneTokens.panelShadow);
   useEffect(() => {
     const show = Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow", () => setKeyboardVisible(true));
     const hide = Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide", () => setKeyboardVisible(false));
@@ -49,7 +50,7 @@ export function InviteSceneLayout({ children, hero, onBack, onSkip, busy, center
           {!keyboardVisible ? hero : null}
         </YStack>
       </YStack>
-      <YStack width="100%" maxWidth={inviteSceneTokens.maxWidth} alignSelf="center" backgroundColor="$surface" borderTopLeftRadius={inviteSceneTokens.panelRadius} borderTopRightRadius={inviteSceneTokens.panelRadius} {...panelShadow} elevation={Platform.OS === "android" ? elevation : undefined}>
+      <YStack width="100%" maxWidth={inviteSceneTokens.maxWidth} alignSelf="center" backgroundColor="$surface" borderTopLeftRadius={inviteSceneTokens.panelRadius} borderTopRightRadius={inviteSceneTokens.panelRadius} {...panelShadow}>
         <YStack borderTopLeftRadius={inviteSceneTokens.panelRadius} borderTopRightRadius={inviteSceneTokens.panelRadius} overflow="hidden">
           <AppGlassBackdrop blurTarget={target} tone="header" />
           <YStack position="absolute" left={0} right={0} top={0} height={1} backgroundColor="$white" pointerEvents="none" />
