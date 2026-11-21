@@ -3,7 +3,7 @@ import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { XStack } from "tamagui";
-import { AppButton, AppDialog, SectionCard, appToast } from "../../../shared/components";
+import { AppButton, AppDialog, appToast } from "../../../shared/components";
 import { getMessage } from "../../../shared/localization/messages";
 import { useSessionStore } from "../../../shared/state/sessionStore";
 import { authService } from "../../auth";
@@ -45,11 +45,9 @@ export function SignOutAction() {
   };
 
   return <>
-    <SectionCard title={getMessage("vi", "signOutTitle")} description={getMessage("vi", "signOutBody")}>
-      <AppButton variant="secondary" icon={<LogOut size={18} />} disabled={busy} onPress={() => setConfirming(true)}>
-        {getMessage("vi", "signOutAction")}
-      </AppButton>
-    </SectionCard>
+    <AppButton variant="secondary" icon={<LogOut size={18} />} disabled={busy} onPress={() => setConfirming(true)}>
+      {getMessage("vi", "signOutAction")}
+    </AppButton>
     <AppDialog open={confirming} onOpenChange={setConfirming} dismissible={!busy}
       title={getMessage("vi", "signOutTitle")} description={getMessage("vi", "signOutBody")}>
       <XStack gap="$sm">

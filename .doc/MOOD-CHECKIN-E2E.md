@@ -2,6 +2,8 @@
 
 Điểm Mood do người dùng chọn từ 1 (rất tệ) đến 5 (rất tốt), độc lập với cường độ cảm xúc. Check-in mới được chia sẻ đầy đủ với đối phương; dữ liệu cũ giữ nguyên quyền đã lưu. Bản check-in được gửi với idempotency key, chỉ thông báo thành công sau khi server xác nhận đủ dữ liệu.
 
+Ba thanh đánh giá ngày, cường độ cảm xúc và giấc ngủ dùng chung `AppSlider` với kéo mượt, ẩn vạch chia và số trên nút kéo. Điểm đánh giá ngày vẫn được chốt theo số nguyên từ 1 đến 5.
+
 Màn chọn cảm xúc dùng các GIF mascot đóng gói trong ứng dụng, mỗi cảm xúc tương ứng một GIF lặp. Android bật `expo-build-properties` `gifEnabled`; thay đổi cấu hình native yêu cầu build lại ứng dụng, không được xác nhận chỉ bằng reload JavaScript.
 
 Tiến trình check-in gồm bốn nút mốc nối nhau: Cảm xúc, Lý do, Hôm nay, Ghi chú. Các bước đã qua có dấu tích, bước hiện tại có vòng nhấn và những bước sau dùng màu trung tính; chỉ thể hiện tiến độ, không điều hướng. Trình đọc màn hình nhận số bước hiện tại và tổng số bước.
