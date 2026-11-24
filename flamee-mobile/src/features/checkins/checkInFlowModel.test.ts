@@ -75,3 +75,13 @@ test("exit confirmation is only needed after the user has entered an answer", ()
   assert.equal(hasCheckInAnswers({ ...draft, note: "a note" }), true);
   assert.equal(hasCheckInAnswers({ ...draft, attachments: [{ kind: "emoji", id: "happy" }] }), true);
 });
+
+test("picker suggestions store only attachment contract fields for every media category", () => {
+  for (const kind of ["gif", "emoji", "sticker"] as const) {
+    const suggestion = { kind, id: "happy", label: "Vui vẻ", source: () => 123 };
+    const attachments = setCheckInAttachment([], suggestion);
+    assert.deepEqual(attachments, [{ kind, id: "happy" }]);
+    assert.deepEqual(JSON.parse(JSON.stringify(attachments)), [{ kind, id: "happy" }]);
+    assert.deepEqual(setCheckInAttachment(attachments, suggestion), []);
+  }
+});

@@ -4,7 +4,7 @@
     "slug": "flamee-mobile",
     "scheme": "flamee",
     "version": "1.0.1",
-    "icon": "./src/features/startup/assets/flamee-symbol.png",
+    "icon": "./src/public/logofaviconapp.jpg",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "platforms": [
@@ -19,6 +19,9 @@
     "android": {
       "package": "com.flamee.mobile",
       "versionCode": 20261121
+    },
+    "web": {
+      "favicon": "./src/public/logofaviconapp.jpg"
     },
     "plugins": [
       "expo-router",

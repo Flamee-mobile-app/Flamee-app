@@ -2,6 +2,18 @@
 
 ## Hiện trạng áp dụng
 
+### Cập nhật 2026-11-24: đổi quà không phụ thuộc tồn kho
+
+Giao diện đổi quà cập nhật cùng ngày: thanh tiến độ ở ví và từng món luôn dùng màu primary cam, kể cả đã đủ điểm. Popup xác nhận có ảnh/tên quà, khối điểm nền peach với chi phí và số dư nổi bật, số dư sau đổi ghi rõ dự kiến; nút xác nhận kèm chi phí và nút “Để sau” dạng ghost. Các con số lấy từ reward/wallet server; dự kiến không cập nhật số dư authoritative hoặc báo đổi thành công trước ACK. Giữ khóa thao tác/loading/toast và cơ chế cuộn của AppDialog. Typecheck đã đạt; chưa nghiệm thu trực quan popup trên thiết bị.
+
+Popup kết quả/mở lại mã dùng cùng bố cục ảnh và tên quà, trạng thái thật từ đơn; điểm đổi và hạn nhận nằm thành hai cột có thể xuống hàng. Mã đầy đủ selectable và nút sao chép nằm chung trong SectionCard peach; clipboard luôn nhận nguyên mã server. Giữ hạn chế sao chép/mở fanpage khi đơn hủy hoặc hết hạn, chỉ hiện liên kết fanpage khi có cấu hình thật. Tiêu đề thành công và dấu check chỉ xuất hiện sau ACK mới; mở từ lịch sử vẫn hiển thị tiêu đề mã nhận quà. Không hiển thị lại đoạn khuyến khích dài để popup gọn hơn. Typecheck và 14 test API/design-system đạt; chưa nghiệm thu bố cục trực tiếp trên thiết bị.
+
+**Liên hệ nhận quà, yêu cầu tiếp theo 2026-11-24:** dùng TikTok `https://www.tiktok.com/@flameenek?_r=1&_t=ZS-9BfiCOaxq3Y` do người dùng cung cấp, thay phần fanpage trong popup nhận mã. Chỉ hiển thị icon TikTok có accessibility label và lời hướng dẫn, không hiển thị URL/nút sao chép link/thông báo thiếu fanpage. Icon đóng gói SVG cục bộ, không gọi dịch vụ favicon. Link áp dụng cho cả đơn mới và lịch sử dù snapshot `fanpage_url` trống; không ghi lại snapshot hoặc sửa database. Đơn hủy/hết hạn và scope không còn hợp lệ không được mở liên hệ. Lỗi mở TikTok có toast; mã nhận quà không đưa vào URL. Quy định này thay thế phần liên hệ fanpage của mô tả trước.
+
+Theo yêu cầu mới, người dùng đủ điểm được đổi quà active dù `stock = 0`. Mobile không khóa nút hoặc hiện “Chưa mở đổi” theo stock. Backend vẫn kiểm tra cặp hợp lệ, giá kỳ vọng, số dư trong transaction và idempotency; tạo mã thật, trừ điểm đúng một lần. Đổi/hủy/hết hạn không trừ hoặc cộng stock; hoàn điểm vẫn chỉ một lần. Trường stock giữ làm metadata tương thích, không bắt buộc khi tạo cấu hình quà. Quy định này thay thế các yêu cầu tồn kho trong phần lịch sử bên dưới.
+
+Database hiện có cần áp dụng `backend/migrations/20261124_rewards_without_stock.sql` trong Supabase SQL Editor, sau đó cập nhật mobile (build lại nếu dùng APK). Migration chỉ thay RPC, giữ điểm/đơn/catalog và quyền hiện tại; không chạy lại `schema.sql` trên database đã có. Bản schema bootstrap cũng đã cập nhật quy tắc mới. Chưa áp dụng lên database thật từ phiên làm việc này.
+
 Các phần preview bên dưới là lịch sử thiết kế. Route chính và chi tiết hiện dùng `ServerTinyMissionContent`, không import `TinyMissionContent`, `MissionViews`, `MissionOverlays` hoặc `previewContent`. Các fixture cũ giữ riêng để đối chiếu thiết kế, không phục vụ dữ liệu runtime.
 
 - `GET /missions/today`: bốn nhiệm vụ server giao theo ngày/múi giờ chung, ID thật, owner thật, nội dung/điểm/version/hoàn thành từ server. Trang chi tiết chỉ nhận assignment ID, tra lại danh sách hôm nay bằng bearer; không dùng allowlist ID mẫu hoặc đưa nội dung riêng tư vào route.

@@ -13,7 +13,7 @@ class RewardRepository:
         if not isinstance(result,dict):raise RuntimeError('Missing reward acknowledgement')
         if result.get('outcome')=='forbidden':raise ForbiddenError('Reward operation is not permitted')
         if result.get('outcome')=='not_found':raise NotFoundError('Reward not found')
-        if result.get('outcome')=='conflict':raise ConflictError('Reward, balance or stock changed; refresh before retrying')
+        if result.get('outcome')=='conflict':raise ConflictError('Reward or balance changed; refresh before retrying')
         if result.get('outcome')!='ok':raise RuntimeError('Invalid reward acknowledgement')
         return result['data']
 

@@ -24,7 +24,8 @@ export const moodFlowTokens = {
   noteMinHeight: 80,
   noteAvatarSize: 92,
   dashboardArtworkSize: 104,
-  profileBubbleSlotHeight: 100,
+  profileBubbleSlotHeight: 176,
+  profileAttachmentSize: 32,
   profileNameHeight: 40,
   profileAvatarSize: 88,
   profileAvatarFrameSize: 98,
@@ -508,6 +509,7 @@ export const missionColorTokens = {
 } as const;
 
 export const missionTokens = {
+  confirmArtworkSize: 88, confirmPointsMinWidth: 100,
   rewardCardRadius: 20, rewardImageRadius: 16, rewardProgressHeight: 4,
   artworkSize: 48, walletArtworkSize: 44, avatarSize: 36, detailArtworkSize: 112,
   rewardAspectRatio: 1.25, rewardDialogAspectRatio: 1, progressHeight: 10, dayDotSize: 11, milestoneSize: 28,

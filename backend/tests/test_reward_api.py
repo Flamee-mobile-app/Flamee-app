@@ -41,6 +41,8 @@ def test_reward_config_allows_missing_fanpage_but_requires_minimum_points():
     from app.schemas.reward import RewardInput
     without_link={key:value for key,value in CATALOG.items() if key!='fanpage_url'}
     assert RewardInput(**without_link).fanpage_url is None
+    without_stock={key:value for key,value in without_link.items() if key!='stock'}
+    assert RewardInput(**without_stock).stock == 0
     with pytest.raises(ValidationError):
         RewardInput(**{**without_link,'price_points':99})
 

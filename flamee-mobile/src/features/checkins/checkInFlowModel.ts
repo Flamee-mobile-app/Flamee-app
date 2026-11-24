@@ -32,7 +32,7 @@ export function toggleSelection(values: readonly string[], id: string): string[]
 export function setCheckInAttachment(attachments: readonly CheckInAttachment[], selected: CheckInAttachment): CheckInAttachment[] {
   const current = attachments.find(({ kind }) => kind === selected.kind);
   if (current?.id === selected.id) return attachments.filter(({ kind }) => kind !== selected.kind);
-  return [...attachments.filter(({ kind }) => kind !== selected.kind), selected];
+  return [...attachments.filter(({ kind }) => kind !== selected.kind), { kind: selected.kind, id: selected.id }];
 }
 
 const isFivePointScore = (value: number | null) => value !== null && Number.isInteger(value) && value >= 1 && value <= 5;

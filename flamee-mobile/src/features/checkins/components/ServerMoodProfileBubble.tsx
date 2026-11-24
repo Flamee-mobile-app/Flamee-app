@@ -2,12 +2,13 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useEffect, useReducer } from "react";
 import { Text, YStack } from "tamagui";
 import { AppThoughtBubble } from "../../../shared/components";
+import { moodFlowTokens } from "../../../shared/constants/tokens";
 import { getMessage } from "../../../shared/localization/messages";
 import { useSessionStore } from "../../../shared/state/sessionStore";
 import { moodHistoryOptions, partnerMoodOptions } from "../moodQueries";
 import { moodService } from "../moodService";
 import { recentProfileMood } from "../moodHistoryModel";
-import { moodDisplayLabel } from "./MoodCheckInDetails";
+import { MoodAttachments, moodDisplayLabel } from "./MoodCheckInDetails";
 
 export function ServerMoodProfileBubble({ partner = false, enabled, available = true }: { partner?: boolean; enabled: boolean; available?: boolean }) {
   const accountId = useSessionStore((state) => state.activeAccountId);
@@ -32,6 +33,7 @@ export function ServerMoodProfileBubble({ partner = false, enabled, available = 
       {mood ? <>
         <Text fontFamily="$body" fontSize="$label" lineHeight="$label" fontWeight="$semibold" color="$accentText" textAlign="center" numberOfLines={1}>{moodDisplayLabel(mood)}</Text>
         {full && mood.note?.trim() ? <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textPrimary" textAlign="center" numberOfLines={2}>{mood.note}</Text> : null}
+        {full && mood.attachments?.length ? <MoodAttachments mood={mood} size={moodFlowTokens.profileAttachmentSize} /> : null}
       </> : <Text fontFamily="$body" fontSize="$bodyXS" lineHeight="$bodyXS" color="$textSecondary" textAlign="center" numberOfLines={3}>{getMessage("vi", available && query.isError && !query.data ? "moodHistoryReadError" : initialLoading ? "moodHistoryLoading" : "moodHomeNoteEmpty")}</Text>}
     </YStack>
   </AppThoughtBubble>;

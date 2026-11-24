@@ -20,6 +20,10 @@
 
 ## Tim bài viết
 
+Theo yêu cầu tiếp theo 2026-11-24, thẻ bài đăng trên Dòng thời gian có PostHeartAction cạnh nút bình luận. Dùng public export của conversations và cùng query key scope/post với trang chi tiết và viewer, đồng bộ trạng thái/count khi chuyển màn. Nút nằm ngoài vùng bấm mở bài, nên thả/bỏ tim không điều hướng. Dùng API/ACK/loading/toast hiện có, không tự cộng số tim hoặc thay backend bằng trạng thái local.
+
+Cập nhật 2026-11-24: xác nhận API đang chạy đã có GET/PUT/DELETE heart, người dùng cho biết chưa áp dụng migration `20261116_memory_post_hearts.sql`. Cần chạy migration trên đúng Supabase trước khi nghiệm thu; chưa có quyền chạy từ phiên này. Nút tim nay có loading khi ghi và khi chủ động thử tải lại; tải lại thất bại có toast rõ ràng thay vì im lặng, không gửi mutation khi trạng thái tim chưa tải được. Tải lại thành công chỉ xác nhận đã tải lượt tim, người dùng chạm tiếp để tương tác. Mọi kết quả/cache/toast tiếp tục kiểm scope; không giả trạng thái thành công khi thiếu bảng/RPC.
+
 - Đây là chức năng khác tim bình luận. Thêm GET/PUT/DELETE `/api/v1/memories/{id}/heart`, bearer xác định actor, desired-state PUT/DELETE trả JSON200 `{memory_id,heart_count,hearted}`; không dùng204 của DELETE bài/ảnh cho route này.
 - API → MemoryHeartService → MemoryHeartRepository → RPC `memory_post_heart_operation`. Migration `backend/migrations/20261116_memory_post_hearts.sql` tạo bảng `memory_post_hearts` có RLS, không cho anon/authenticated gọi bảng/RPC trực tiếp; chỉ service_role. RPC kiểm activecouple và membership cả hai phía từ server, khóa cùng thứ tự couple→users→memory, scope memory trong pair, unique(memory_id,user_id), cascade khi xóa post. Lặp cùng desired-state không tăng/giảm đếm sai.
 - Mobile cache theo session/account/couple/revision và postID, chỉ đổi tim/count sau acknowledgement hợp lệ, không optimistic hoặc tạo số0 giả khi chưa tải. Backend/migration chưa khả dụng hiển thị retry, không báo thao tác thành công; lỗi ghi có thông báo và đối chiếu query.

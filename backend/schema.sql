@@ -1158,11 +1158,11 @@ BEGIN
   SELECT * INTO wallet FROM public.mission_wallets WHERE couple_id=pair FOR UPDATE;
   SELECT * INTO r FROM public.mission_rewards WHERE id=p_target FOR UPDATE;
   IF NOT FOUND OR NOT r.active THEN RETURN jsonb_build_object('outcome','not_found'); END IF;
-  IF r.stock<1 OR wallet.balance<r.price_points OR r.price_points IS DISTINCT FROM (p_payload->>'expected_price')::int THEN RETURN jsonb_build_object('outcome','conflict'); END IF;
+  IF wallet.balance<r.price_points OR r.price_points IS DISTINCT FROM (p_payload->>'expected_price')::int THEN RETURN jsonb_build_object('outcome','conflict'); END IF;
   INSERT INTO public.mission_redemptions(couple_id,actor_id,reward_id,price_points,reward_snapshot)
    VALUES(pair,p_user,r.id,r.price_points,to_jsonb(r)) RETURNING * INTO o;
   PERFORM public.mission_credit(pair,-r.price_points,'redemption',o.id,NULL);
-  UPDATE public.mission_rewards SET stock=stock-1,revision=revision+1,updated_at=now() WHERE id=r.id;
+  -- Redemption does not reserve or decrement inventory.
   result=public.redemption_view(o.id);v_target=o.id;
  ELSIF p_action='list' THEN
   pair=public.mission_pair(p_user);
@@ -1182,9 +1182,7 @@ BEGIN
   SELECT * INTO o FROM public.mission_redemptions WHERE id=p_target FOR UPDATE;
   IF (p_action='cancel' OR o.expires_at<=now()) AND o.status IN('pending_fulfillment','review') THEN
    desired=CASE WHEN o.expires_at<=now() THEN 'expired' ELSE 'cancelled' END;
-   IF public.mission_credit(c.id,o.price_points,'refund',o.id,NULL) THEN
-    UPDATE public.mission_rewards SET stock=stock+1,revision=revision+1,updated_at=now() WHERE id=r.id;
-   END IF;
+   PERFORM public.mission_credit(c.id,o.price_points,'refund',o.id,NULL);
    UPDATE public.mission_redemptions SET status=desired,refunded_at=now(),updated_at=now() WHERE id=o.id RETURNING * INTO o;
   END IF;
   IF p_action='admin_fulfill' THEN

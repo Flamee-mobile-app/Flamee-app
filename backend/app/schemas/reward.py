@@ -12,7 +12,7 @@ class RewardInput(BaseModel):
     description_vi: str=Field(default='',max_length=500)
     description_en: str=Field(default='',max_length=500)
     price_points: int=Field(ge=100,le=1000000,strict=True)
-    stock: int=Field(ge=0,le=1000000,strict=True)
+    stock: int=Field(default=0,ge=0,le=1000000,strict=True)
     fanpage_url: HttpUrl | None = None
     active: bool=True
 

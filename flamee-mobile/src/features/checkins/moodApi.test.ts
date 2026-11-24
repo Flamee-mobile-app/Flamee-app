@@ -4,8 +4,20 @@ import { createMoodApi, MoodApiError, type ServerMood } from "./moodApi.ts";
 import { latestMoodByDay, moodHistoryRecords } from "./moodHistoryModel.ts";
 import { QueryClient } from "@tanstack/react-query";
 import { moodHistoryOptions, partnerMoodOptions, pruneMoodHistory } from "./moodQueries.ts";
+import { setCheckInAttachment } from "./checkInFlowModel.ts";
 
 const mood: ServerMood = { id: "a", mood: "love", created_at: "2026-10-27T23:30:00Z", intensity: 5, mood_score: 4, note: "mine", reasons: ["work"], is_private: true, share_level: "private" };
+
+test("picker media round-trips through an API that returns JSON object keys in database order", async () => {
+  const suggestion = { kind: "emoji" as const, id: "happy", label: "Vui vẻ", source: () => 123 };
+  const payload = { draft_version: 2 as const, mood: "happy", intensity: 4, mood_score: 3, note: "Hi", reasons: ["work"], custom_emotion_label: null, mascot_sticker_id: "mascot-neutral", sleep_hours: null, attachments: setCheckInAttachment([], suggestion), timezone: "Asia/Ho_Chi_Minh", share_level: "all" as const, is_private: false as const };
+  const api = createMoodApi({ baseUrl: "https://example.test", fetcher: async (_, init) => {
+    const body = JSON.parse(init?.body as string);
+    assert.deepEqual(body.attachments, [{ kind: "emoji", id: "happy" }]);
+    return Response.json({ success: true, data: { ...mood, ...body, local_date: "2026-11-24", attachments: [{ id: "happy", kind: "emoji" }] } });
+  } });
+  assert.equal((await api.create("token", payload, "stable-key")).id, "a");
+});
 
 test("creating mood sends bearer, stable idempotency key and full-sharing payload", async () => {
   const payload = { draft_version: 2 as const, mood: "happy", intensity: 4, mood_score: 3, note: "Hi", reasons: ["work"], custom_emotion_label: null, mascot_sticker_id: "mascot-neutral", sleep_hours: null, attachments: [], timezone: "Asia/Ho_Chi_Minh", share_level: "all" as const, is_private: false as const };

@@ -31,6 +31,7 @@ def database():
         # The migration is also intentionally reapplied to check repeatability.
         db.execute((Path(__file__).resolve().parents[1]/'migrations/20261110_missions.sql').read_text(encoding='utf-8'))
         db.execute((Path(__file__).resolve().parents[1]/'migrations/20261110_rewards.sql').read_text(encoding='utf-8'))
+        db.execute((Path(__file__).resolve().parents[1]/'migrations/20261124_rewards_without_stock.sql').read_text(encoding='utf-8'))
     return dsn
 
 
@@ -108,24 +109,24 @@ def reward_fixture(database,pair,stock=1):
     return item,reward
 
 
-def test_redemption_stock_race_retry_and_refund_once(database,pair):
+def test_redemption_balance_race_without_stock_retry_and_refund_once(database,pair):
     a,b,c,couple,mission=pair
-    item,reward=reward_fixture(database,pair)
+    item,reward=reward_fixture(database,pair,stock=0)
     requests=[(a if index%2==0 else b,'redeem-'+str(index)) for index in range(8)]
     with ThreadPoolExecutor(max_workers=8) as workers:
         results=list(workers.map(lambda entry:reward(entry[0],'redeem',item['id'],entry[1],{'expected_price':20}),requests))
     winners=[(requests[index],row['data']) for index,row in enumerate(results) if row['outcome']=='ok']
-    assert len(winners)==1
+    assert len(winners)==3
     (owner,key),order=winners[0]
     assert order['code'].startswith('FM-') and len(order['code'])==35
-    assert mission(a,'wallet')['data']['balance']==40
+    assert mission(a,'wallet')['data']['balance']==0
     assert reward(owner,'redeem',item['id'],key,{'expected_price':20})['data']['id']==order['id']
     assert next(row for row in reward(c,'admin_catalog')['data'] if row['id']==item['id'])['stock']==0
     with ThreadPoolExecutor(max_workers=4) as workers:
         cancelled=list(workers.map(lambda index:reward(owner,'cancel',order['id'],'cancel-'+str(index)),range(4)))
     assert all(row['data']['status']=='cancelled' for row in cancelled)
-    assert mission(a,'wallet')['data']['balance']==60
-    assert next(row for row in reward(c,'admin_catalog')['data'] if row['id']==item['id'])['stock']==1
+    assert mission(a,'wallet')['data']['balance']==20
+    assert next(row for row in reward(c,'admin_catalog')['data'] if row['id']==item['id'])['stock']==0
     assert sum(row['source_kind']=='refund' for row in mission(a,'ledger',payload={'limit':100})['data'])==1
 
 
@@ -149,7 +150,7 @@ def test_unpair_review_shipped_no_refund_and_expiry(database,pair):
     assert all(row['data']['status']=='expired' for row in expired)
     with psycopg.connect(database,autocommit=True) as db:
         assert db.execute('SELECT balance FROM mission_wallets WHERE couple_id=%s',(couple,)).fetchone()[0]==40
-        assert db.execute('SELECT stock FROM mission_rewards WHERE id=%s',(item['id'],)).fetchone()[0]==2
+        assert db.execute('SELECT stock FROM mission_rewards WHERE id=%s',(item['id'],)).fetchone()[0]==3
 
 
 def test_week_month_bonuses_are_single_ledger_events(database,pair):

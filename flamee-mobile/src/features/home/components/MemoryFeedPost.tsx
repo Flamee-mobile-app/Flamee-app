@@ -13,6 +13,7 @@ import type { MemorySummary } from "../../moments";
 import { formatMemoryDate } from "../memoryFeedModel";
 import { useSessionStore } from "../../../shared/state/sessionStore";
 import { authService } from "../../auth";
+import { PostHeartAction } from "../../conversations";
 
 function MemoryPhoto({ memory, square = false, onPress, onRetry, loadFull = true }: { memory: MemorySummary; square?: boolean; onPress?: () => void; onRetry?: () => void; loadFull?: boolean }) {
   const [failed, setFailed] = useState(false);
@@ -71,7 +72,10 @@ export function MemoryFeedPost({ memory, onDetails, onPhotoRetry, onComments, lo
     {memory.location ? <XStack alignItems="center" gap="$xs"><MapPin size={14} color="$textSecondary" aria-hidden={true} /><Text flex={1} fontFamily="$body" fontSize="$bodyS" lineHeight="$bodyS" color="$textSecondary">{memory.location}</Text></XStack> : null}
     <YStack height={1} backgroundColor="$border" opacity={0.55} />
     <XStack justifyContent="space-between" alignItems="center" flexWrap="wrap" gap="$xs">
-      <AppTextButton icon={<MessageCircle size={19} color="$textSecondary" />} onPress={onComments ?? openPost}>{typeof memory.comment_count === "number" ? formatMessage("vi", "conversationCount", { count: memory.comment_count }) : getMessage("vi", "memoryComments")}</AppTextButton>
+      <XStack flex={1} alignItems="center" flexWrap="wrap" gap="$sm">
+        <PostHeartAction memoryId={memory.id} />
+        <AppTextButton size="compact" icon={<MessageCircle size={19} color="$textSecondary" />} onPress={onComments ?? openPost}>{typeof memory.comment_count === "number" ? formatMessage("vi", "conversationCount", { count: memory.comment_count }) : getMessage("vi", "memoryComments")}</AppTextButton>
+      </XStack>
       {memory.image_count > 0 ? <Text fontFamily="$body" fontSize="$bodyS" lineHeight="$bodyS" color="$textSecondary">{formatMessage("vi", "memoryFeedPhotoCount", { count: memory.image_count })}</Text> : null}
     </XStack>
   </YStack></SectionCard></YStack>;

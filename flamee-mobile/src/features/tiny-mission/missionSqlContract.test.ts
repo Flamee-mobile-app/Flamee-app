@@ -18,6 +18,9 @@ test("mobile DTOs accept actual mission/reward SQL acknowledgements in an isolat
     await db.exec(await readFile(resolve(process.cwd(), "../backend/migrations/20261110_missions.sql"), "utf8"));
     await db.exec(await readFile(resolve(process.cwd(), "../backend/migrations/20261110_rewards.sql"), "utf8"));
     await db.exec(await readFile(resolve(process.cwd(), "../backend/migrations/20261121_optional_reward_fanpage.sql"), "utf8"));
+    const noStockMigration = await readFile(resolve(process.cwd(), "../backend/migrations/20261124_rewards_without_stock.sql"), "utf8");
+    await db.exec(noStockMigration);
+    await db.exec(noStockMigration);
     await db.exec("INSERT INTO mission_operators(user_id) VALUES('operator'); SET ROLE service_role;");
     const rpc = async (fn: string, actor: string, action: string, target: string | null = null, key: string | null = null, payload = {}) => {
       const result = await db.query(`SELECT ${fn}($1,$2,$3,$4,$5::jsonb) AS result`, [actor, action, target, key, JSON.stringify(payload)]);
@@ -53,12 +56,14 @@ test("mobile DTOs accept actual mission/reward SQL acknowledgements in an isolat
     assert.equal((await api.achievements("a")).length, 2);
     assert.deepEqual(await api.rewards("a", 0), []);
     await db.query("SELECT mission_credit('pair',60,'bonus','isolated-test-credit',NULL)");
-    const created = await rpc("reward_operation", "operator", "admin_create", null, "fixture", { title_vi: "Quà kiểm thử cô lập", title_en: "Isolated test reward", price_points: 100, stock: 1, fanpage_url: null, active: true });
+    const created = await rpc("reward_operation", "operator", "admin_create", null, "fixture", { title_vi: "Quà kiểm thử cô lập", title_en: "Isolated test reward", price_points: 100, stock: 0, fanpage_url: null, active: true });
     assert.equal(created.outcome, "ok");
     const [reward] = await api.rewards("a", 0);
     const order = await api.redeem("a", reward, "redeem-once");
     assert.equal((await api.redeem("a", reward, "redeem-once")).id, order.id);
     assert.equal((await api.wallet("a")).balance, 20);
+    assert.equal((await api.rewards("a", 0))[0].stock, 0);
+    await assert.rejects(api.redeem("a", reward, "insufficient-points"));
     assert.equal(reward.fanpage_url, null);
     assert.equal((await api.redemptions("a", 0))[0].code, order.code);
     assert.equal((await api.redemption("a", order.id)).status, "pending_fulfillment");
@@ -78,5 +83,16 @@ test("mobile DTOs accept actual mission/reward SQL acknowledgements in an isolat
     assert.equal(kept.price_points, 150);
     assert.equal((await api.wallet("a")).balance, 20);
     assert.equal((await api.redemptions("a", 0)).length, 1);
+    const cancelled = await rpc("reward_operation", "a", "cancel", order.id, "cancel-once");
+    assert.equal(cancelled.data.status, "cancelled");
+    assert.equal((await rpc("reward_operation", "a", "cancel", order.id, "cancel-once")).data.id, order.id);
+    assert.equal((await api.wallet("a")).balance, 120);
+    assert.equal((await api.rewards("a", 0)).find((item) => item.id === reward.id)!.stock, 0);
+    const expiring = await api.redeem("a", reward, "expiry-order");
+    await db.query("UPDATE mission_redemptions SET expires_at=now()-interval '1 second' WHERE id=$1", [expiring.id]);
+    assert.equal((await rpc("reward_operation", "a", "get", expiring.id)).data.status, "expired");
+    assert.equal((await rpc("reward_operation", "a", "get", expiring.id)).data.status, "expired");
+    assert.equal((await api.wallet("a")).balance, 120);
+    assert.equal((await api.rewards("a", 0)).find((item) => item.id === reward.id)!.stock, 0);
   } finally { await db.close(); }
 });

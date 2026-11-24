@@ -3,6 +3,7 @@ import { conversationMessages } from "./conversationMessages.ts";
 import { memoryActionMessages } from "./memoryActionMessages.ts";
 import { serverHistoryMessages } from "./serverHistoryMessages.ts";
 import { tinyMissionMessages } from "./tinyMissionMessages.ts";
+import { supportFaqMessages } from "./supportFaqMessages.ts";
 
 export const messages = {
   vi: {
@@ -10,6 +11,7 @@ export const messages = {
     ...memoryActionMessages.vi,
     ...serverHistoryMessages.vi,
     ...tinyMissionMessages.vi,
+    ...supportFaqMessages.vi,
     ...moodFlowMessages.vi,
     designSystemTitle: "Bộ component Flamee",
     designSystemIntroTitle: "Cùng một source trên web và mobile",
@@ -734,6 +736,9 @@ export const messages = {
     dataSettingsTitle: "Dữ liệu của tôi",
     supportSettingsTitle: "Hỗ trợ",
     accountSettingsTitle: "Kết nối và tài khoản",
+    accountConnectionLoading: "Đang kiểm tra kết nối…",
+    accountConnectionError: "Chưa tải được tài khoản đã kết nối. Hãy kiểm tra lại kết nối.",
+    accountConnectionUpdated: "Đã cập nhật thông tin kết nối.",
     notificationPermissionTitle: "Quyền thông báo trên thiết bị",
     notificationPermissionBody: "Quyền chỉ được yêu cầu sau check-in đầu tiên. Từ chối quyền không ảnh hưởng các tính năng khác.",
     notificationLocalOnlyTitle: "Chỉ có nhắc check-in trên thiết bị này",
@@ -830,6 +835,7 @@ export const messages = {
     ...memoryActionMessages.en,
     ...serverHistoryMessages.en,
     ...tinyMissionMessages.en,
+    ...supportFaqMessages.en,
     ...moodFlowMessages.en,
     designSystemTitle: "Flamee component system",
     designSystemIntroTitle: "One source across web and mobile",
@@ -1554,6 +1560,9 @@ export const messages = {
     dataSettingsTitle: "My data",
     supportSettingsTitle: "Support",
     accountSettingsTitle: "Connection and account",
+    accountConnectionLoading: "Checking your connection…",
+    accountConnectionError: "Could not load your connected accounts. Please check the connection again.",
+    accountConnectionUpdated: "Connection information updated.",
     notificationPermissionTitle: "Device notification permission",
     notificationPermissionBody: "Permission is requested only after your first check-in. Denying it will not affect other features.",
     notificationLocalOnlyTitle: "Only an on-device check-in reminder is available",

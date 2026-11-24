@@ -112,12 +112,12 @@ export function LiveMissionRewards({ rewards, wallet, busy, onRedeem }: { reward
           <Text fontFamily="$heading" fontSize="$h5" lineHeight="$h5" fontWeight="$semibold" color={missionColorTokens.points}>{missionPoints(reward.price_points)}</Text>
           {milestone ? <YStack gap="$sm">
             <YStack height={t.rewardProgressHeight} borderRadius="$sm" backgroundColor={t.dotEmpty} overflow="hidden" role="progressbar" aria-valuemin={0} aria-valuemax={reward.price_points} aria-valuenow={Math.min(wallet!.balance, reward.price_points)} aria-label={formatMessage("vi", "missionRewardProgress", { current: wallet!.balance, target: reward.price_points })}>
-              <YStack height="100%" width={`${milestone.progress}%`} backgroundColor={milestone.reached ? "$calmText" : "$primary"} borderRadius="$sm" />
+              <YStack height="100%" width={`${milestone.progress}%`} backgroundColor="$primary" borderRadius="$sm" />
             </YStack>
             <Text fontFamily="$body" fontSize="$bodyXS" lineHeight="$bodyXS" color={milestone.reached ? "$calmText" : "$textSecondary"}>{milestone.reached ? missionCopy("missionRewardReachedShort") : formatMessage("vi", "missionRewardMissingShort", { points: milestone.missing.toLocaleString("vi-VN") })}</Text>
           </YStack> : null}
           <YStack flex={1} />
-          <AppButton fill size="compact" depth="flat" variant={milestone?.reached && reward.stock > 0 ? "primary" : "secondary"} disabled={busy || !wallet || wallet.balance < reward.price_points || reward.stock === 0 || !reward.active} onPress={() => onRedeem(reward)}>{missionCopy(reward.stock === 0 ? "missionLiveOutOfStock" : wallet && wallet.balance < reward.price_points ? "missionNotEnough" : "missionRewards")}</AppButton>
+          <AppButton fill size="compact" depth="flat" variant={milestone?.reached ? "primary" : "secondary"} disabled={busy || !wallet || wallet.balance < reward.price_points || !reward.active} onPress={() => onRedeem(reward)}>{missionCopy(wallet && wallet.balance < reward.price_points ? "missionNotEnough" : "missionRewards")}</AppButton>
         </YStack>
       </YStack>; })}
     </XStack>
@@ -129,7 +129,7 @@ function RewardProgress({ balance, target }: { balance: number; target: number }
   return <YStack gap="$xs">
     <XStack alignItems="center" justifyContent="space-between" gap="$sm"><MissionBody muted>{missionPoints(balance)}</MissionBody><MissionBody color={missionColorTokens.points}>{missionPoints(target)}</MissionBody></XStack>
     <YStack height={t.progressHeight} borderRadius="$sm" backgroundColor={t.dotEmpty} overflow="hidden" role="progressbar" aria-valuemin={0} aria-valuemax={target} aria-valuenow={Math.min(balance, target)} aria-label={formatMessage("vi", "missionRewardProgress", { current: balance, target })}>
-      <YStack height="100%" width={`${milestone.progress}%`} borderRadius="$sm" backgroundColor={milestone.reached ? "$calmText" : "$primary"} />
+      <YStack height="100%" width={`${milestone.progress}%`} borderRadius="$sm" backgroundColor="$primary" />
     </YStack>
   </YStack>;
 }
