@@ -11,14 +11,16 @@ class RewardInput(BaseModel):
     title_en: Title
     description_vi: str=Field(default='',max_length=500)
     description_en: str=Field(default='',max_length=500)
-    price_points: int=Field(gt=0,le=1000000,strict=True)
-    stock: int=Field(ge=0,le=1000000,strict=True)
-    fanpage_url: HttpUrl
+    price_points: int=Field(ge=100,le=1000000,strict=True)
+    stock: int=Field(default=0,ge=0,le=1000000,strict=True)
+    fanpage_url: HttpUrl | None = None
     active: bool=True
 
     @field_validator('fanpage_url')
     @classmethod
     def safe_url(cls,value):
+        if value is None:
+            return None
         if value.scheme!='https' or value.username or value.password or len(str(value))>2048:
             raise ValueError('An HTTPS URL without credentials is required')
         return value
@@ -31,7 +33,7 @@ class RewardUpdate(RewardInput):
 class RedemptionInput(BaseModel):
     model_config=ConfigDict(extra='forbid')
     reward_id: str=Field(min_length=1,max_length=120)
-    expected_price: int=Field(gt=0,le=1000000,strict=True)
+    expected_price: int=Field(ge=100,le=1000000,strict=True)
 
 
 class FulfillmentInput(BaseModel):

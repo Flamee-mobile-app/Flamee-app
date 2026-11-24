@@ -15,15 +15,18 @@ test("keeps the progress header free of a bottom divider", () => {
   assert.doesNotMatch(screen, /borderBottomWidth|borderBottomColor/);
 });
 
-test("uses a centered one-row note header, hides progress and has no overlay layout", () => {
+test("uses a centered one-row note header and four-step progress", () => {
   const screen = readSource("checkins", "pages", "MoodCheckInScreen.tsx");
   assert.match(screen, /height=\{noteComposerLayoutTokens\.headerHeight\}/);
   assert.match(screen, /moodFlowNoteHeaderTitle/);
-  assert.match(screen, /AppTextButton tone=\{hasNote \? "accent" : "neutral"\} disabled=\{!hasNote\}/);
-  assert.match(screen, /!noteStep \? <XStack[\s\S]*?accessibilityRole="progressbar"/);
+  assert.match(screen, /AppTextButton tone=\{hasNote \? "accent" : "neutral"\} disabled=\{!hasNote \|\| saving\}/);
+  assert.match(screen, /accessibilityRole="progressbar"/);
+  assert.match(screen, /checkInSteps\.map[\s\S]*?moodStepFeeling/);
+  assert.match(screen, /index < position \? <Check/);
+  assert.doesNotMatch(screen, /flameeSymbolAsset/);
   assert.match(screen, /noteStep \? <KeyboardAvoidingView[\s\S]*?\{screen\}/);
   assert.match(screen, /const screen = <AppScreen[\s\S]*?<CheckInNoteComposer/);
-  assert.doesNotMatch(screen, /position="absolute"|moodFlowNotePrivacy|moodFlowNoteShareUnavailable/);
+  assert.doesNotMatch(screen, /moodFlowNotePrivacy|moodFlowNoteShareUnavailable/);
 });
 
 test("autofocuses once, commits Return without scrolling and caps at 60 characters", () => {

@@ -3,6 +3,11 @@ import { useEffect, type PropsWithChildren } from "react";
 import { useSessionStore } from "../shared/state/sessionStore";
 import { pruneMemoryQueries } from "../features/moments";
 import { pruneMoodHistory } from "../features/checkins";
+import { pruneConnectionQueries } from "../features/invites";
+import { ConnectionWarmup } from "./ConnectionWarmup";
+import { DailyMoodReminder } from "./DailyMoodReminder";
+import { pruneDualNudges } from "../features/nudges";
+import { pruneMissionQueries } from "../features/tiny-mission";
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -17,11 +22,14 @@ export function QueryProvider({ children }: PropsWithChildren) {
       const state = useSessionStore.getState();
       pruneMemoryQueries(queryClient, { accountId: state.activeAccountId, coupleId: state.activeCoupleId, sessionId: state.sessionId });
       pruneMoodHistory(queryClient, { accountId: state.activeAccountId, sessionId: state.sessionId, coupleId: state.activeCoupleId });
+      pruneConnectionQueries(queryClient, { accountId: state.activeAccountId, sessionId: state.sessionId, coupleId: state.activeCoupleId });
+      pruneDualNudges(queryClient, { accountId: state.activeAccountId, sessionId: state.sessionId, coupleId: state.activeCoupleId, revision: state.membershipRevision });
+      pruneMissionQueries(queryClient, { accountId: state.activeAccountId, sessionId: state.sessionId, coupleId: state.activeCoupleId, revision: state.membershipRevision });
     };
     prune();
     return useSessionStore.subscribe((state, previous) => {
-      if (state.activeAccountId !== previous.activeAccountId || state.activeCoupleId !== previous.activeCoupleId || state.sessionId !== previous.sessionId) prune();
+      if (state.activeAccountId !== previous.activeAccountId || state.activeCoupleId !== previous.activeCoupleId || state.sessionId !== previous.sessionId || state.membershipRevision !== previous.membershipRevision) prune();
     });
   }, []);
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  return <QueryClientProvider client={queryClient}><ConnectionWarmup /><DailyMoodReminder />{children}</QueryClientProvider>;
 }

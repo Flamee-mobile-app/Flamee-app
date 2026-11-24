@@ -40,13 +40,14 @@ export function RegisterForm({ visible, reducedMotion, onLogin, onAuthenticated,
   const submit = form.handleSubmit(async (values) => {
     if (pending.current) return;
     pending.current = true;
+    const feedback = appToast.operation();
     setBusy(true); Keyboard.dismiss();
     try {
       const session = await authService.register(values.email, values.password, values.fullName);
       form.reset();
       await onAuthenticated(session);
     } catch (failure) {
-      appToast.error(getMessage("vi", "authErrorTitle"), { description: getAuthErrorMessage(failure) });
+      feedback.error(getMessage("vi", "authErrorTitle"), { description: getAuthErrorMessage(failure) });
     }
     finally { pending.current = false; setBusy(false); }
   });

@@ -3,8 +3,8 @@
     "name": "Flamee",
     "slug": "flamee-mobile",
     "scheme": "flamee",
-    "version": "1.0.0",
-    "icon": "./src/features/startup/assets/flamee-symbol.png",
+    "version": "1.0.1",
+    "icon": "./src/public/logofaviconapp.jpg",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "platforms": [
@@ -17,7 +17,11 @@
       "deploymentTarget": "16.4"
     },
     "android": {
-      "package": "com.flamee.mobile"
+      "package": "com.flamee.mobile",
+      "versionCode": 20261121
+    },
+    "web": {
+      "favicon": "./src/public/logofaviconapp.jpg"
     },
     "plugins": [
       "expo-router",
@@ -44,6 +48,10 @@
         {
           "ios": {
             "deploymentTarget": "16.4"
+          },
+          "android": {
+            "usesCleartextTraffic": true,
+            "gifEnabled": true
           }
         }
       ],

@@ -23,16 +23,16 @@ test("the reasons step requires at least one reason", () => {
   assert.equal(canContinueCheckIn("reasons", { ...draft, reasonIds: ["work"] }), true);
 });
 
-test("intensity is required while sleep stays optional", () => {
+test("mood score and intensity are independently required while sleep stays optional", () => {
   const draft = createCheckInDraft();
   assert.equal(canContinueCheckIn("intensity", draft), false);
   for (const intensity of [0, 6, 10, 1.5]) assert.equal(canContinueCheckIn("intensity", { ...draft, intensity }), false);
-  assert.equal(canContinueCheckIn("intensity", { ...draft, intensity: 3 }), true);
-  assert.equal(canContinueCheckIn("intensity", { ...draft, intensity: 3, sleepHours: 2 }), true);
-  assert.equal(canContinueCheckIn("intensity", { ...draft, intensity: 3, sleepHours: 8 }), true);
-  assert.equal(canContinueCheckIn("intensity", { ...draft, intensity: 3, sleepHours: 1 }), false);
-  assert.equal(canContinueCheckIn("intensity", { ...draft, intensity: 3, sleepHours: 9 }), false);
-  assert.equal(canContinueCheckIn("intensity", { ...draft, intensity: 3, sleepHours: 2.5 }), false);
+  assert.equal(canContinueCheckIn("intensity", { ...draft, intensity: 3 }), false);
+  assert.equal(canContinueCheckIn("intensity", { ...draft, intensity: 3, moodScore: 1 }), true);
+  assert.equal(canContinueCheckIn("intensity", { ...draft, intensity: 3, moodScore: 5, sleepHours: 2 }), true);
+  assert.equal(canContinueCheckIn("intensity", { ...draft, intensity: 3, moodScore: 3, sleepHours: 8 }), true);
+  assert.equal(canContinueCheckIn("intensity", { ...draft, intensity: 3, moodScore: 3, sleepHours: 1 }), false);
+  assert.equal(canContinueCheckIn("intensity", { ...draft, intensity: 3, moodScore: 6 }), false);
   assert.equal(draft.sleepHours, null);
 });
 
@@ -74,4 +74,14 @@ test("exit confirmation is only needed after the user has entered an answer", ()
   assert.equal(hasCheckInAnswers({ ...draft, emotionId: "happy" }), true);
   assert.equal(hasCheckInAnswers({ ...draft, note: "a note" }), true);
   assert.equal(hasCheckInAnswers({ ...draft, attachments: [{ kind: "emoji", id: "happy" }] }), true);
+});
+
+test("picker suggestions store only attachment contract fields for every media category", () => {
+  for (const kind of ["gif", "emoji", "sticker"] as const) {
+    const suggestion = { kind, id: "happy", label: "Vui vẻ", source: () => 123 };
+    const attachments = setCheckInAttachment([], suggestion);
+    assert.deepEqual(attachments, [{ kind, id: "happy" }]);
+    assert.deepEqual(JSON.parse(JSON.stringify(attachments)), [{ kind, id: "happy" }]);
+    assert.deepEqual(setCheckInAttachment(attachments, suggestion), []);
+  }
 });

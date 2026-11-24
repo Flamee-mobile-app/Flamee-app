@@ -84,6 +84,7 @@ export function ProfileEditScreen() {
   }, []);
 
   const refresh = useCallback(async () => {
+    const feedback = appToast.operation();
     const request = ++revision.current;
     const editAtStart = editRevision.current;
     try {
@@ -92,7 +93,7 @@ export function ProfileEditScreen() {
       if (!session || session.accountId !== accountId) throw new Error("Session unavailable");
       applySession(session, editRevision.current === editAtStart);
     } catch {
-      if (request === revision.current && useSessionStore.getState().activeAccountId === accountId) appToast.error(getMessage("vi", "settingsLoadError"));
+      if (request === revision.current && useSessionStore.getState().activeAccountId === accountId) feedback.error(getMessage("vi", "settingsLoadError"));
     } finally {
       if (request === revision.current && useSessionStore.getState().activeAccountId === accountId) setInitialLoading(false);
     }
@@ -147,7 +148,8 @@ export function ProfileEditScreen() {
     if (!operation) return;
     clearSavedState();
     setSaving(true);
-    const loadingToastId = appToast.loading(getMessage("vi", "profileSaving"));
+    const feedback = appToast.operation();
+    feedback.loading(getMessage("vi", "profileSaving"));
     const draft = avatarDraft;
     try {
       const result = await saveProfileChanges({
@@ -162,31 +164,27 @@ export function ProfileEditScreen() {
       });
       if (!saveLifecycle.canApply(operation, useSessionStore.getState().activeAccountId)) return;
       if (result.kind === "profile_error") {
-        appToast.dismiss(loadingToastId);
-        appToast.error(getMessage("vi", "profileSaveFailed"));
+        feedback.error(getMessage("vi", "profileSaveFailed"));
         return;
       }
       applySession(result.session, true);
       if (result.kind === "avatar_error") {
-        appToast.dismiss(loadingToastId);
-        appToast.error(getMessage("vi", "profileAvatarUploadFailed"), { description: getMessage("vi", "profileTextSavedAvatarFailed") });
+        feedback.error(getMessage("vi", "profileAvatarUploadFailed"), { description: getMessage("vi", "profileTextSavedAvatarFailed") });
         return;
       }
       if (draft) {
         if (avatarDraftRef.current?.uri === draft.uri) avatarDraftRef.current = null;
         setAvatarDraft((current) => current?.uri === draft.uri ? null : current);
       }
-      appToast.dismiss(loadingToastId);
-      appToast.success(getMessage("vi", "settingsSaved"));
+      feedback.success(getMessage("vi", "settingsSaved"));
       showSavedState();
       if (draft) void localMediaAdapter.cleanup(draft.uri);
     } catch {
       if (saveLifecycle.canApply(operation, useSessionStore.getState().activeAccountId)) {
-        appToast.dismiss(loadingToastId);
-        appToast.error(getMessage("vi", "profileSaveFailed"));
+        feedback.error(getMessage("vi", "profileSaveFailed"));
       }
     } finally {
-      appToast.dismiss(loadingToastId);
+      feedback.dismiss();
       const settlement = saveLifecycle.settle(operation, useSessionStore.getState().activeAccountId);
       if (settlement.cleanup && draft) void localMediaAdapter.cleanup(draft.uri);
       if (settlement.render) setSaving(settlement.saving);
@@ -197,6 +195,7 @@ export function ProfileEditScreen() {
     if (saveLifecycle.isSaving() || avatarPending.current || avatarDraft || unavailable || !accountId || useSessionStore.getState().activeAccountId !== accountId) return;
     const operation = saveLifecycle.begin(accountId);
     if (!operation) return;
+    const feedback = appToast.operation();
     clearSavedState();
     setSaving(true);
     try {
@@ -204,9 +203,9 @@ export function ProfileEditScreen() {
       if (!saveLifecycle.canApply(operation, useSessionStore.getState().activeAccountId)) return;
       applySession(result, false);
       setConfirmingAvatarRemoval(false);
-      appToast.success(getMessage("vi", "profileAvatarRemoved"));
+      feedback.success(getMessage("vi", "profileAvatarRemoved"));
     } catch {
-      if (saveLifecycle.canApply(operation, useSessionStore.getState().activeAccountId)) appToast.error(getMessage("vi", "profileAvatarRemoveFailed"));
+      if (saveLifecycle.canApply(operation, useSessionStore.getState().activeAccountId)) feedback.error(getMessage("vi", "profileAvatarRemoveFailed"));
     } finally {
       const settlement = saveLifecycle.settle(operation, useSessionStore.getState().activeAccountId);
       if (settlement.render) setSaving(settlement.saving);
@@ -216,6 +215,7 @@ export function ProfileEditScreen() {
   const pickAvatar = async () => {
     if (avatarPending.current || saveLifecycle.isSaving() || unavailable || useSessionStore.getState().activeAccountId !== accountId) return;
     avatarPending.current = true;
+    const feedback = appToast.operation();
     setAvatarBusy(true);
     const request = revision.current;
     const selected = await localMediaAdapter.selectPhoto("library", { purpose: "avatar", onPreview: (asset) => {
@@ -230,8 +230,8 @@ export function ProfileEditScreen() {
     if (selected.kind !== "selected") {
       avatarPending.current = false;
       setAvatarBusy(false);
-      if (selected.kind === "denied") appToast.warning(getMessage("vi", "profileAvatarPermissionDenied"));
-      else if (selected.kind === "unavailable") appToast.error(getMessage("vi", "profileAvatarUnavailable"));
+      if (selected.kind === "denied") feedback.warning(getMessage("vi", "profileAvatarPermissionDenied"));
+      else if (selected.kind === "unavailable") feedback.error(getMessage("vi", "profileAvatarUnavailable"));
       return;
     }
     const previous = avatarDraftRef.current;

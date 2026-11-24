@@ -8,12 +8,12 @@ test("profile edit reports async failures with toast instead of inline status ba
   const saveSource = source.slice(source.indexOf("const save = async"), source.indexOf("const pickAvatar"));
 
   assert.doesNotMatch(source, /StatusBanner/);
-  assert.match(saveSource, /appToast\.loading\(getMessage\("vi", "profileSaving"\)\)/);
-  assert.match(source, /appToast\.error\(getMessage\("vi", "settingsLoadError"\)\)/);
-  assert.match(source, /appToast\.error\(getMessage\("vi", "profileSaveFailed"\)\)/);
-  assert.match(source, /appToast\.error\(getMessage\("vi", "profileAvatarUploadFailed"\)/);
+  assert.match(saveSource, /feedback\.loading\(getMessage\("vi", "profileSaving"\)\)/);
+  assert.match(source, /feedback\.error\(getMessage\("vi", "settingsLoadError"\)\)/);
+  assert.match(source, /feedback\.error\(getMessage\("vi", "profileSaveFailed"\)\)/);
+  assert.match(source, /feedback\.error\(getMessage\("vi", "profileAvatarUploadFailed"\)/);
   assert.ok(
-    saveSource.indexOf('appToast.success(getMessage("vi", "settingsSaved"))')
+    saveSource.indexOf('feedback.success(getMessage("vi", "settingsSaved"))')
       < saveSource.indexOf("localMediaAdapter.cleanup(draft.uri)"),
     "success feedback must not wait for temporary-file cleanup",
   );

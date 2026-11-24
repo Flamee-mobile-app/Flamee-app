@@ -1,5 +1,11 @@
 export type AppToastTone = "success" | "error" | "warning" | "info" | "loading" | "default";
 
+export function getToastViewportFrame(width: number, insets: { top: number; left: number; right: number }, maxWidth: number, gutter: number, topGap: number) {
+  const availableWidth = Math.max(0, width - insets.left - insets.right);
+  const cardWidth = Math.max(0, Math.min(maxWidth, availableWidth - gutter * 2));
+  return { width: cardWidth, left: insets.left + (availableWidth - cardWidth) / 2, top: insets.top + topGap };
+}
+
 type ToastColor = "$calmText" | "$accentText" | "$textPrimary" | "$textSecondary";
 
 export function getAppToastPresentation(tone: AppToastTone): {

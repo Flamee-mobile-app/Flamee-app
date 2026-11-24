@@ -8,14 +8,14 @@ export function moodHistoryOptions(scope: MoodHistoryScope, read: (page: { limit
     queryFn: ({ pageParam, signal }) => read({ limit: 50, offset: pageParam }, signal),
     initialPageParam: 0,
     getNextPageParam: (last, _pages, offset) => last.length === 50 ? offset + last.length : undefined,
-    retry: false, staleTime: 30_000,
+    retry: false, staleTime: 30_000, refetchInterval: false, refetchOnReconnect: false,
   });
 }
 export function partnerMoodOptions(scope: MoodHistoryScope & { coupleId: string | null }, read: (signal: AbortSignal) => Promise<ServerPartnerMood>) {
-  return queryOptions({ queryKey: ["partner-mood", scope.sessionId, scope.accountId, scope.coupleId], queryFn: ({ signal }) => read(signal), staleTime: 30_000, retry: false });
+  return queryOptions({ queryKey: ["partner-mood", scope.sessionId, scope.accountId, scope.coupleId], queryFn: ({ signal }) => read(signal), staleTime: 30_000, retry: false, refetchInterval: false, refetchOnReconnect: false });
 }
 export function pruneMoodHistory(client: QueryClient, scope: MoodHistoryScope & { coupleId?: string | null }) {
-  const filters = { predicate: (query: { queryKey: readonly unknown[] }) => ["mood-history", "partner-mood"].includes(String(query.queryKey[0])) && (!scope.accountId || query.queryKey[1] !== scope.sessionId || query.queryKey[2] !== scope.accountId || (query.queryKey[0] === "partner-mood" && query.queryKey[3] !== scope.coupleId)) };
+  const filters = { predicate: (query: { queryKey: readonly unknown[] }) => ["mood-history", "partner-mood", "mood-reminders"].includes(String(query.queryKey[0])) && (!scope.accountId || query.queryKey[1] !== scope.sessionId || query.queryKey[2] !== scope.accountId || (query.queryKey[0] === "partner-mood" && query.queryKey[3] !== scope.coupleId)) };
   void client.cancelQueries(filters);
   client.removeQueries(filters);
 }

@@ -6,6 +6,66 @@ import re
 ROOT = '/api/v1/users/me/preferences'
 
 
+def test_skip_onboarding_persists_separately_and_preserves_preferences(client, alice_headers, bob_headers):
+    root = '/api/v1/users/me/onboarding'
+    assert client.get(root).status_code == 401
+    initial = client.get(root, headers=alice_headers).json()['data']
+    assert initial['status'] == 'pending'
+    original = client.get(ROOT, headers=alice_headers).json()['data']
+    assert client.post(root + '/skip', headers=alice_headers).json()['data']['status'] == 'skipped'
+    assert client.post(root + '/skip', headers=alice_headers).json()['data']['status'] == 'skipped'
+    assert client.get(root, headers=alice_headers).json()['data']['status'] == 'skipped'
+    assert client.get(root, headers=bob_headers).json()['data']['status'] == 'pending'
+    saved = client.get(ROOT, headers=alice_headers).json()['data']
+    assert saved['onboarding_completed_at'] is None
+    assert saved['care_preferences'] == original['care_preferences']
+    assert saved['partner_nickname'] == original['partner_nickname']
+
+
+def test_skip_does_not_clear_completed_onboarding(client, alice_headers):
+    initial = client.get(ROOT, headers=alice_headers).json()['data']
+    body = {key: initial[key] for key in ['revision', 'timezone', 'locale', 'care_preferences', 'care_note', 'partner_nickname', 'relationship_type']}
+    body.update(relationship_type='same_city', complete_onboarding=True)
+    completed = client.put(ROOT, headers=alice_headers, json=body).json()['data']
+    result = client.post('/api/v1/users/me/onboarding/skip', headers=alice_headers)
+    assert result.status_code == 200
+    assert result.json()['data']['status'] == 'completed'
+    assert client.get(ROOT, headers=alice_headers).json()['data']['onboarding_completed_at'] == completed['onboarding_completed_at']
+
+
+def test_skip_retries_revision_conflict_without_overwriting_concurrent_preferences(client, alice_headers, monkeypatch):
+    from app.core.exceptions import ConflictError
+    from app.repositories.preferences_repo import PreferencesRepository
+    initial = client.get(ROOT, headers=alice_headers).json()['data']
+    original = PreferencesRepository.update
+    conflicts = []
+    def changed(repo, user_id, revision, values):
+        if not conflicts and 'onboarding_skipped_at' in values:
+            conflicts.append(True)
+            original(repo, user_id, revision, {'care_note': 'new preference', 'revision': revision + 1})
+            raise ConflictError('changed')
+        return original(repo, user_id, revision, values)
+    monkeypatch.setattr(PreferencesRepository, 'update', changed)
+    result = client.post('/api/v1/users/me/onboarding/skip', headers=alice_headers)
+    assert result.status_code == 200
+    assert result.json()['data']['status'] == 'skipped'
+    saved = client.get(ROOT, headers=alice_headers).json()['data']
+    assert saved['care_note'] == 'new preference'
+    assert saved['revision'] == initial['revision'] + 2
+
+
+def test_missing_onboarding_column_does_not_fabricate_pending_state(client, alice_headers, monkeypatch):
+    from postgrest.exceptions import APIError
+    from app.repositories.preferences_repo import PreferencesRepository
+    def missing(*args):
+        raise APIError({'code': 'PGRST204', 'message': 'missing column', 'details': '', 'hint': ''})
+    monkeypatch.setattr(PreferencesRepository, 'get_onboarding', missing)
+    for method, path in [('GET', '/api/v1/users/me/onboarding'), ('POST', '/api/v1/users/me/onboarding/skip')]:
+        result = client.request(method, path, headers=alice_headers)
+        assert result.status_code == 503
+        assert result.json()['error']['code'] == 'database_migration_required'
+
+
 def test_preferences_foreign_key_matches_existing_user_id_type():
     backend = Path(__file__).resolve().parents[1]
     schema = (backend / 'schema.sql').read_text(encoding='utf-8')

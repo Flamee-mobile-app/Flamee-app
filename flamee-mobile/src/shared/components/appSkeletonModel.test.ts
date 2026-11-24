@@ -9,7 +9,7 @@ test("initial skeleton only replaces an unresolved first read", () => {
 });
 
 test("remote images keep a real preview instead of covering it with a skeleton", () => {
-  assert.equal(shouldShowImageSkeleton({ loaded: false, hasPreview: false }), true);
-  assert.equal(shouldShowImageSkeleton({ loaded: false, hasPreview: true }), false);
-  assert.equal(shouldShowImageSkeleton({ loaded: true, hasPreview: false }), false);
+  assert.equal(shouldShowImageSkeleton({ loaded: false, previewLoaded: false }), true);
+  assert.equal(shouldShowImageSkeleton({ loaded: false, previewLoaded: true }), false);
+  assert.equal(shouldShowImageSkeleton({ loaded: true, previewLoaded: false }), false);
 });

@@ -102,8 +102,8 @@ export function AppSheet({ open, onOpenChange, title, description, snapPoints = 
   return (
     <Sheet modal open={open} onOpenChange={(next: boolean) => { if (next || dismissible) onOpenChange(next); }} snapPointsMode={fitContent ? "fit" : "percent"} snapPoints={fitContent ? ["fit"] : snapPoints} position={fitContent ? undefined : position} onPositionChange={fitContent ? undefined : onPositionChange}
       transitionConfig={{ type: "timing", duration: reducedMotion ? 0 : 220 }} onAnimationComplete={(event) => { if (!event.open) completeClose(); }}
-      moveOnKeyboardChange disableDrag={interaction.pinned} dismissOnSnapToBottom={interaction.dismissOnSnapToBottom} dismissOnOverlayPress={dismissible} zIndex={sheetTokens.zIndex}>
-      <Sheet.Overlay backgroundColor="$textPrimary" opacity={sheetTokens.overlayOpacity} enterStyle={{ opacity: 0 }} exitStyle={{ opacity: 0 }} />
+      moveOnKeyboardChange disableDrag={interaction.pinned} dismissOnSnapToBottom={interaction.dismissOnSnapToBottom} dismissOnOverlayPress={false} zIndex={sheetTokens.zIndex}>
+      <Sheet.Overlay backgroundColor="$textPrimary" opacity={sheetTokens.overlayOpacity} enterStyle={{ opacity: 0 }} exitStyle={{ opacity: 0 }} onPress={() => { if (dismissible) onOpenChange(false); }} />
       <Sheet.Frame backgroundColor="$white" overflow="hidden" borderTopLeftRadius="$xl" borderTopRightRadius="$xl" padding="$xl" paddingBottom={footer ? 0 : "$xl"} gap={footer ? "$md" : "$lg"} role="dialog" aria-modal={true} aria-label={title}>
         {interaction.showHandle ? <Sheet.Handle backgroundColor="$border" /> : null}
         <YStack flexShrink={0} width="100%" maxWidth={featureTokens.maxWidth} alignSelf="center" onLayout={fitContent ? (event) => setHeaderHeight(Math.round(event.nativeEvent.layout.height)) : undefined}>{header}</YStack>

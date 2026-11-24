@@ -75,6 +75,12 @@ brand fonts are packaged.
 
 ### Backend login and registration
 
+The current `expo-build-properties` Android configuration permits HTTP for QA
+builds. Because it is in the shared `app.json`, it applies to every Android build
+using this configuration, not automatically only to QA. Use HTTPS and remove or
+isolate this setting before producing a release for real users. Native changes
+require a new prebuild and APK; reloading Expo Go does not change the manifest.
+
 Follow [the local setup guide](../.doc/MOBILE-AUTH-LOCAL-SETUP.md) to run FastAPI,
 prepare a development Supabase database, and set `EXPO_PUBLIC_API_URL` with the
 `/api/v1` suffix. On a real phone, use the computer's LAN address and restart Metro

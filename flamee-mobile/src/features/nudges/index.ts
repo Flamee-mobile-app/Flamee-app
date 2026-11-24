@@ -5,3 +5,4 @@ export * from "./taskFeed";
 export * from "./schemas.ts";
 export * from "./types.ts";
 export { SmartNudgeCard } from "./components/NudgePreview";
+export { pruneDualNudges } from "./dualNudgeService";

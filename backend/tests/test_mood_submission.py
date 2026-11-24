@@ -99,3 +99,28 @@ def test_concurrent_unique_insert_replays_persisted_record_without_second_nudge(
         assert response.status_code == 201
         assert response.json()["data"]["note"] == draft()["note"]
         nudge.assert_not_called()
+
+
+def test_two_daily_moods_create_a_scoped_nudge_for_each_partner(client, alice_headers, bob_headers, seeded_couple):
+    with patch("app.services.smart_nudge_service.get_ai_provider", side_effect=AssertionError("notes must not reach AI")):
+        first = submit(client, alice_headers, draft(mood_score=1))
+        assert first.status_code == 201
+        assert client.get("/api/v1/moods/nudge", headers=alice_headers).json()["data"] is None
+        second = submit(client, bob_headers, draft(mood_score=5))
+        assert second.status_code == 201
+        alice = client.get("/api/v1/moods/nudge", headers=alice_headers).json()["data"]
+        bob = client.get("/api/v1/moods/nudge", headers=bob_headers).json()["data"]
+        assert alice and bob
+        assert alice["receiver_mood_id"] == first.json()["data"]["id"]
+        assert alice["source_mood_id"] == second.json()["data"]["id"]
+        assert bob["receiver_mood_id"] == second.json()["data"]["id"]
+        assert bob["source_mood_id"] == first.json()["data"]["id"]
+        snooze = client.post(f'/api/v1/nudges/{alice["id"]}/action', headers=alice_headers, json={"action": "snoozed", "version": alice["version"]})
+        assert snooze.status_code == 200
+        assert snooze.json()["data"]["status"] == "new"
+        assert snooze.json()["data"]["snoozed_until"]
+        assert client.get("/api/v1/moods/nudge", headers=alice_headers).json()["data"] is None
+        updated = submit(client, bob_headers, draft(mood_score=2), key="updated-draft")
+        assert updated.status_code == 201
+        fresh = client.get("/api/v1/moods/nudge", headers=alice_headers).json()["data"]
+        assert fresh and fresh["source_mood_id"] == updated.json()["data"]["id"]

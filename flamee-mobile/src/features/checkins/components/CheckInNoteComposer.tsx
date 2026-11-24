@@ -16,7 +16,7 @@ import { setCheckInAttachment, type CheckInAttachment, type CheckInDraft } from 
 type Suggestion = CheckInAttachment & { label: string; source: () => number };
 type SuggestionGroup = "gif" | "emoji" | "sticker";
 
-export function CheckInNoteComposer({ draft, onChange }: { draft: CheckInDraft; onChange: (draft: CheckInDraft) => void }) {
+export function CheckInNoteComposer({ draft, onChange, disabled = false }: { draft: CheckInDraft; onChange: (draft: CheckInDraft) => void; disabled?: boolean }) {
   const [suggestionGroup, setSuggestionGroup] = useState<SuggestionGroup>("emoji");
   const avatarUrl = useSessionStore((session) => session.activeAvatarUrl);
   const accountId = useSessionStore((session) => session.activeAccountId);
@@ -58,7 +58,7 @@ export function CheckInNoteComposer({ draft, onChange }: { draft: CheckInDraft; 
             autoGrowPaddingHorizontal={noteComposerLayoutTokens.bubbleInputPaddingHorizontal}
             autoGrowPaddingVertical={noteComposerLayoutTokens.bubbleInputPaddingVertical}
             autoGrowTextAlignVertical="center" multilineSize="compact" surfaceTone="thought"
-            label={noteLabel} placeholder={noteLabel} value={draft.note} onChangeText={(note) => onChange({ ...draft, note })}
+            label={noteLabel} placeholder={noteLabel} value={draft.note} editable={!disabled} onChangeText={(note) => onChange({ ...draft, note })}
             onSubmitEditing={commitNote} maxLength={60} returnKeyType="done" submitBehavior="submit" />
           {draft.attachments.length ? <XStack flexWrap="wrap" gap={spacing.xs} paddingTop={spacing.xs}>
             {draft.attachments.map((attachment) => {

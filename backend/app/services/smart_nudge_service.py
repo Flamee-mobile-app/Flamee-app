@@ -70,6 +70,9 @@ class SmartNudgeService:
         reasons: list[str] | None,
         note: str | None,
         share_level: str = "all",
+        receiver_score: int | None = None,
+        source_mood_id: str | None = None,
+        receiver_mood_id: str | None = None,
     ) -> SmartNudge | None:
         # 1. Privacy
         if share_level == "private":
@@ -89,7 +92,8 @@ class SmartNudgeService:
         latest = self.nudge_repo.get_latest_nudge(
             couple_id=couple_id, receiver_id=partner_id
         )
-        if latest and latest.created_at:
+        same_context = receiver_score is None or (latest and latest.dual_mood_generated and latest.source_mood_id == source_mood_id and latest.receiver_mood_id == receiver_mood_id)
+        if latest and latest.created_at and same_context:
             try:
                 created_dt = datetime.fromisoformat(
                     latest.created_at.replace("Z", "+00:00")
@@ -112,6 +116,19 @@ class SmartNudgeService:
             content["is_crisis"] = True
             helplines = list(CRISIS_HELPLINES)
             source = "safety_intervention"
+        elif receiver_score is not None:
+            # No notes/reasons are sent to an external provider for the dual-mood flow.
+            # If the receiver is struggling too, suggest a low-effort action without
+            # mischaracterizing the partner's mood.
+            if receiver_score <= 2:
+                content = {
+                    "observation": "Hôm nay cả hai có thể cần một nhịp chậm hơn.",
+                    "action_type": "text", "draft": "Mình cùng nghỉ một chút và nhắn nhau vài lời nhé?",
+                    "reason": "Một lời nhắn ngắn giúp hai bạn kết nối mà không tạo thêm áp lực.", "tone": "gentle",
+                }
+            else:
+                content = get_template_nudge(mood_score, None, "Người ấy")
+            source = "template"
         else:
             content = self._generate_with_provider(
                 mood_score=mood_score,
@@ -151,6 +168,9 @@ class SmartNudgeService:
             helplines=helplines,
             version=1,
             snooze_count=0,
+            dual_mood_generated=receiver_score is not None,
+            source_mood_id=source_mood_id,
+            receiver_mood_id=receiver_mood_id,
         ))
 
         if nudge is None:
@@ -240,6 +260,33 @@ class SmartNudgeService:
             if nudge.expires_at and datetime.fromisoformat(nudge.expires_at.replace("Z", "+00:00")) <= now:
                 continue
             if nudge.snoozed_until and datetime.fromisoformat(nudge.snoozed_until.replace("Z", "+00:00")) > now:
+                continue
+            return self.get_nudge(nudge.id, user_id)
+        return None
+
+    def get_active_dual_nudge(self, couple_id: str, user_id: str) -> SmartNudge | None:
+        from app.repositories.mood_repo import MoodRepository
+        from app.services.dual_mood_context import select_dual_mood_context
+
+        if self.db is None:
+            raise ForbiddenError("Nudge unavailable")
+        pair = self.db.table("couples").select("*").eq("id", couple_id).maybe_single().execute()
+        if not pair or not pair.data or pair.data.get("status") != "active" or user_id not in (pair.data.get("partner1_id"), pair.data.get("partner2_id")):
+            raise ForbiddenError("Nudge unavailable")
+        partner_id = pair.data["partner2_id"] if pair.data["partner1_id"] == user_id else pair.data["partner1_id"]
+        members = self.db.table("users").select("id,couple_id").in_("id", [user_id, partner_id]).execute()
+        if not members or len(members.data) != 2 or any(member.get("couple_id") != couple_id for member in members.data):
+            raise ForbiddenError("Nudge unavailable")
+        moods = MoodRepository(self.db)
+        own, partner = moods.get_latest_mood(user_id), moods.get_latest_mood(partner_id)
+        if select_dual_mood_context(own, partner, couple_id, datetime.now(timezone.utc)) is None:
+            return None
+        for nudge in self.nudge_repo.get_active_nudges(couple_id, user_id):
+            if not nudge.dual_mood_generated or nudge.source_mood_id != partner.id or nudge.receiver_mood_id != own.id:
+                continue
+            if nudge.expires_at and datetime.fromisoformat(nudge.expires_at.replace("Z", "+00:00")) <= datetime.now(timezone.utc):
+                continue
+            if nudge.snoozed_until and datetime.fromisoformat(nudge.snoozed_until.replace("Z", "+00:00")) > datetime.now(timezone.utc):
                 continue
             return self.get_nudge(nudge.id, user_id)
         return None

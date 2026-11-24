@@ -27,6 +27,7 @@ Hai lỗi baseline phải được xử lý theo thiết kế đã duyệt, khô
 | A04 | Recovery/provider xác thực thật; lỗi không tạo account/OTP giả | M1 | Chưa |
 | I01 | A mời B; B preview/accept; hai máy thấy đúng cặp sau restart | M1 | Chưa |
 | I02 | Invite hết hạn/tự mời/đã có cặp/double accept có kết quả đúng, không tạo hai cặp | M1 | Chưa |
+| I03 | A bỏ qua onboarding; server lưu riêng trạng thái skipped; sau restart A vào Home, B vẫn pending; lỗi lưu không báo thành công; link mời đang mở vẫn được ưu tiên | M1 | Chưa |
 | H01 | A đăng chữ/ảnh; B tải feed, lịch, chi tiết và xem ảnh thật | M1 | Chưa |
 | H02 | Mất response sau create/upload, retry không tạo bản ghi/file trùng | M1 | Chưa |
 | H03 | Sửa/xóa bài/ảnh; B đồng bộ; C không truy cập ảnh ngoài cặp | M1 | Chưa |
@@ -52,6 +53,12 @@ Hai lỗi baseline phải được xử lý theo thiết kế đã duyệt, khô
 Build app/backend/schema, nền tảng/thiết bị, tài khoản test đã ẩn danh, thời điểm và bước thao tác, expected/actual, request/event ID để tra server, ảnh/video đã làm sạch dữ liệu. Không lưu mật khẩu, JWT, API key, private note hoặc signed media URL vào artifact công khai.
 
 ## Trạng thái triển khai local
+
+Ngày 14/11, sau review thời hạn invite: PostgreSQL cô lập tái hiện RPC cũ chấp nhận mã quá hạn khi chờ khóa invite hoặc user. RPC mới dùng đồng hồ database sau các khóa; 52 kiểm thử backend liên quan đạt, bao gồm migration onboarding trên database cô lập, giữ dữ liệu và chạy lặp. Cả hai migration mới chưa áp dụng trên database thật; I01–I03 vẫn Chưa.
+
+Ngày 14/11, lượt Ghép đôi: kiểm tra thời hạn mã sau response, ngăn response từ phiên cũ (kể cả cùng tài khoản) cập nhật UI, và đối chiếu couple qua API khi response chấp nhận bị mất. Các domain rejection không được chuyển thành thành công; 39 test mobile liên quan đạt, typecheck đạt. Kiểm tra PostgreSQL cô lập về hết hạn khi chờ khóa, nhận đồng thời và client time sai được ghi ở checkpoint ngày 14/11 phía trên; các kết quả này không thay thế xác minh database đang deploy hoặc UI hai thiết bị. I01–I03 vẫn **Chưa**. Deferred link sau cài đặt tạm hoãn theo lựa chọn người dùng.
+
+Ngày 14/11: bổ sung kiểm thử race ghi credential bị thay thế trong login và refresh, bao gồm đăng nhập sau thất bại hoặc thành công, so sánh credential trước khi xóa và lỗi storage. Bộ auth/phiên/startup 66/66 và typecheck đạt; đây là kiểm thử local, không thay thế A01–A03 trên thiết bị. Người dùng chỉ định backend `13.239.139.82:8000`; `/health` trả `ok`, nhưng database/deployment chưa được đối chiếu với báo cáo cũ. Không lưu credential vào bằng chứng. Công cụ điều khiển thiết bị không kết nối được, do đó các ca A01–A03 vẫn **Chưa**.
 
 Lượt bổ sung lịch sử/đối tác và Home polling ngày 2026-10-27: đã bỏ preview khỏi lịch tuần/tháng runtime, thêm API pagination, privacy theo cặp, private flag ưu tiên giữ riêng tư, polling foreground. Mobile 310/312 với hai lỗi baseline; backend 138 passed/5 deselected trước private-flag fix, sau fix bộ mood/privacy/AI boundary 13 passed. C01/C03/S01 vẫn Chưa vì chưa gửi đầy đủ check-in, kiểm timezone preference hoặc nghiệm thu hai máy. Xem `docs/progress/2026-10-27-app-e2e-status/IMPLEMENTATION.md`.
 

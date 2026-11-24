@@ -9,6 +9,8 @@ import { formatMemoryDate } from "../memoryFeedModel";
 import { getContainedImageFrame } from "../../../shared/layout/containedImageFrame";
 import { getMemoryPhotoPreview, reuseMemoryCover } from "../memoryPhotoModel";
 import { MemoryActions } from "./MemoryActions";
+import { MemoryInlineEditor } from "./MemoryInlineEditor";
+import type { MemoryPostEditor } from "../useInlineMemoryEdit";
 
 type Photo = MemoryDetail["images"][number];
 const DetailPhoto = memo(function DetailPhoto({ photo, onRetry, onOpen, maxHeight }: { photo: Photo; onRetry: () => void; onOpen: (id: string) => void; maxHeight: number }) {
@@ -23,7 +25,7 @@ const DetailPhoto = memo(function DetailPhoto({ photo, onRetry, onOpen, maxHeigh
 });
 
 /** One scoped detail query on demand; photo rows use a bounded native list. */
-export function MemoryDetailView({ id, scope, summary, availableHeight, paddingBottom, onDeleted, enabled = true }: { id: string; scope: MemoryScope; summary: MemorySummary; availableHeight: number; paddingBottom: number; onDeleted: () => void; enabled?: boolean }) {
+export function MemoryDetailView({ id, scope, summary, availableHeight, paddingBottom, onDeleted, onEdit, editor, enabled = true }: { id: string; scope: MemoryScope; summary: MemorySummary; availableHeight: number; paddingBottom: number; onDeleted: () => void; onEdit: (record: MemoryDetail) => void; editor: MemoryPostEditor | null; enabled?: boolean }) {
   const { height } = useWindowDimensions();
   const photoHeight = Math.min(height * 0.5, availableHeight * 0.75);
   const freshUrls = useRef(false);
@@ -41,7 +43,7 @@ export function MemoryDetailView({ id, scope, summary, availableHeight, paddingB
     const finish = () => { freshUrls.current = false; };
     void query.refetch({ cancelRefetch: false }).then(finish, finish);
   }, [query.refetch]);
-  const open = useCallback((photoId: string) => setSelectedPhotoId(photoId), []);
+  const open = useCallback((photoId: string) => { if (!editor) setSelectedPhotoId(photoId); }, [editor]);
   const closeViewer = useCallback(() => setSelectedPhotoId(null), []);
   const renderPhoto = useCallback(({ item }: { item: Photo }) => <DetailPhoto photo={item} onRetry={retry} onOpen={open} maxHeight={photoHeight} />, [retry, open, photoHeight]);
   const selectedPhoto = record?.images.find((photo) => photo.id === selectedPhotoId);
@@ -50,19 +52,21 @@ export function MemoryDetailView({ id, scope, summary, availableHeight, paddingB
       : <AppSkeletonGroup accessibilityLabel={getMessage("vi", "homeLoadingTitle")}><YStack gap="$md"><AppSkeleton width="60%" height={16} /><AppSkeleton width="100%" height={Math.min(photoHeight, 240)} borderRadius={20} /></YStack></AppSkeletonGroup>}
   </YStack>;
   return <>
-    <FlatList data={record.images} keyExtractor={photoKey} renderItem={renderPhoto} initialNumToRender={2} maxToRenderPerBatch={2} windowSize={3}
+    <FlatList data={editor ? record.images.slice(1) : record.images} keyExtractor={photoKey} renderItem={renderPhoto} initialNumToRender={2} maxToRenderPerBatch={2} windowSize={3}
       style={{ height: Math.min(availableHeight, contentHeight || availableHeight), width: "100%" }} onContentSizeChange={(_width, nextHeight) => setContentHeight(Math.round(nextHeight))}
       contentContainerStyle={{ paddingBottom }} showsVerticalScrollIndicator={false} bounces={false} keyboardShouldPersistTaps="handled"
       ListHeaderComponent={<YStack gap="$lg" paddingBottom="$lg">
         <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textSecondary">{formatMemoryDate(record.memory_date, "vi")}</Text>
-        <Text fontFamily="$body" fontSize="$bodyL" lineHeight="$bodyL" color="$textPrimary">{record.title}</Text>
-        {record.description ? <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textSecondary">{record.description}</Text> : null}
+        {editor?.id === id ? <MemoryInlineEditor editor={editor} availableHeight={availableHeight} /> : <>
+          <Text fontFamily="$body" fontSize="$bodyL" lineHeight="$bodyL" color="$textPrimary">{record.title}</Text>
+          {record.description ? <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textSecondary">{record.description}</Text> : null}
+        </>}
       </YStack>}
       ListFooterComponent={<YStack gap="$lg">
         {query.isFetching && !query.data ? <AppSkeletonGroup accessibilityLabel={getMessage("vi", "homeLoadingTitle")}><AppSkeleton height={16} width="60%" /></AppSkeletonGroup> : null}
         {query.isError ? <YStack gap="$sm"><Text role="alert" fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$accentText">{getMessage("vi", "memoryFeedLoadErrorBody")}</Text><AppButton variant="ghost" onPress={retry}>{getMessage("vi", "retry")}</AppButton></YStack> : null}
         {record.location ? <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textSecondary">{record.location}</Text> : null}
-        {query.data && enabled ? <MemoryActions record={query.data} scope={scope} onDeleted={onDeleted} /> : null}
+        {query.data && enabled && !editor ? <MemoryActions record={query.data} scope={scope} onDeleted={onDeleted} onEdit={onEdit} /> : null}
       </YStack>} />
     {selectedPhoto && enabled ? <AppImageViewer key={selectedPhoto.id} uri={selectedPhoto.url} previewUri={selectedPhoto.thumbnail_url} title={record.title} onClose={closeViewer} onRetry={retry} /> : null}
   </>;
