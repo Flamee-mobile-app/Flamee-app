@@ -56,8 +56,8 @@ export const HomeMemoryList = memo(function HomeMemoryList({ records, view, toda
     </YStack>;
   if (grid && paired && confirmed) return <FlatList key="calendar" ref={calendar} inverted={scroll.inverted} maintainVisibleContentPosition={{ minIndexForVisible: 0 }} initialScrollIndex={0}
     data={months} keyExtractor={monthKey} renderItem={renderMonth} ItemSeparatorComponent={MemoryCalendarConnector}
-    ListHeaderComponent={<YStack>{mainHeader}{refreshError}</YStack>}
-    ListFooterComponent={<YStack><MemoryCalendarStats records={records} today={today} partial={hasMore} />{footer}</YStack>}
+    ListHeaderComponent={<YStack>{mainHeader}<MemoryCalendarStats records={records} today={today} partial={hasMore} />{refreshError}</YStack>}
+    ListFooterComponent={footer}
     contentContainerStyle={{ paddingHorizontal: memoryFeedTokens.gutter, paddingTop: scroll.paddingTop, paddingBottom: scroll.paddingBottom }}
     initialNumToRender={2} maxToRenderPerBatch={2} windowSize={5} refreshing={refreshing} onRefresh={onRefresh}
     onEndReached={onMore} onEndReachedThreshold={0.3} showsVerticalScrollIndicator={false} style={{ flex: 1 }} />;

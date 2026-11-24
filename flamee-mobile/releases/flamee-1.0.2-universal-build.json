@@ -1,0 +1,22 @@
+{
+  "version": "1.0.2",
+  "versionCode": 20261124,
+  "minSdk": 24,
+  "targetSdk": 36,
+  "bytes": 134335929,
+  "sha256": "977d3df66a23156edb099e43c766060545d8ecc2d3a3ea6a4c29815fd89bbd21",
+  "signatureV2Verified": true,
+  "zipalign16kVerified": true,
+  "certificateSHA256": "53b16fddfbae2f93cc95fa735ec7460fa2253283c6a6a75cfd47b8dff6faa148",
+  "abis": [
+    "arm64-v8a",
+    "armeabi-v7a",
+    "x86",
+    "x86_64"
+  ],
+  "ELF64LibrariesChecked": 54,
+  "ELFAlignmentFailures": [],
+  "embeddedBackendURL": true,
+  "runtimeInstallAndroid15": "passed",
+  "runtimeColdStart": "passed"
+}

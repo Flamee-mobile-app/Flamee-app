@@ -3,7 +3,7 @@
     "name": "Flamee",
     "slug": "flamee-mobile",
     "scheme": "flamee",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "icon": "./src/public/logofaviconapp.jpg",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -18,7 +18,7 @@
     },
     "android": {
       "package": "com.flamee.mobile",
-      "versionCode": 20261121
+      "versionCode": 20261124
     },
     "web": {
       "favicon": "./src/public/logofaviconapp.jpg"
