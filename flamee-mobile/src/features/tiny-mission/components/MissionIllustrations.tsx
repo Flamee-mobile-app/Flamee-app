@@ -3,10 +3,9 @@ import { Image, StyleSheet } from "react-native";
 import { YStack } from "tamagui";
 import Svg, { Circle, Defs, G, LinearGradient, Path, Rect, Stop } from "react-native-svg";
 import { missionTokens as t } from "../../../shared/constants/tokens";
-import type { MissionPreview } from "../previewContent";
 
 /** Small native vector illustrations; the larger scenes are local raster artwork. */
-export function MissionIllustration({ kind, size = t.artworkSize }: { kind: MissionPreview["id"] | "coin" | "flame" | "gift"; size?: number }) {
+export function MissionIllustration({ kind, size = t.artworkSize }: { kind: "photo" | "message" | "call" | "plan" | "coin" | "flame" | "gift"; size?: number }) {
   const id = useId().replace(/:/g, "");
   const fill = `url(#${id})`;
   return <Svg width={size} height={size} style={{ flexShrink: 0 }} viewBox="0 0 64 64" aria-hidden>

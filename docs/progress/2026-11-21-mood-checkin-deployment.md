@@ -18,7 +18,13 @@
 
 Triển khai có thể làm API gián đoạn ngắn; migration thay đổi schema/RPC. Chưa có thao tác triển khai hoặc SQL thật trong lượt điều tra này.
 
-## Kiểm tra cục bộ
+## Sau khi người dùng triển khai backend
+
+Health trả 200; OpenAPI đã có capabilities, nudge và reminder routes. Capabilities không có bearer trả 401, thay cho 405 trước triển khai. Người dùng vẫn thấy thông báo unavailable. Chưa có phản hồi capabilities có đăng nhập hoặc quyền truy cập database nên chưa xác định được migration/RPC cụ thể còn thiếu. Không kết luận mọi migration đã áp dụng chỉ dựa trên OpenAPI.
+
+Chẩn đoán chỉ đọc trong Supabase SQL Editor: `backend/docs/check-mood-readiness.sql`. Kết quả chỉ chứa tên điều kiện và boolean, không chứa cảm xúc, ghi chú hoặc credential.
+
+## Kết quả kiểm tra cục bộ
 
 - `test_mood_reminder_api.py`, `test_dual_mood_context.py`, `test_mood_submission.py`, `test_mood_privacy.py`: 25 passed; 11 cảnh báo deprecation từ dependency hiện có.
 - `node --test backend/tests/mood_daily_reminders_sql.test.mjs`: 2 passed trên PGlite cô lập.

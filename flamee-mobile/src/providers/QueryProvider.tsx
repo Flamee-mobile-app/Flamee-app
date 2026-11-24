@@ -7,6 +7,7 @@ import { pruneConnectionQueries } from "../features/invites";
 import { ConnectionWarmup } from "./ConnectionWarmup";
 import { DailyMoodReminder } from "./DailyMoodReminder";
 import { pruneDualNudges } from "../features/nudges";
+import { pruneMissionQueries } from "../features/tiny-mission";
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,6 +24,7 @@ export function QueryProvider({ children }: PropsWithChildren) {
       pruneMoodHistory(queryClient, { accountId: state.activeAccountId, sessionId: state.sessionId, coupleId: state.activeCoupleId });
       pruneConnectionQueries(queryClient, { accountId: state.activeAccountId, sessionId: state.sessionId, coupleId: state.activeCoupleId });
       pruneDualNudges(queryClient, { accountId: state.activeAccountId, sessionId: state.sessionId, coupleId: state.activeCoupleId, revision: state.membershipRevision });
+      pruneMissionQueries(queryClient, { accountId: state.activeAccountId, sessionId: state.sessionId, coupleId: state.activeCoupleId, revision: state.membershipRevision });
     };
     prune();
     return useSessionStore.subscribe((state, previous) => {

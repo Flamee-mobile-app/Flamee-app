@@ -1,4 +1,57 @@
-# Tiny Mission — frontend được duyệt ngày 2026-10-25
+# Tiny Mission — dữ liệu thật từ API, cập nhật 2026-11-21
+
+## Hiện trạng áp dụng
+
+Các phần preview bên dưới là lịch sử thiết kế. Route chính và chi tiết hiện dùng `ServerTinyMissionContent`, không import `TinyMissionContent`, `MissionViews`, `MissionOverlays` hoặc `previewContent`. Các fixture cũ giữ riêng để đối chiếu thiết kế, không phục vụ dữ liệu runtime.
+
+- `GET /missions/today`: bốn nhiệm vụ server giao theo ngày/múi giờ chung, ID thật, owner thật, nội dung/điểm/version/hoàn thành từ server. Trang chi tiết chỉ nhận assignment ID, tra lại danh sách hôm nay bằng bearer; không dùng allowlist ID mẫu hoặc đưa nội dung riêng tư vào route.
+- `POST /missions/{id}/complete`, `/swap`: chỉ tự hoàn thành phần của mình; nhiệm vụ chung cần hai người. Đổi tối đa hai lần cho cả cặp/ngày, mỗi nhiệm vụ một lần trước completion, giữ mức điểm. Client chặn thao tác không phù hợp nhưng server vẫn kiểm quyền/version. Giữ idempotency key cho lần thử lại sau lỗi chưa xác nhận, không tự retry mutation hoặc giả cộng điểm.
+- `GET /wallet`, `/wallet/ledger`: ví chung và lịch sử điểm thật. Phần thưởng tuần/tháng đọc `GET /missions/achievements`, dùng đúng target/bonus/completed_count/credited_at của kỳ do server trả.
+- API thành tựu hiện chưa có số đếm theo từng ngày. UI hiển thị kỳ và tiến độ/mốc thưởng thật, bỏ lịch mẫu với số ngày/số hoàn thành tự đặt. Không suy ra dữ liệu lịch ngày từ tổng kỳ.
+- `GET /rewards`: danh mục/giá/tồn kho/fanpage thật, có phân trang. Danh mục trống hiển thị chưa có quà, không dựng các món quà/ảnh/tồn kho mẫu. Minh họa hộp quà chung chỉ mang tính trang trí.
+- `POST /redemptions`: gửi ID quà, giá kỳ vọng và idempotency key, chỉ hiện mã khi receipt ACK khớp tài khoản/cặp/quà/giá/trạng thái. Wallet/catalog/orders được invalidate để lấy số dư/tồn kho mới, không tính số dư authoritative ở client.
+- `GET /redemptions`, `/redemptions/{id}`: lịch sử thật có phân trang; mở lại mã kiểm tra trạng thái mới từ server. Sao chép mã/link và mở fanpage HTTPS thật; mã hết hạn/hủy không cho sao chép để nhận quà. Không lưu mã vào storage, route params hoặc log. Không tích hợp nút hủy/fulfillment/operator trong thay đổi mobile này.
+- Tất cả request xác thực bằng auth service và kiểm scope session/account/couple/membership revision trước/sau API; cache bị hủy/xóa khi scope đổi. Dữ liệu tên/avatar lấy từ connection API, không dùng tên Linh/Nam hoặc identity mẫu. Tải lần đầu/lỗi/chưa ghép đôi/trống có trạng thái riêng; không thay lỗi API bằng feed rỗng hoặc số dư 0 giả.
+- Hoàn thành/đổi nhiệm vụ/đổi quà có khóa thao tác lặp, loading và toast kết quả sau ACK; timeout giữ key và hướng dẫn tải lại/kiểm tra. Tải lại/tải thêm chủ động có toast, polling và refetch khi reconnect tắt.
+
+## Kiểm tra bản tích hợp
+
+- Typecheck đạt; 14 test frontend API/scope/design system và contract SQL đạt. Test SQL chạy hai migration missions/rewards trong PGlite cô lập, xác minh bốn assignment, completion đúng owner, swap, credit một lần, period, redemption replay không trừ hai lần và đọc mã thật trong database kiểm thử.
+- 5 test backend mission/reward API đạt với test doubles; có cảnh báo deprecation dependency sẵn có.
+- Android emulator đã đăng nhập tài khoản thử và đọc API thật: wallet 0, bốn nhiệm vụ ngày 2026-11-21, tên hai thành viên thật; Thành tựu hiển thị kỳ/tiến độ thật; catalog quà hiện trống và không còn notice/dữ liệu preview. Việc mở nhiệm vụ hôm nay cho phép backend tạo assignment trong ngày theo luồng bình thường.
+- Không tự complete/swap/redeem trên dịch vụ thật, không seed quà/tồn kho/fanpage, không chạy migration hoặc deploy backend. Chưa nghiệm thu mutation/toast trong popup với hai thiết bị/iOS, full boundary ngày hoặc realtime thay đổi từ thiết bị đối phương. Không có subscription/polling mới; mở lại màn hoặc tải lại để đọc cập nhật từ người kia.
+- Backend đang chạy đã có các endpoint trên trong OpenAPI. Database môi trường khác cần `20261110_missions.sql` và `20261110_rewards.sql`; phải kiểm tra, review và triển khai theo phạm vi được phép, không chạy bootstrap lại trên database hiện có.
+
+## Lịch sử frontend được duyệt ngày 2026-10-25
+
+### Mốc đổi quà hiện vật — 2026-11-21
+
+#### Danh mục và lưới ảnh theo thiết kế cũ
+
+Hiệu chỉnh tiếp theo: thẻ quà nền trắng, bo 20px, shadow nhẹ từ token card chung; ảnh có khoảng viền trắng 4px và bo 16px. Điểm cỡ h5, thanh tiến độ mảnh 4px, trạng thái rút gọn “Còn … điểm”/“Đã đủ điểm”. CTA chưa khả dụng dùng secondary nhẹ, CTA đủ điểm và có phân bổ hàng dùng primary. “Quà đã đổi” chỉ còn một nút text kèm icon ở góc phải phần đầu khối điểm; bỏ nút căn giữa và icon lịch sử trùng. Không thay điều kiện đổi hoặc số dư. Typecheck/4 test design system đạt; đã xem khối điểm và lưới quà trên Android emulator với catalog thật, không gửi yêu cầu đổi quà.
+
+Theo yêu cầu tiếp theo, `LiveMissionRewards` dùng lưới hai cột có ảnh tỷ lệ 1.25, tên quà, giá điểm, số điểm còn thiếu và nút đổi. Không dùng lại số dư/trạng thái fixture. `rewardArtwork.ts` chỉ ánh xạ ID catalog server tới ảnh minh họa cũ; không cung cấp dữ liệu nghiệp vụ. Cả năm món có ảnh minh họa local; dây buộc tóc dùng `assets/hair-tie.png` được tạo bằng built-in ImageGen, prompt lưu tại `design/tiny-mission/hair-tie-image-prompt.md`. Popup receipt dùng cùng artwork và tên snapshot thật.
+
+Danh mục khởi tạo được chuẩn bị trong `backend/migrations/20261121_physical_reward_catalog.sql`: dây buộc tóc 100, bộ thiệp yêu thương 500, móc khóa couple 800, cốc đôi 1500 và túi vải Flamee 2000 điểm. File chỉ bổ sung các ID ổn định còn thiếu, không ghi đè giá/tồn kho/link/active đã cấu hình, không tạo đơn hoặc sửa ví điểm. Tất cả ban đầu chưa có phân bổ hàng đổi (`stock=0`) và chưa có fanpage (`null`), nên hiện mốc nhưng nút “Chưa mở đổi”; không tạo tồn kho dương giả. Đây là số phần được phân bổ cho hệ thống đổi quà, không khẳng định số hàng đang nằm trong kho vật lý. Khi có phân bổ thật, operator cập nhật stock để mở đổi. UI không hiển thị số lượng theo yêu cầu.
+
+Cần áp dụng file catalog này trên Supabase để danh sách xuất hiện; không fallback sang catalog hardcoded khi database trống hoặc API lỗi. File đã cho phép fanpage null nên có thể chạy sau migration missions/rewards gốc, không bắt buộc chạy migration fanpage tùy chọn trước. Chưa thực thi trên môi trường thật.
+
+Kiểm tra cập nhật: typecheck và 7 test SQL/mốc/design system đạt. SQL kiểm tra đủ 5 mốc, chưa phân bổ hàng/link, chạy lại không đặt lại giá/tồn kho đã sửa và không thay balance/order hiện có. Chưa kiểm tra trực tiếp lưới mới trên Android với catalog thật vì chưa áp dụng file catalog.
+
+- Tab Đổi quà có vùng tiến độ số điểm hiện có/mốc tiếp theo; mỗi quà thật có tên, mốc điểm, tiến độ và số điểm còn thiếu. Mốc tối thiểu là 100 điểm. Chỉ dùng reward đang active từ catalog server, sắp theo giá; không tạo sản phẩm/mốc quà giả nếu catalog trống. Khi chưa có catalog, chỉ hiển thị tiến độ tới mức tối thiểu 100, không gắn một món quà chưa được cấu hình vào mốc đó.
+- Ẩn số lượng tồn kho trên UI theo yêu cầu. Backend vẫn kiểm tra số dư, giá và tồn kho trong transaction; ẩn số lượng không có nghĩa cho phép hàng không tồn kho. Các loại quà như móc khóa couple/dây buộc tóc, giá từng món và phân bổ tồn kho cần cấu hình thật qua operator; không tự seed hoặc coi quà minh họa là hàng có thể nhận.
+- Xác nhận đổi vẫn gửi ID, giá kỳ vọng và idempotency key. Sau receipt ACK đúng account/couple/reward/price, popup “Đổi quà thành công” hiển thị tên/mô tả quà snapshot, minh họa hộp quà chung, giá đã trừ và mã thật. Không đồng nghĩa quà đã giao: trạng thái chờ nhận/gửi/đã nhận vẫn theo server.
+- Số dư được tải lại từ API rồi tính lại điểm còn thiếu cho mọi mốc; không tự trừ số dư authoritative ở client. Trong lúc chưa tải được số dư mới sau đổi, app ẩn số dư cũ và vô hiệu đổi thêm, có nút thử lại khi lỗi. Không báo thành công sau scope switch.
+- Fanpage có thể chưa được bổ sung. `RewardInput.fanpage_url` và dữ liệu client cho phép null; popup ẩn nút mở/sao chép link khi chưa có URL, vẫn giữ mã nhận quà. Không dựng link giả.
+- Backend API/service chặn giá tạo/cập nhật quà và giá kỳ vọng đổi mới dưới 100. Các receipt lịch sử có giá cũ vẫn đọc được. SQL RPC và role service giữ nguyên, client không có quyền gọi RPC trực tiếp.
+- Cần deploy code backend mới và review/áp dụng `backend/migrations/20261121_optional_reward_fanpage.sql` để DB cũ chấp nhận quà chưa có link. Migration chỉ bỏ NOT NULL của fanpage, không sửa quà/tồn kho/điểm; chưa chạy trên dịch vụ thật. Bootstrap mới cũng cho phép URL null. Không chạy lại `schema.sql` trên DB hiện có.
+- Kiểm tra: typecheck; 17 test frontend/API/mốc/SQL cô lập/design system và 7 test backend mission/reward. SQL test tạo quà 100 điểm không có link trong DB cô lập, kiểm tra receipt, balance sau đổi và retry không trừ hai lần. Chưa nghiệm thu đổi quà/toast thật vì catalog thật hiện trống; không tạo tồn kho hoặc cộng điểm thật để giả kiểm thử.
+
+### Hiệu chỉnh màu và thao tác tải ngày 2026-11-21
+
+Giao diện dữ liệu thật bỏ nút “Tải lại dữ liệu” chung. Giữ nút thử lại khi đọc lỗi và tải thêm theo phân trang; mutation thành công vẫn invalidate query, mở lại màn lấy cache cũ theo cơ chế hiện có, không bật polling.
+
+Màu dùng chung từ `missionColorTokens`: nhóm chăm sóc bản thân (nước/nghỉ mắt/tử tế) xanh sage; nhóm kết nối (cảm ơn/lắng nghe/chia sẻ/lên kế hoạch) coral đậm; nhóm kỷ niệm màu vàng nâu. Title và điểm của một nhiệm vụ cùng màu nhóm, áp dụng thống nhất ở danh sách và chi tiết. Trạng thái chưa làm dùng xám trung tính, làm một phần dùng nâu cam trên nền peach, hoàn tất/nhận thưởng dùng xanh sage; chữ và dấu check vẫn thể hiện trạng thái, không chỉ dựa vào màu. Điểm thưởng thành tựu và giá quà dùng cùng màu điểm chung.
 
 ## Phạm vi đã chốt
 

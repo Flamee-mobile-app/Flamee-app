@@ -7,6 +7,7 @@ export * from "./mascotCatalog";
 export { MoodWeekPreview } from "./components/MoodWeekPreview";
 export { ServerMoodWeek } from "./components/ServerMoodWeek";
 export { ServerPartnerMood } from "./components/ServerPartnerMood";
+export { ServerMoodProfileBubble } from "./components/ServerMoodProfileBubble";
 export { MoodEmojiIcon } from "./components/MoodEmojiIcon";
 export { moodEmojiCatalog, resolveMoodEmoji } from "./moodEmojiCatalog";
 export { moodPreviewRecords } from "./moodPreviewData";

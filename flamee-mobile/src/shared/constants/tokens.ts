@@ -2,6 +2,12 @@ const appBackground = "#EEECEA";
 const startupDuration = 3520;
 const startupTaglineEnd = 2320;
 
+export const nudgeTokens = {
+  previewArtworkSize: 80,
+  detailArtworkSize: 116,
+  iconSize: 18,
+} as const;
+
 export const moodFlowTokens = {
   mascotSize: 144,
   mascotStageHeight: 152,
@@ -18,6 +24,10 @@ export const moodFlowTokens = {
   noteMinHeight: 80,
   noteAvatarSize: 92,
   dashboardArtworkSize: 104,
+  profileBubbleSlotHeight: 100,
+  profileNameHeight: 40,
+  profileAvatarSize: 88,
+  profileAvatarFrameSize: 98,
 } as const;
 
 export const noteComposerLayoutTokens = {
@@ -487,7 +497,18 @@ export const featureTokens = {
 
 export const featureTitleTokens = { height: 52, contentGap: 4, color: "#211B17" } as const;
 
+export const missionColorTokens = {
+  groups: { selfCare: colors.calmText, connection: colors.accentText, memory: "#88611D" },
+  states: {
+    pending: { text: colors.textSecondary, surface: colors.surfaceMuted },
+    active: { text: "#945525", surface: colors.supportPeachLight },
+    completed: { text: colors.calmText, surface: colors.calmSurface },
+  },
+  points: colors.accentText,
+} as const;
+
 export const missionTokens = {
+  rewardCardRadius: 20, rewardImageRadius: 16, rewardProgressHeight: 4,
   artworkSize: 48, walletArtworkSize: 44, avatarSize: 36, detailArtworkSize: 112,
   rewardAspectRatio: 1.25, rewardDialogAspectRatio: 1, progressHeight: 10, dayDotSize: 11, milestoneSize: 28,
   surfacePadding: 12, rowRadius: 14, rewardRadius: 10, rowMinHeight: 90,

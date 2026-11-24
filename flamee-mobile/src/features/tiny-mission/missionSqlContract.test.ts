@@ -1,0 +1,82 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
+import test from "node:test";
+import { createMissionApi } from "./missionApi.ts";
+
+test("mobile DTOs accept actual mission/reward SQL acknowledgements in an isolated database", async () => {
+  const { PGlite } = await import(pathToFileURL(resolve(process.cwd(), "../.local-tools/conversation-pg-test/node_modules/@electric-sql/pglite/dist/index.js")).href);
+  const db = new PGlite();
+  try {
+    await db.exec(`CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS;
+      CREATE TABLE users(id TEXT PRIMARY KEY,couple_id TEXT);
+      CREATE TABLE couples(id TEXT PRIMARY KEY,status TEXT,partner1_id TEXT,partner2_id TEXT);
+      INSERT INTO users VALUES('a','pair'),('b','pair'),('operator',NULL);
+      INSERT INTO couples VALUES('pair','active','a','b');
+      GRANT ALL ON users,couples TO service_role;`);
+    await db.exec(await readFile(resolve(process.cwd(), "../backend/migrations/20261110_missions.sql"), "utf8"));
+    await db.exec(await readFile(resolve(process.cwd(), "../backend/migrations/20261110_rewards.sql"), "utf8"));
+    await db.exec(await readFile(resolve(process.cwd(), "../backend/migrations/20261121_optional_reward_fanpage.sql"), "utf8"));
+    await db.exec("INSERT INTO mission_operators(user_id) VALUES('operator'); SET ROLE service_role;");
+    const rpc = async (fn: string, actor: string, action: string, target: string | null = null, key: string | null = null, payload = {}) => {
+      const result = await db.query(`SELECT ${fn}($1,$2,$3,$4,$5::jsonb) AS result`, [actor, action, target, key, JSON.stringify(payload)]);
+      return result.rows[0].result;
+    };
+    const api = createMissionApi({ baseUrl: "https://isolated.example", fetcher: (async (input, init) => {
+      const url = new URL(String(input));
+      const actor = new Headers(init?.headers).get("Authorization")!.replace("Bearer ", "");
+      const key = new Headers(init?.headers).get("Idempotency-Key");
+      const body = init?.body ? JSON.parse(String(init.body)) : {};
+      let result;
+      const action = url.pathname.match(/^\/missions\/([^/]+)\/(complete|swap)$/);
+      if (action) result = await rpc("mission_operation", actor, action[2], action[1], key, body);
+      else if (url.pathname === "/redemptions" && init?.method === "POST") result = await rpc("reward_operation", actor, "redeem", body.reward_id, key, { expected_price: body.expected_price });
+      else if (url.pathname.startsWith("/redemptions/")) result = await rpc("reward_operation", actor, "get", url.pathname.split("/").at(-1)!);
+      else if (url.pathname === "/rewards" || url.pathname === "/redemptions") result = await rpc("reward_operation", actor, url.pathname === "/rewards" ? "catalog" : "list", null, null, { limit: 20, offset: Number(url.searchParams.get("offset") ?? 0) });
+      else result = await rpc("mission_operation", actor, url.pathname === "/wallet" ? "wallet" : url.pathname === "/wallet/ledger" ? "ledger" : url.pathname === "/missions/achievements" ? "achievements" : "today", null, null, { limit: 20, offset: 0 });
+      return Response.json({ success: result.outcome === "ok", data: result.data }, { status: result.outcome === "ok" ? 200 : result.outcome === "forbidden" ? 403 : 409 });
+    }) as typeof fetch });
+    const today = await api.today("a");
+    assert.equal(today.assignments.length, 4);
+    assert.equal((await api.wallet("a")).balance, 0);
+    const own = today.assignments.find((row) => row.assignee_id === "a")!;
+    await assert.rejects(api.change("b", own, "complete", "b", "forged"));
+    const shared = today.assignments.find((row) => row.kind === "shared")!;
+    const swapped = await api.change("a", shared, "swap", "a", "swap");
+    assert.equal((await api.change("a", shared, "swap", "a", "swap")).version, swapped.version);
+    for (const row of (await api.today("a")).assignments) {
+      for (const actor of row.assignee_id ? [row.assignee_id] : ["a", "b"]) await api.change(actor, row, "complete", actor, `${row.id}-${actor}`);
+    }
+    assert.equal((await api.wallet("a")).balance, 60);
+    assert.equal((await api.ledger("a", 0)).length, 4);
+    assert.equal((await api.achievements("a")).length, 2);
+    assert.deepEqual(await api.rewards("a", 0), []);
+    await db.query("SELECT mission_credit('pair',60,'bonus','isolated-test-credit',NULL)");
+    const created = await rpc("reward_operation", "operator", "admin_create", null, "fixture", { title_vi: "Quà kiểm thử cô lập", title_en: "Isolated test reward", price_points: 100, stock: 1, fanpage_url: null, active: true });
+    assert.equal(created.outcome, "ok");
+    const [reward] = await api.rewards("a", 0);
+    const order = await api.redeem("a", reward, "redeem-once");
+    assert.equal((await api.redeem("a", reward, "redeem-once")).id, order.id);
+    assert.equal((await api.wallet("a")).balance, 20);
+    assert.equal(reward.fanpage_url, null);
+    assert.equal((await api.redemptions("a", 0))[0].code, order.code);
+    assert.equal((await api.redemption("a", order.id)).status, "pending_fulfillment");
+    await db.exec("RESET ROLE");
+    const catalogMigration = await readFile(resolve(process.cwd(), "../backend/migrations/20261121_physical_reward_catalog.sql"), "utf8");
+    await db.exec(catalogMigration);
+    await db.exec("SET ROLE service_role");
+    const starter = (await api.rewards("a", 0)).filter((item) => item.id.startsWith("flamee-"));
+    assert.equal(starter.length, 5);
+    assert.deepEqual(starter.map((item) => item.price_points).sort((a, b) => a - b), [100, 500, 800, 1500, 2000]);
+    assert.ok(starter.every((item) => item.stock === 0 && item.fanpage_url === null));
+    await db.exec("UPDATE mission_rewards SET stock=2,price_points=150 WHERE id='flamee-hair-tie'; RESET ROLE");
+    await db.exec(catalogMigration);
+    await db.exec("SET ROLE service_role");
+    const kept = (await api.rewards("a", 0)).find((item) => item.id === "flamee-hair-tie")!;
+    assert.equal(kept.stock, 2);
+    assert.equal(kept.price_points, 150);
+    assert.equal((await api.wallet("a")).balance, 20);
+    assert.equal((await api.redemptions("a", 0)).length, 1);
+  } finally { await db.close(); }
+});

@@ -10,3 +10,36 @@ expo-env.d.ts
 .env.local
 .env.*.local
 # @end expo-cli
+
+# Local build caches and exported bundles
+/.gradle/
+/.kotlin/
+/.cxx/
+/.eas/
+/build/
+/dist-*/
+*.tsbuildinfo
+
+# Android build outputs and machine-specific configuration
+/android/.gradle/
+/android/.kotlin/
+/android/.idea/
+/android/.cxx/
+/android/build/
+/android/app/build/
+/android/app/.cxx/
+/android/local.properties
+/android/keystore.properties
+/android/key.properties
+*.jks
+*.keystore
+
+# Local signing and service credentials
+/credentials.json
+/google-services.json
+/android/app/google-services.json
+
+# Build logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

@@ -3,7 +3,7 @@
     "name": "Flamee",
     "slug": "flamee-mobile",
     "scheme": "flamee",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "icon": "./src/features/startup/assets/flamee-symbol.png",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -17,7 +17,8 @@
       "deploymentTarget": "16.4"
     },
     "android": {
-      "package": "com.flamee.mobile"
+      "package": "com.flamee.mobile",
+      "versionCode": 20261121
     },
     "plugins": [
       "expo-router",

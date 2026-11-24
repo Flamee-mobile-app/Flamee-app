@@ -1,10 +1,12 @@
 import { Sparkles } from "@tamagui/lucide-icons-2/icons/Sparkles";
+import { ArrowUpRight } from "@tamagui/lucide-icons-2/icons/ArrowUpRight";
 import { Image } from "react-native";
 import { Text, XStack, YStack } from "tamagui";
 import { AppGradientText, SectionCard } from "../../../shared/components";
 import { getMessage } from "../../../shared/localization/messages";
 import { resolveMascotSticker } from "../../checkins";
-import { moodFlowTokens } from "../../../shared/constants/tokens";
+import { moodFlowTokens, nudgeTokens } from "../../../shared/constants/tokens";
+import { NudgeArtwork, nudgeActionTitle } from "./NudgeArtwork";
 import { useQuery } from "@tanstack/react-query";
 import { useIsFocused, useRouter } from "expo-router";
 import { AppButton, AppSkeleton, appToast } from "../../../shared/components";
@@ -23,7 +25,7 @@ export function SmartNudgeCard() {
   const revision = useSessionStore((state) => state.membershipRevision);
   const scope = { accountId, coupleId, sessionId, revision };
   const capability = useMoodReminderCapability({ accountId, sessionId });
-  const query = useQuery({ queryKey: [...dualNudgeKey(scope), "active"], queryFn: ({ signal }) => dualNudgeService.active(scope, signal), enabled: Boolean(focused && accountId && coupleId && capability.data?.dual_mood_nudge), staleTime: 10_000, refetchInterval: focused ? 15_000 : false, retry: false });
+  const query = useQuery({ queryKey: [...dualNudgeKey(scope), "active"], queryFn: ({ signal }) => dualNudgeService.active(scope, signal), enabled: Boolean(focused && accountId && coupleId && capability.data?.dual_mood_nudge), staleTime: 30_000, refetchInterval: false, refetchOnReconnect: false, retry: false });
   const retry = async () => {
     const feedback = appToast.operation();
     const checked = capability.data?.dual_mood_nudge ? capability : await capability.refetch();
@@ -33,10 +35,22 @@ export function SmartNudgeCard() {
     if (!dualNudgeCurrent(scope)) return;
     if (result.isError) feedback.error(getMessage("vi", "dualNudgeError")); else feedback.success(getMessage("vi", "dualNudgeUpdated"));
   };
-  if (query.data && !query.isError) return <SectionCard tone="white" emphasis="action" testID="moments-smart-nudge" accessibilityLabel={query.data.observation} onPress={() => router.push({ pathname: "/nudge/[nudgeId]", params: { nudgeId: query.data!.id } })}>
-    <YStack gap="$sm"><AppGradientText size="bodyM" weight="semibold">{getMessage("vi", "moodPreviewNudgeLabel")}</AppGradientText>
-      <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textPrimary">{query.data.observation}</Text>
-      <Text fontFamily="$body" fontSize="$bodyS" lineHeight="$bodyS" color="$textSecondary" numberOfLines={2}>{query.data.draft}</Text>
+  if (query.data && !query.isError) return <SectionCard tone="white" emphasis="action" showChevron={false} testID="moments-smart-nudge" accessibilityLabel={`${getMessage("vi", "moodPreviewNudgeLabel")}. ${nudgeActionTitle(query.data)}`} onPress={() => router.push({ pathname: "/nudge/[nudgeId]", params: { nudgeId: query.data!.id } })}>
+    <YStack gap="$md">
+      <XStack alignItems="center" gap="$xs"><Sparkles size={nudgeTokens.iconSize} color="$accentText" aria-hidden />
+        <AppGradientText size="label" weight="semibold">{getMessage("vi", "moodPreviewNudgeLabel")}</AppGradientText>
+      </XStack>
+      <XStack gap="$md" alignItems="center">
+        <YStack flex={1} minWidth={0} gap="$sm">
+          <Text fontFamily="$heading" fontSize="$h5" lineHeight="$h5" fontWeight="$semibold" color="$textPrimary">{nudgeActionTitle(query.data)}</Text>
+          <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textSecondary" numberOfLines={2}>{query.data.observation}</Text>
+        </YStack>
+        <NudgeArtwork nudge={query.data} size={nudgeTokens.previewArtworkSize} />
+      </XStack>
+      <XStack alignItems="center" gap="$xs">
+        <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" fontWeight="$semibold" color="$accentText">{getMessage("vi", "nudgeVisualOpen")}</Text>
+        <ArrowUpRight size={nudgeTokens.iconSize} color="$accentText" aria-hidden />
+      </XStack>
     </YStack>
   </SectionCard>;
   return <SectionCard tone="white" showChevron={false} testID="moments-smart-nudge">

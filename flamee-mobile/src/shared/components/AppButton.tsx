@@ -1,6 +1,6 @@
 import type { PropsWithChildren, ReactNode } from "react";
-import { Platform } from "react-native";
-import { Button, Spinner, Text, XStack } from "tamagui";
+import { Platform, View } from "react-native";
+import { Button, Spinner, Text } from "tamagui";
 import { buttonTokens, glassTokens } from "../constants/tokens";
 import { useButtonInteraction } from "./useButtonInteraction";
 import { resolveSurfaceShadow } from "./surfaceShadow";
@@ -114,7 +114,7 @@ export function AppButton({
       opacity={disabledPresentation?.opacity ?? 1}
       cursor={state.disabled ? "default" : "pointer"}
       role="button"
-      aria-label={accessibilityLabel}
+      aria-label={accessibilityLabel ?? (typeof children === "string" ? children : undefined)}
       aria-busy={state.busy}
       aria-disabled={state.disabled}
       accessibilityHint={accessibilityHint}
@@ -122,13 +122,17 @@ export function AppButton({
       disabled={state.disabled}
       onPress={onPress}
     >
-      <XStack
-        width={contentAlign === "start" ? "100%" : undefined}
-        minWidth={0}
-        alignItems="center"
-        justifyContent={contentAlign === "start" ? "flex-start" : "center"}
-        gap={buttonTokens.iconGap}
-        opacity={state.contentOpacity}
+      <View
+        collapsable={false}
+        style={{
+          width: contentAlign === "start" ? "100%" : undefined,
+          minWidth: 0,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: contentAlign === "start" ? "flex-start" : "center",
+          gap: buttonTokens.iconGap,
+          opacity: state.contentOpacity,
+        }}
       >
         {icon}
         <Text
@@ -144,7 +148,7 @@ export function AppButton({
           {children}
         </Text>
         {iconAfter}
-      </XStack>
+      </View>
       {state.busy ? <Spinner position="absolute" size="small" color={contentColor} /> : null}
     </Button>
   );

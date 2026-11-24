@@ -1,4 +1,4 @@
-from app.core.exceptions import ForbiddenError
+from app.core.exceptions import ForbiddenError, ValidationError
 
 
 class RewardService:
@@ -9,6 +9,10 @@ class RewardService:
 
     def run(self,user_id,action,target=None,key=None,payload=None):
         if action.startswith('admin_'):self.operator(user_id)
+        if action in ('redeem','admin_create','admin_update'):
+            price=(payload or {}).get('expected_price' if action=='redeem' else 'price_points')
+            if type(price) is not int or price < 100:
+                raise ValidationError('Rewards require at least 100 points')
         result=self.repository.execute(user_id,action,target,key,payload)
         if action in ('redeem','cancel','admin_fulfill','expire') and isinstance(result,dict):
             from app.services.websocket_service import ws_manager

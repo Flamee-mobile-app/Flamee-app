@@ -1070,7 +1070,7 @@ CREATE TABLE IF NOT EXISTS public.mission_rewards(
  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,title_vi TEXT NOT NULL,title_en TEXT NOT NULL,
  description_vi TEXT NOT NULL DEFAULT '',description_en TEXT NOT NULL DEFAULT '',
  price_points INTEGER NOT NULL CHECK(price_points>0),stock INTEGER NOT NULL CHECK(stock>=0),
- fanpage_url TEXT NOT NULL CHECK(fanpage_url LIKE 'https://%'),active BOOLEAN NOT NULL DEFAULT true,
+ fanpage_url TEXT CHECK(fanpage_url LIKE 'https://%'),active BOOLEAN NOT NULL DEFAULT true,
  revision INTEGER NOT NULL DEFAULT 0,created_at TIMESTAMPTZ NOT NULL DEFAULT now(),updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE TABLE IF NOT EXISTS public.mission_redemptions(

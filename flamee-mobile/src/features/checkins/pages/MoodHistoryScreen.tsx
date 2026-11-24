@@ -4,7 +4,7 @@ import { CalendarDays } from "@tamagui/lucide-icons-2/icons/CalendarDays";
 import { useMemo, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Text, XStack, YStack } from "tamagui";
-import { AppButton, AppCalendarDay, AppCalendarGrid, AppGradientText, AppIconButton, AppScreen, AppTextButton, SectionCard, useAppHeader } from "../../../shared/components";
+import { AppButton, AppCalendarDay, AppCalendarGrid, AppGradientText, AppIconButton, AppScreen, AppTextButton, SectionCard, appToast, useAppHeader } from "../../../shared/components";
 import { featureTokens, memoryCalendarTokens } from "../../../shared/constants/tokens";
 import { formatMessage, getMessage } from "../../../shared/localization/messages";
 import { moodCalendarCells, moodCalendarDay, moveMoodPeriod } from "../moodCalendarModel";
@@ -17,6 +17,7 @@ import { useSessionStore } from "../../../shared/state/sessionStore";
 import { moodHistoryOptions } from "../moodQueries";
 import { moodService } from "../moodService";
 import { moodHistoryRecords } from "../moodHistoryModel";
+import { MoodCheckInDetails } from "../components/MoodCheckInDetails";
 
 const monthFormat = new Intl.DateTimeFormat("vi-VN", { month: "long", year: "numeric", timeZone: "UTC" });
 const fullDate = new Intl.DateTimeFormat("vi-VN", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
@@ -31,8 +32,17 @@ export function MoodHistoryScreen() {
 function ServerMoodHistory({ accountId, sessionId }: { accountId: string | null; sessionId: number }) {
   const query = useInfiniteQuery({ ...moodHistoryOptions({ accountId, sessionId }, moodService.history), enabled: Boolean(accountId) });
   const records = useMemo(() => moodHistoryRecords(query.data?.pages.flat() ?? []), [query.data]);
+  const reload = async (more = false) => {
+    if (query.isFetching) return;
+    const feedback = appToast.operation();
+    const result = await (more ? query.fetchNextPage() : query.refetch());
+    const current = useSessionStore.getState();
+    if (current.activeAccountId !== accountId || current.sessionId !== sessionId) return;
+    if (result.isError) feedback.error(getMessage("vi", "moodHistoryReadError"));
+    else feedback.success(getMessage("vi", "moodHistoryUpdated"));
+  };
   return <MoodHistoryCalendar records={records} status={query.isError ? "error" : query.data ? "ready" : "loading"}
-    busy={query.isFetching} hasMore={Boolean(query.hasNextPage)} onRefresh={() => { void query.refetch(); }} onMore={() => { void query.fetchNextPage(); }} />;
+    busy={query.isFetching} hasMore={Boolean(query.hasNextPage)} onRefresh={() => { void reload(); }} onMore={() => { void reload(true); }} />;
 }
 
 function MoodHistoryCalendar({ records, status, busy, hasMore, onRefresh, onMore }: { records: readonly MoodHistoryRecord[]; status: "loading" | "error" | "ready"; busy: boolean; hasMore: boolean; onRefresh: () => void; onMore: () => void }) {
@@ -79,10 +89,10 @@ function MoodHistoryCalendar({ records, status, busy, hasMore, onRefresh, onMore
       </> : null}
       {selected && (records.length > 0 || status === "ready") ? <YStack alignSelf="stretch" gap="$xs" paddingTop="$lg" borderTopWidth={1} borderColor="$border">
         <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" fontWeight="$semibold" color="$textPrimary">{fullDate.format(atDay(selected))}</Text>
-        {selectedMood ? <XStack alignItems="center" gap="$sm">
+        {selectedMood?.source ? <SectionCard tone="white"><MoodCheckInDetails mood={selectedMood.source} /></SectionCard> : selectedMood ? <XStack alignItems="center" gap="$sm">
           <MoodEmojiIcon emotionId={selectedMood.emotionId} size={32} label={selectedEmotion ? getMessage("vi", selectedEmotion.labelKey) : undefined} />
           <Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textPrimary">{selectedEmotion ? getMessage("vi", selectedEmotion.labelKey) : selectedMood.emotionId}</Text>
-        </XStack> : null}
+        </XStack> : <Text fontFamily="$body" fontSize="$bodyS" lineHeight="$bodyS" color="$textSecondary">{formatMessage("vi", "moodHistoryNoDataLabel", { date: fullDate.format(atDay(selected)) })}</Text>}
       </YStack> : null}
       {hasMore ? <>
         <Text fontFamily="$body" fontSize="$bodyS" lineHeight="$bodyS" color="$textSecondary">{getMessage("vi", "moodHistoryPartial")}</Text>

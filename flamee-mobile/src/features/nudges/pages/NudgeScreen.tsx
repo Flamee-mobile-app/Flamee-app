@@ -1,12 +1,16 @@
 import { useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Text, YStack } from "tamagui";
+import { Text, XStack, YStack } from "tamagui";
+import { Check } from "@tamagui/lucide-icons-2/icons/Check";
+import { Clock3 } from "@tamagui/lucide-icons-2/icons/Clock3";
 import { AppButton, AppSkeleton, FeatureScreen, UnavailableFeature, appToast } from "../../../shared/components";
 import { getMessage } from "../../../shared/localization/messages";
 import { useSessionStore } from "../../../shared/state/sessionStore";
 import { useMoodReminderCapability } from "../../checkins";
 import { dualNudgeCurrent, dualNudgeKey, dualNudgeService } from "../dualNudgeService";
 import type { NudgeAction } from "../dualNudgeApi";
+import { NudgeContent } from "../components/NudgeContent";
+import { nudgeTokens } from "../../../shared/constants/tokens";
 
 export function NudgeScreen({ nudgeId }: { nudgeId: string }) {
   const accountId = useSessionStore((state) => state.activeAccountId);
@@ -45,10 +49,18 @@ export function NudgeScreen({ nudgeId }: { nudgeId: string }) {
   return <FeatureScreen title={getMessage("vi", "moodPreviewNudgeLabel")} showBack withBottomNavigation={false}>
     {capability.isPending || (capability.data?.dual_mood_nudge && query.isPending) ? <AppSkeleton height={120} />
       : !capability.data?.dual_mood_nudge || query.isError || !query.data ? <YStack gap="$md"><Text fontFamily="$body" fontSize="$bodyM" color="$textSecondary">{getMessage("vi", "dualNudgeError")}</Text><AppButton variant="ghost" onPress={() => { void retry(); }}>{getMessage("vi", "retry")}</AppButton></YStack>
-      : <YStack gap="$lg"><Text fontFamily="$heading" fontSize="$h4" lineHeight="$h4" color="$textPrimary">{query.data.observation}</Text>
-        <Text fontFamily="$body" fontSize="$bodyM" color="$textSecondary">{getMessage("vi", "dualNudgeMessage")}</Text><Text fontFamily="$body" fontSize="$bodyL" lineHeight="$bodyL" color="$textPrimary">{query.data.draft}</Text>
-        <Text fontFamily="$body" fontSize="$bodyM" color="$textSecondary">{getMessage("vi", "dualNudgeReason")}</Text><Text fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textPrimary">{query.data.reason}</Text>
-        {query.data.status === "new" && !(query.data.snoozed_until && Date.parse(query.data.snoozed_until) > Date.now()) ? <><AppButton disabled={busy} loading={busy} onPress={() => { void act("completed"); }}>{getMessage("vi", "dualNudgeDone")}</AppButton>{query.data.snooze_count === 0 ? <AppButton variant="secondary" disabled={busy} onPress={() => { void act("snoozed"); }}>{getMessage("vi", "dualNudgeSnooze")}</AppButton> : null}<AppButton variant="ghost" disabled={busy} onPress={() => { void act("dismissed"); }}>{getMessage("vi", "dualNudgeDismiss")}</AppButton></> : null}
+      : <YStack gap="$lg">
+        <NudgeContent key={query.data.id} nudge={query.data} />
+        {query.data.status === "new" && !(query.data.snoozed_until && Date.parse(query.data.snoozed_until) > Date.now()) ? <YStack gap="$sm">
+          <AppButton fill depth="subtle" icon={<Check size={nudgeTokens.iconSize} color="$white" />} disabled={busy} loading={busy} onPress={() => { void act("completed"); }}>{getMessage("vi", "dualNudgeDone")}</AppButton>
+          <XStack gap="$sm">
+            {query.data.snooze_count === 0 ? <AppButton grow depth="flat" variant="secondary" icon={<Clock3 size={nudgeTokens.iconSize} color="$accentText" />} disabled={busy} onPress={() => { void act("snoozed"); }}>{getMessage("vi", "dualNudgeSnooze")}</AppButton> : null}
+            <AppButton grow depth="flat" variant="ghost" disabled={busy} onPress={() => { void act("dismissed"); }}>{getMessage("vi", "dualNudgeDismiss")}</AppButton>
+          </XStack>
+        </YStack> : <XStack alignItems="center" justifyContent="center" gap="$sm" paddingVertical="$md" aria-live="polite">
+          {query.data.status === "completed" ? <Check size={nudgeTokens.iconSize} color="$calmText" aria-hidden /> : null}
+          <Text flexShrink={1} fontFamily="$body" fontSize="$bodyM" lineHeight="$bodyM" color="$textSecondary" textAlign="center">{getMessage("vi", query.data.status === "completed" ? "nudgeStatusCompleted" : query.data.status === "dismissed" ? "nudgeStatusDismissed" : query.data.status === "expired" ? "nudgeStatusExpired" : "nudgeStatusSnoozed")}</Text>
+        </XStack>}
       </YStack>}
   </FeatureScreen>;
 }

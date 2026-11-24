@@ -22,7 +22,7 @@ Rà source local ngày 2026-10-26. Tài liệu này phân biệt endpoint đã t
 - Quên/reset mật khẩu được người dùng loại khỏi phạm vi luôn; entry không hoạt động đã được gỡ khỏi login. Endpoint legacy còn trả 501 để không báo thành công giả.
 - Nghiệm thu dùng môi trường development hiện có; live write chỉ chạy bài account workflow đã được cho phép cụ thể.
 - UI/kiểu lịch và các control chung đã duyệt được giữ; FAB chỉ hiệu ứng tương tác.
-- Quy tắc ngày chung/điểm/lượt đổi/quà/fanpage Tiny Mission chưa có quyết định bổ sung; giá trị preview không là contract production.
+- Tiny Mission hiện dùng contract server tại `20261110_missions.sql`/`20261110_rewards.sql`: ngày chung theo ví, điểm theo rule version, tối đa hai lượt đổi/cặp/ngày, quà/tồn kho/fanpage do operator quản lý. Giá trị preview không là contract production. Chi tiết mobile hiện hành: [TINY-MISSION.md](TINY-MISSION.md).
 
 ## Endpoint đang tồn tại và khoảng cách tích hợp
 
@@ -45,7 +45,7 @@ Rà source local ngày 2026-10-26. Tài liệu này phân biệt endpoint đã t
 | Memory post heart | GET/PUT/DELETE `/memories/{id}/heart` | Desired-state, JSON200 với memory_id/count/hearted; actor từ bearer, kiểm activepair/server membership, không optimistic. Cần migration20261116_memory_post_hearts và deploy; chưa áp dụng lên dịch vụ thật. |
 | In-app inbox | GET `/notifications`; PUT `/notifications/{id}/read`; PUT `/notifications/read-all` | Couple/recipient từ server; chuông/badge, phân trang, read-one/all, target bị xóa không khả dụng; polling foreground. Xem MEMORY-CONVERSATIONS.md |
 | Push/realtime | POST `/users/me/device-token`; WebSocket `/ws` | Có backend và native adapter rời; chưa có luồng settings/token/provider/tap và query invalidation hoàn chỉnh. Inbox bình luận mới không đồng nghĩa đã cấu hình push màn khóa |
-| Tiny Mission | Chưa có router mission/wallet/redemption | Thiết kế API trong plan là **đề xuất**, chưa phải endpoint có thể gọi |
+| Tiny Mission | Router missions/wallet/rewards/redemptions đã có và được xác minh trong OpenAPI server | Mobile đọc/ghi qua API với ACK, version và idempotency; trạng thái quà trống phản ánh catalog thật, không seed quà mẫu |
 | Preferences/export/delete | GET/PUT `/users/me/preferences`; chưa đủ endpoint/worker cho export/delete | Preferences đã nối mobile theo revision; export/delete vẫn chưa hoàn chỉnh |
 
 ## Ràng buộc không được map mất dữ liệu
