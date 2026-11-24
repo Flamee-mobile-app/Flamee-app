@@ -1,5 +1,9 @@
 # Pill nav — cập nhật 2026-11-16
 
+## Điều chỉnh 2026-11-24: thống kê Kỷ niệm ở đầu màn
+
+Khối chuỗi ngày liên tiếp/tổng ảnh nằm trong ListHeaderComponent ngay dưới header màn Kỷ niệm, trước lịch tháng; không còn ở cuối danh sách. Giữ cùng MemoryCalendarStats/dữ liệu server/nhãn phân trang chưa đầy đủ, cuộn cùng nội dung. Footer chỉ giữ hành động tải thêm khi còn trang.
+
 ## Điều chỉnh theo yêu cầu 2026-11-16 (ưu tiên hơn mô tả lịch sử bên dưới)
 
 - Nút Flamee mở tổng quan cảm xúc `/(main)/moments`, không tự khởi động check-in. Người dùng chủ động chọn hành động của mình trên màn tổng quan để mở `/mood/check-in`. Quick action cảm xúc trong Profile vẫn mở check-in trực tiếp.
